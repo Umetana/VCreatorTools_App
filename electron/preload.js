@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("vct", {
   revokeRemoteSessions: () => ipcRenderer.invoke("remote:sessions-revoke-all"),
   remoteQr: (index) => ipcRenderer.invoke("remote:qr", index),
   openPath: (name) => ipcRenderer.invoke("open:path", name),
+  installUserGadgetSample: () => ipcRenderer.invoke("user-gadget:install-sample"),
   onStatus: (callback) => ipcRenderer.on("server:status", (_event, value) => callback(value)),
   onLog: (callback) => ipcRenderer.on("server:log", (_event, value) => callback(value))
 });

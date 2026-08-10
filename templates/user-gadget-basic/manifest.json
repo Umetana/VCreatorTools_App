@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.0",
+  "name": "User Gadget Sample",
+  "status": "development",
+  "modes": ["standalone", "sync"],
+  "pages": [
+    {
+      "name": "Sample Control",
+      "file": "control.html",
+      "type": "control",
+      "role": "control",
+      "obs": false,
+      "modes": ["standalone", "sync"]
+    },
+    {
+      "name": "Sample Display",
+      "file": "display.html",
+      "type": "view",
+      "role": "display",
+      "obs": true,
+      "modes": ["standalone", "sync"]
+    }
+  ]
+}

@@ -171,6 +171,21 @@ document.getElementById("sessions-revoke").onclick = async () => {
   catch (error) { result.className = "error"; result.textContent = error.message; }
 };
 document.querySelectorAll("[data-path]").forEach((button) => { button.onclick = () => window.vct.openPath(button.dataset.path); });
+document.getElementById("install-user-sample").onclick = async () => {
+  const result = document.getElementById("user-sample-result");
+  result.className = "";
+  result.textContent = "追加中…";
+  try {
+    await window.vct.installUserGadgetSample();
+    result.className = "success";
+    result.textContent = "追加しました";
+    gadgetsLoaded = false;
+    await refreshCycle(true);
+  } catch (error) {
+    result.className = "error";
+    result.textContent = error.message;
+  }
+};
 window.vct.onStatus(() => refreshCycle());
 window.vct.onLog((line) => { log.textContent += line; log.scrollTop = log.scrollHeight; });
 loadSettings();

@@ -22,12 +22,16 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.doesNotMatch(preload, /openExternal/);
   assert.match(preload, /copyGadgetUrl/);
   assert.match(preload, /regeneratePairing/);
+  assert.match(main, /ipcMain\.handle\("user-gadget:install-sample"/);
+  assert.match(main, /if \(fs\.existsSync\(destination\)\) throw/);
+  assert.match(main, /force: false, errorOnExist: true/);
+  assert.match(preload, /installUserGadgetSample/);
 });
 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
-  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "gadgets-refresh"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "gadgets-refresh", "install-user-sample", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
@@ -37,4 +41,5 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /if \(forceGadgets \|\| !gadgetsLoaded\) await refreshGadgets\(\)/);
   assert.doesNotMatch(app, /^refreshRemote\(\);$/m);
   assert.doesNotMatch(app, /^refreshGadgets\(\);$/m);
+  assert.match(app, /window\.vct\.installUserGadgetSample\(\)/);
 });

@@ -21,6 +21,7 @@ function paths() {
     userData,
     serverEntry: path.join(resources, "server", "server.js"),
     publicDir: path.join(resources, "public"),
+    userGadgetTemplateDir: path.join(resources, "templates", "user-gadget-basic"),
     configFile: path.join(userData, "server.config.json"),
     dataDir: path.join(userData, "data"),
     logsDir: path.join(userData, "logs"),
@@ -209,6 +210,14 @@ ipcMain.handle("server:health", async () => {
 });
 ipcMain.handle("open:server-page", (_event, page) => shell.openExternal(`${mainBaseUrl()}${page === "admin" ? "/admin" : "/"}`));
 ipcMain.handle("open:path", (_event, target) => shell.openPath(paths()[target]));
+ipcMain.handle("user-gadget:install-sample", () => {
+  const current = ensureRuntime();
+  const destination = path.join(current.userGadgetsDir, "vct_user_gadget_sample");
+  if (fs.existsSync(destination)) throw new Error("確認用サンプルは既に追加されています");
+  if (!fs.existsSync(current.userGadgetTemplateDir)) throw new Error("同梱テンプレートが見つかりません");
+  fs.cpSync(current.userGadgetTemplateDir, destination, { recursive: true, force: false, errorOnExist: true });
+  return { path: destination };
+});
 
 app.whenReady().then(async () => {
   ensureRuntime();

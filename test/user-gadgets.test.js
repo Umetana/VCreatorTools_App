@@ -14,6 +14,18 @@ test("user gadget static mount resolves real paths inside its root", () => {
   assert.match(source, /user_gadget_path_forbidden/);
 });
 
+test("bundled user gadget sample is a standalone and Sync-only API-free template", () => {
+  const template = path.join(__dirname, "..", "templates", "user-gadget-basic");
+  const manifest = JSON.parse(fs.readFileSync(path.join(template, "manifest.json"), "utf8"));
+  assert.equal(manifest.schemaVersion, 1);
+  assert.deepEqual(manifest.modes, ["standalone", "sync"]);
+  assert.deepEqual(manifest.pages.map((page) => page.role), ["control", "display"]);
+  for (const page of manifest.pages) assert.equal(fs.existsSync(path.join(template, page.file)), true);
+  const script = fs.readFileSync(path.join(template, "sample.js"), "utf8");
+  assert.match(script, /new BroadcastChannel/);
+  assert.doesNotMatch(script, /fetch\s*\(|\/api\//);
+});
+
 test("user gadgets require a manifest and Remote management stays admin-only", async () => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "vct-user-gadgets-"));
   const valid = path.join(temporary, "sample");

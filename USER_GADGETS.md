@@ -13,6 +13,8 @@ http://127.0.0.1:<Main Port>/user_gadgets/<folder>/...
 
 Electronの「ユーザーガジェット」ボタンから配置Folderを開ける。ServerはFolder外へ解決されるPathとシンボリックリンク／ジャンクションを配信しない。
 
+「確認用サンプルを追加」は同梱の`templates/user-gadget-basic`を`vct_user_gadget_sample`として一度だけ複製する。既存Folderは上書きしない。サンプルはServer APIへ依存せず、StandaloneとBroadcastChannelによるSyncの最小構成を示す。
+
 ## 一覧掲載
 
 静的ファイルはmanifestなしでもURLを直接指定して表示できる。一覧掲載には`manifest.json`が必須で、公式manifestと同じschema version 1、相対HTML Path、role、modeを検証する。不正なFolderだけを一覧から除外し、公式ツールの列挙は継続する。
