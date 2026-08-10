@@ -72,43 +72,58 @@ async function refreshRemote() {
   }
 }
 
+function renderGadgets(container, gadgets, emptyMessage) {
+  container.replaceChildren();
+  if (!gadgets.length) {
+    container.append(element("p", "note", emptyMessage));
+    return;
+  }
+  for (const gadget of gadgets) {
+    const details = element("details", "gadget");
+    const summary = element("summary");
+    const category = gadget.root === "vct_web_app" ? "Web App" : gadget.root === "V_CreatorTools" ? "Gadget" : "User";
+    summary.append(element("span", "role", category), element("strong", "", gadget.rawName), element("span", "gadget-meta", `  v${gadget.version || "-"} / ${gadget.status || "-"}`));
+    details.append(summary);
+    for (const page of gadget.pages) {
+      const pageElement = element("div", "page");
+      const title = element("div", "page-title");
+      title.append(element("strong", "", page.name), element("span", "role", page.role));
+      if (page.obs) title.append(element("span", "mode", "OBS"));
+      pageElement.append(title);
+      for (const mode of page.modes) {
+        const url = page.urls[mode];
+        const row = element("div", "url-row");
+        row.append(element("span", "mode", mode), element("code", "", url));
+        const copy = element("button", "", "URLコピー");
+        copy.onclick = async () => { await window.vct.copyGadgetUrl(url); copy.textContent = "コピー済み"; setTimeout(() => { copy.textContent = "URLコピー"; }, 1200); };
+        const open = element("button", "", "開く");
+        open.onclick = () => window.vct.openGadgetUrl(url);
+        row.append(copy, open);
+        pageElement.append(row);
+      }
+      details.append(pageElement);
+    }
+    container.append(details);
+  }
+}
+
 async function refreshGadgets() {
-  const container = document.getElementById("gadgets");
-  container.replaceChildren(element("p", "note", "取得中…"));
+  const officialContainer = document.getElementById("gadgets");
+  const userContainer = document.getElementById("user-gadgets");
+  officialContainer.replaceChildren(element("p", "note", "取得中…"));
+  userContainer.replaceChildren(element("p", "note", "取得中…"));
   try {
     const gadgets = await window.vct.listGadgets();
-    container.replaceChildren();
-    for (const gadget of gadgets) {
-      const details = element("details", "gadget");
-      const summary = element("summary");
-      const category = gadget.root === "vct_web_app" ? "Web App" : gadget.root === "V_CreatorTools" ? "Gadget" : gadget.root === "user_gadgets" ? "User" : "Custom";
-      summary.append(element("span", "role", category), element("strong", "", gadget.rawName), element("span", "gadget-meta", `  v${gadget.version || "-"} / ${gadget.status || "-"}`));
-      details.append(summary);
-      for (const page of gadget.pages) {
-        const pageElement = element("div", "page");
-        const title = element("div", "page-title");
-        title.append(element("strong", "", page.name), element("span", "role", page.role));
-        if (page.obs) title.append(element("span", "mode", "OBS"));
-        pageElement.append(title);
-        for (const mode of page.modes) {
-          const url = page.urls[mode];
-          const row = element("div", "url-row");
-          row.append(element("span", "mode", mode), element("code", "", url));
-          const copy = element("button", "", "URLコピー");
-          copy.onclick = async () => { await window.vct.copyGadgetUrl(url); copy.textContent = "コピー済み"; setTimeout(() => { copy.textContent = "URLコピー"; }, 1200); };
-          const open = element("button", "", "開く");
-          open.onclick = () => window.vct.openGadgetUrl(url);
-          row.append(copy, open);
-          pageElement.append(row);
-        }
-        details.append(pageElement);
-      }
-      container.append(details);
-    }
+    const userGadgets = gadgets.filter((gadget) => gadget.root === "user_gadgets");
+    const officialGadgets = gadgets.filter((gadget) => gadget.root !== "user_gadgets");
+    renderGadgets(officialContainer, officialGadgets, "公式ツールはありません。");
+    renderGadgets(userContainer, userGadgets, "ユーザーガジェットはまだ追加されていません。");
     gadgetsLoaded = true;
   } catch {
     gadgetsLoaded = false;
-    container.replaceChildren(element("p", "error", "ガジェット一覧を取得できません。Serverを起動してください。"));
+    const message = element("p", "error", "ガジェット一覧を取得できません。Serverを起動してください。");
+    officialContainer.replaceChildren(message);
+    userContainer.replaceChildren(message.cloneNode(true));
   }
 }
 
@@ -119,7 +134,11 @@ function showDisconnectedManagement() {
   document.getElementById("remote-content").replaceChildren(element("p", "note", "Server起動後にRemote情報を自動表示します。"));
   document.getElementById("pairing-regenerate").disabled = true;
   document.getElementById("sessions-revoke").disabled = true;
-  if (!gadgetsLoaded) document.getElementById("gadgets").replaceChildren(element("p", "note", "Server起動後に一覧を自動取得します。"));
+  if (!gadgetsLoaded) {
+    const message = element("p", "note", "Server起動後に一覧を自動取得します。");
+    document.getElementById("gadgets").replaceChildren(message);
+    document.getElementById("user-gadgets").replaceChildren(message.cloneNode(true));
+  }
 }
 
 async function refreshCycle(forceGadgets = false) {

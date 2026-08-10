@@ -31,11 +31,13 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
-  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "gadgets-refresh", "install-user-sample", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
-  assert.match(app, /gadget\.root === "user_gadgets" \? "User"/);
+  assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root === "user_gadgets"\)/);
+  assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root !== "user_gadgets"\)/);
+  assert.match(app, /renderGadgets\(userContainer, userGadgets/);
   assert.match(app, /confirm\("すべてのRemote端末をログアウトしますか？"\)/);
   assert.match(app, /if \(!await refresh\(\)\)/);
   assert.match(app, /if \(forceGadgets \|\| !gadgetsLoaded\) await refreshGadgets\(\)/);
