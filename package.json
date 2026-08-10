@@ -8,6 +8,7 @@
   "scripts": {
     "start": "electron .",
     "smoke": "electron . --smoke-test",
+    "test": "node --test test/*.test.js",
     "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js"
   },
   "dependencies": {

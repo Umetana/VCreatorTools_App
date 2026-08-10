@@ -3,6 +3,7 @@
 const badge = document.getElementById("badge");
 const status = document.getElementById("status");
 const log = document.getElementById("log");
+const qrCache = new Map();
 
 function showStatus(server, health) {
   const state = health?.ok ? "running" : server.state;
@@ -25,6 +26,84 @@ async function loadSettings() {
   document.getElementById("remote-port").value = settings.remotePort;
 }
 
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function refreshRemote() {
+  const state = document.getElementById("remote-state");
+  const content = document.getElementById("remote-content");
+  try {
+    const result = await window.vct.remoteStatus();
+    const remote = result.remote;
+    const pairing = result.pairing;
+    state.textContent = remote.enabled ? (remote.state === "listening" ? "● LAN待受中" : remote.state) : "無効";
+    state.className = remote.state === "listening" ? "success" : "note";
+    content.replaceChildren();
+    document.getElementById("pairing-regenerate").disabled = !remote.enabled;
+    document.getElementById("sessions-revoke").disabled = !remote.enabled || pairing.sessions.length === 0;
+    const info = element("p", "note", `Session: ${pairing.sessions.length}台 / Pairing code: `);
+    info.append(element("strong", pairing.active ? "pairing" : "", pairing.active ? pairing.code : "未発行"));
+    content.append(info);
+    if (!remote.enabled) content.append(element("p", "note", "接続設定でRemoteを有効にするとURLとQRを表示します。"));
+    const grid = element("div", "remote-grid");
+    for (const [index, url] of remote.urls.entries()) {
+      const card = element("div", "remote-qr");
+      const image = element("img");
+      image.alt = "Remote URL QR";
+      if (!qrCache.has(url)) qrCache.set(url, await window.vct.remoteQr(index));
+      image.src = qrCache.get(url);
+      card.append(image, element("small", "", url));
+      grid.append(card);
+    }
+    content.append(grid);
+  } catch {
+    state.textContent = "Server未接続";
+    state.className = "error";
+    content.replaceChildren(element("p", "note", "Server起動後にRemote情報を表示します。"));
+  }
+}
+
+async function refreshGadgets() {
+  const container = document.getElementById("gadgets");
+  container.replaceChildren(element("p", "note", "取得中…"));
+  try {
+    const gadgets = await window.vct.listGadgets();
+    container.replaceChildren();
+    for (const gadget of gadgets) {
+      const details = element("details", "gadget");
+      const summary = element("summary");
+      summary.append(element("strong", "", gadget.rawName), element("span", "gadget-meta", `  v${gadget.version || "-"} / ${gadget.status || "-"}`));
+      details.append(summary);
+      for (const page of gadget.pages) {
+        const pageElement = element("div", "page");
+        const title = element("div", "page-title");
+        title.append(element("strong", "", page.name), element("span", "role", page.role));
+        if (page.obs) title.append(element("span", "mode", "OBS"));
+        pageElement.append(title);
+        for (const mode of page.modes) {
+          const url = page.urls[mode];
+          const row = element("div", "url-row");
+          row.append(element("span", "mode", mode), element("code", "", url));
+          const copy = element("button", "", "URLコピー");
+          copy.onclick = async () => { await window.vct.copyGadgetUrl(url); copy.textContent = "コピー済み"; setTimeout(() => { copy.textContent = "URLコピー"; }, 1200); };
+          const open = element("button", "", "開く");
+          open.onclick = () => window.vct.openGadgetUrl(url);
+          row.append(copy, open);
+          pageElement.append(row);
+        }
+        details.append(pageElement);
+      }
+      container.append(details);
+    }
+  } catch {
+    container.replaceChildren(element("p", "error", "ガジェット一覧を取得できません。Serverを起動してください。"));
+  }
+}
+
 document.getElementById("start").onclick = async () => { await window.vct.startServer(); setTimeout(refresh, 500); };
 document.getElementById("stop").onclick = async () => { await window.vct.stopServer(); refresh(); };
 document.getElementById("home").onclick = () => window.vct.openServerPage("home");
@@ -38,15 +117,30 @@ document.getElementById("settings").onsubmit = async (event) => {
     await window.vct.saveSettings({ mainPort: Number(document.getElementById("main-port").value), remoteEnabled: document.getElementById("remote-enabled").checked, remotePort: Number(document.getElementById("remote-port").value) });
     result.className = "success";
     result.textContent = "保存して再起動しました";
-    setTimeout(refresh, 500);
+    setTimeout(() => { refresh(); refreshRemote(); refreshGadgets(); }, 700);
   } catch (error) {
     result.className = "error";
     result.textContent = error.message;
   }
+};
+document.getElementById("gadgets-refresh").onclick = refreshGadgets;
+document.getElementById("pairing-regenerate").onclick = async () => {
+  const result = document.getElementById("remote-result");
+  try { await window.vct.regeneratePairing(); result.className = "success"; result.textContent = "Pairing codeを再生成しました"; await refreshRemote(); }
+  catch (error) { result.className = "error"; result.textContent = error.message; }
+};
+document.getElementById("sessions-revoke").onclick = async () => {
+  if (!confirm("すべてのRemote端末をログアウトしますか？")) return;
+  const result = document.getElementById("remote-result");
+  try { await window.vct.revokeRemoteSessions(); result.className = "success"; result.textContent = "全Sessionを破棄しました"; await refreshRemote(); }
+  catch (error) { result.className = "error"; result.textContent = error.message; }
 };
 document.querySelectorAll("[data-path]").forEach((button) => { button.onclick = () => window.vct.openPath(button.dataset.path); });
 window.vct.onStatus(() => refresh());
 window.vct.onLog((line) => { log.textContent += line; log.scrollTop = log.scrollHeight; });
 refresh();
 loadSettings();
+refreshRemote();
+refreshGadgets();
 setInterval(refresh, 3000);
+setInterval(refreshRemote, 3000);

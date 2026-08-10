@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, clipboard, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -93,6 +93,18 @@ function mainBaseUrl() {
   return `http://127.0.0.1:${publicSettings().mainPort}`;
 }
 
+async function serverJson(pathname, options = {}) {
+  const response = await fetch(`${mainBaseUrl()}${pathname}`, { ...options, signal: AbortSignal.timeout(2500) });
+  if (!response.ok) throw new Error(`Server API error: ${response.status}`);
+  return response.json();
+}
+
+function validatedServerUrl(value) {
+  const url = new URL(String(value));
+  if (url.origin !== mainBaseUrl()) throw new Error("Server外のURLは操作できません");
+  return url.toString();
+}
+
 function publishStatus() {
   mainWindow?.webContents.send("server:status", serverStatus);
 }
@@ -170,6 +182,18 @@ async function runSmokeTest() {
 ipcMain.handle("app:info", () => ({ version: APP_VERSION, ...paths(), server: serverStatus }));
 ipcMain.handle("settings:get", () => publicSettings());
 ipcMain.handle("settings:save", (_event, value) => saveSettings(value));
+ipcMain.handle("gadgets:list", () => serverJson("/api/get-gadgets"));
+ipcMain.handle("gadget:copy", (_event, url) => { clipboard.writeText(validatedServerUrl(url)); return true; });
+ipcMain.handle("gadget:open", (_event, url) => shell.openExternal(validatedServerUrl(url)));
+ipcMain.handle("remote:status", () => serverJson("/api/remote/status"));
+ipcMain.handle("remote:pairing-regenerate", () => serverJson("/api/remote/pairing/regenerate", { method: "POST" }));
+ipcMain.handle("remote:sessions-revoke-all", () => serverJson("/api/remote/sessions/revoke-all", { method: "POST" }));
+ipcMain.handle("remote:qr", async (_event, index) => {
+  if (!Number.isInteger(index) || index < 0 || index > 16) throw new Error("QR indexが不正です");
+  const response = await fetch(`${mainBaseUrl()}/api/remote/qr?index=${index}`, { signal: AbortSignal.timeout(2500) });
+  if (!response.ok) throw new Error(`QR取得エラー: ${response.status}`);
+  return `data:image/svg+xml;base64,${Buffer.from(await response.text()).toString("base64")}`;
+});
 ipcMain.handle("server:start", () => startServer());
 ipcMain.handle("server:stop", () => stopServer());
 ipcMain.handle("server:health", async () => {
