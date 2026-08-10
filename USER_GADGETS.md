@@ -1,6 +1,6 @@
 # user_gadgets 開発仕様
 
-Status: 静的配信・一覧統合実装済み／共有API契約は未確定
+Status: 静的配信・一覧統合実装済み／共有API v1 discovery実装済み
 
 ## 配置とURL
 
@@ -36,12 +36,16 @@ Electron運用中は起動ごとにランダムな管理Tokenを生成し、次�
 
 ## 現段階のAPI
 
+正式な共有Endpointは`GET /api/public/v1/capabilities`だけである。利用可能な共有Capabilityを機械判定するための読取専用APIで、現段階では`discovery`だけを`available: true`として返す。
+
 Counter、Material、Maro、Screen Effect、Remote Effect Catalog、Bridge等の既存Endpointは、公式ブラウザーツールと同じOrigin契約を共有している。入力検証は行うが、`user_gadgets`向けの正式な共有APIとはまだ宣言しない。
+
+同一OriginのJavaScriptに対し、URL単位の宣言だけで強制的な権限分離はできない。このため、現段階では信頼済みガジェットだけを配置する。未信頼コードまで扱う場合は、別Originでの配信またはガジェット単位のCapability tokenを将来導入する。
 
 正式公開前に次を行う。
 
-1. 読取、状態更新、Action、管理の4区分へ分類
-2. ユーザーガジェットへ許可するCapabilityを確定
-3. BridgeとCatalog更新を含む既存Endpointの認証要否を決定
-4. version付き共有APIと互換性方針を文書化
+1. 読取専用の共有リソース候補を選定
+2. version付き状態読取APIとevent購読を追加
+3. 状態更新とActionにCapability tokenが必要か決定
+4. BridgeとCatalog更新を含む既存Endpointの認証要否を決定
 5. 悪意ある同一Originページを想定したSecurity testを追加

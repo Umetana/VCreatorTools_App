@@ -47,6 +47,15 @@ test("user gadgets require a manifest and Remote management stays admin-only", a
     assert.match(user[0].pages[0].urls.sync, /\/user_gadgets\/sample\/index\.html\?vctMode=sync/);
     assert.equal((await fetch(`${base}/user_gadgets/sample/index.html`)).status, 200);
 
+    const publicCapabilities = await fetch(`${base}/api/public/v1/capabilities`).then((response) => response.json());
+    assert.equal(publicCapabilities.schema, "vct.public-capabilities.v1");
+    assert.equal(publicCapabilities.apiVersion, 1);
+    assert.equal(publicCapabilities.capabilities.discovery.available, true);
+    assert.equal(publicCapabilities.capabilities.discovery.access, "read");
+    for (const capability of ["stateRead", "stateWrite", "actions", "administration", "events"]) {
+      assert.equal(publicCapabilities.capabilities[capability].available, false);
+    }
+
     const restricted = await fetch(`${base}/api/remote/status`).then((response) => response.json());
     assert.equal(restricted.pairing.restricted, true);
     assert.equal(restricted.pairing.code, null);

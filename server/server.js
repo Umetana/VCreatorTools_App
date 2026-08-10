@@ -477,6 +477,19 @@ function createUnifiedServer(options = {}) {
   }
 
   app.get("/health", (_req, res) => res.json(health()));
+  app.get("/api/public/v1/capabilities", (_req, res) => res.json({
+    schema: "vct.public-capabilities.v1",
+    apiVersion: 1,
+    serverVersion: SERVICE_VERSION,
+    capabilities: {
+      discovery: { available: true, access: "read" },
+      stateRead: { available: false },
+      stateWrite: { available: false },
+      actions: { available: false },
+      administration: { available: false },
+      events: { available: false },
+    },
+  }));
   app.get("/api/remote/status", (req, res) => {
     const authorized = isAdminRequest(req);
     const pairing = authorized ? remote.pairingInfo() : { active: false, code: null, expiresAt: null, sessions: [], restricted: true };
