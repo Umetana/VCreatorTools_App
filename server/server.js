@@ -291,6 +291,7 @@ function createUnifiedServer(options = {}) {
       const roots = [
         { key: "V_CreatorTools", label: "[VCT]", cssClass: "tag-vct", color: "#19a974" },
         { key: "Custom", label: "[Custom]", cssClass: "tag-custom", color: "#2f80ed" },
+        { key: "vct_web_app", label: "[Web App]", cssClass: "tag-web-app", color: "#a78bfa" },
       ];
       const gadgets = roots.flatMap((root) => {
         const rootDir = path.join(publicDir, root.key);

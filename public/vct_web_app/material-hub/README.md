@@ -6,6 +6,8 @@ Gemini APIを利用して配信用の話題を調査・記事化し、OBSのブ�
 
 運用モードはStandard（ローカルファイル）、Sync（ローカルサーバー＋ブラウザー保存）、Server（サーバー正本）の3段階です。現在の正式対応はStandardとSyncで、Material Viewは共通`vct-runtime.js`を使って環境判定と同期通知を行います。
 
+モード対応の中心はMaterial Viewです。Material HubのGemini設定、APIキー、調査履歴、記事ストックと、Material Editorの下書きは、ローカルサーバーから開いた場合も各ブラウザーの保存領域で管理します。Electron／Serverの一覧ではHubとEditorをブラウザー保存型Web App、Viewer系ページをSync／Server対応として区別します。
+
 ローカルサーバー運用時にURLへ`vctDebug=1`を加えると、画面右下へ動作モードと同期機能の診断結果を表示します。例: `material_view.html?mode=view&vctDebug=1`
 
 ## Serverモード（試験実装）

@@ -1,0 +1,50 @@
+{
+  "id": "material_hub",
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "name": "Material Hub",
+  "status": "release",
+  "modes": ["standalone"],
+  "pages": [
+    {
+      "name": "Material Hub",
+      "file": "index.html",
+      "type": "control",
+      "role": "hub",
+      "obs": false,
+      "modes": ["standalone"]
+    },
+    {
+      "name": "Material Editor",
+      "file": "material_editor.html",
+      "type": "control",
+      "role": "editor",
+      "obs": false,
+      "modes": ["standalone"]
+    },
+    {
+      "name": "Material Viewer",
+      "file": "material_view.html?mode=view",
+      "type": "view",
+      "role": "display",
+      "obs": true,
+      "modes": ["sync", "server"]
+    },
+    {
+      "name": "Material Settings",
+      "file": "material_view.html?mode=settings",
+      "type": "control",
+      "role": "settings",
+      "obs": true,
+      "modes": ["sync", "server"]
+    },
+    {
+      "name": "Material All",
+      "file": "material_view.html?mode=all",
+      "type": "control",
+      "role": "control",
+      "obs": false,
+      "modes": ["sync", "server"]
+    }
+  ]
+}
