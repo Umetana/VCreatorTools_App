@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("fs");
+const crypto = require("crypto");
 const http = require("http");
 const path = require("path");
 const express = require("express");
@@ -28,6 +29,7 @@ function loadConfig(configFile = path.join(__dirname, "server.config.json")) {
     port: DEFAULT_PORT,
     bodyLimit: "256kb",
     publicDir: "public",
+    userGadgetsDir: null,
     materialDataFile: "data/material-view.json",
     gpCounterDataFile: "data/gp-counter.json",
     gpCounterV2DataFile: "data/gp-counter-v2.json",
@@ -131,6 +133,9 @@ function createUnifiedServer(options = {}) {
   const host = options.host || process.env.HOST || config.host || DEFAULT_HOST;
   const port = Number(options.port ?? process.env.PORT ?? config.port ?? DEFAULT_PORT);
   const publicDir = path.resolve(options.publicDir || config.publicDir || path.join(__dirname, "public"));
+  const configuredUserGadgetsDir = options.userGadgetsDir ?? process.env.VCT_USER_GADGETS_DIR ?? config.userGadgetsDir;
+  const userGadgetsDir = configuredUserGadgetsDir ? path.resolve(configuredUserGadgetsDir) : null;
+  const userGadgetsAvailable = Boolean(userGadgetsDir && fs.existsSync(userGadgetsDir) && fs.statSync(userGadgetsDir).isDirectory());
   const dataFile = options.dataFile === null
     ? null
     : path.resolve(options.dataFile || process.env.MATERIAL_DATA_FILE || config.materialDataFile || path.join(__dirname, "data", "material-view.json"));
@@ -145,11 +150,25 @@ function createUnifiedServer(options = {}) {
     : path.resolve(options.maroV2DataFile || process.env.MARO_V2_DATA_FILE || config.maroV2DataFile || path.join(__dirname, "data", "maro-v2.json"));
   const bodyLimit = options.bodyLimit || process.env.BODY_LIMIT || config.bodyLimit || "256kb";
   const bridgeToken = options.bridgeToken ?? process.env.BRIDGE_TOKEN ?? "";
+  const adminToken = options.adminToken ?? process.env.VCT_ADMIN_TOKEN ?? "";
   const logger = options.logger || console;
   const remoteConfig = normalizeRemoteConfig(options.remote || config.remote, { env: process.env, mainPort: port });
   const app = express();
   const startedAt = new Date();
   const counters = { bridgeEvents: 0, materialUpdates: 0, materialCommands: 0, gpCounterUpdates: 0, gpCounterCommands: 0, effectTriggers: 0 };
+
+  function isAdminRequest(req) {
+    if (!adminToken) return true;
+    const supplied = req.get("X-VCT-Admin-Token") || "";
+    const expectedBuffer = Buffer.from(adminToken);
+    const suppliedBuffer = Buffer.from(supplied);
+    return expectedBuffer.length === suppliedBuffer.length && crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+  }
+
+  function requireAdmin(req, res, next) {
+    if (isAdminRequest(req)) return next();
+    return res.status(403).json({ ok: false, error: "admin_authorization_required" });
+  }
 
   let materialState = emptyMaterialState();
   if (dataFile && fs.existsSync(dataFile)) {
@@ -284,7 +303,7 @@ function createUnifiedServer(options = {}) {
         return file;
       };
       const pageUrl = (root, folder, file, mode) => {
-        const url = new URL(`http://${host}:${server.address()?.port ?? port}/${root}/${folder}/${file}`);
+        const url = new URL(`http://${host}:${server.address()?.port ?? port}/${root.urlKey || root.key}/${folder}/${file}`);
         if (mode !== "standalone") url.searchParams.set("vctMode", mode);
         return url.toString();
       };
@@ -292,9 +311,10 @@ function createUnifiedServer(options = {}) {
         { key: "V_CreatorTools", label: "[VCT]", cssClass: "tag-vct", color: "#19a974" },
         { key: "Custom", label: "[Custom]", cssClass: "tag-custom", color: "#2f80ed" },
         { key: "vct_web_app", label: "[Web App]", cssClass: "tag-web-app", color: "#a78bfa" },
+        ...(userGadgetsAvailable ? [{ key: "user_gadgets", urlKey: "user_gadgets", directory: userGadgetsDir, requireManifest: true, label: "[User]", cssClass: "tag-user", color: "#f59e0b" }] : []),
       ];
       const gadgets = roots.flatMap((root) => {
-        const rootDir = path.join(publicDir, root.key);
+        const rootDir = root.directory || path.join(publicDir, root.key);
         if (!fs.existsSync(rootDir)) return [];
         return fs.readdirSync(rootDir, { withFileTypes: true })
           .filter((entry) => entry.isDirectory())
@@ -305,6 +325,7 @@ function createUnifiedServer(options = {}) {
               const manifest = fs.existsSync(manifestFile)
                 ? JSON.parse(fs.readFileSync(manifestFile, "utf8"))
                 : null;
+              if (root.requireManifest && manifest === null) throw new Error("manifest.json is required for user gadgets");
               if (manifest !== null && (!manifest || typeof manifest !== "object" || Array.isArray(manifest))) {
                 throw new Error("manifest root must be an object");
               }
@@ -337,7 +358,7 @@ function createUnifiedServer(options = {}) {
                 const role = page.role ?? (page.type === "view" ? "display" : page.type) ?? "display";
                 if (typeof role !== "string" || !allowedRoles.has(role)) throw new Error(`manifest.pages[${index}].role is unsupported`);
                 if (page.obs !== undefined && typeof page.obs !== "boolean") throw new Error(`manifest.pages[${index}].obs must be boolean`);
-                const urls = Object.fromEntries(modes.map((mode) => [mode, pageUrl(root.key, entry.name, file, mode)]));
+                const urls = Object.fromEntries(modes.map((mode) => [mode, pageUrl(root, entry.name, file, mode)]));
                 return { name: page.name?.trim() || file, type: page.type ?? role, role, obs: page.obs ?? false, modes, urls, url: urls.sync ?? urls.server ?? urls.standalone };
               });
               if (normalizedPages.length === 0) return [];
@@ -451,12 +472,16 @@ function createUnifiedServer(options = {}) {
     counters: { ...counters },
     acceptedSchema: BRIDGE_SCHEMA,
     acceptedEventTypes: [...ALLOWED_EVENT_TYPES],
-    features: { static: true, gadgets: true, websocket: true, bridge: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
+    features: { static: true, gadgets: true, userGadgets: userGadgetsAvailable, websocket: true, bridge: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
     };
   }
 
   app.get("/health", (_req, res) => res.json(health()));
-  app.get("/api/remote/status", (_req, res) => res.json({ ok: true, remote: remote.status(), pairing: remote.pairingInfo() }));
+  app.get("/api/remote/status", (req, res) => {
+    const authorized = isAdminRequest(req);
+    const pairing = authorized ? remote.pairingInfo() : { active: false, code: null, expiresAt: null, sessions: [], restricted: true };
+    return res.json({ ok: true, remote: remote.status(), pairing });
+  });
   app.get("/api/remote/qr", async (req, res) => {
     const urls = remote.status().urls;
     const index = Number(req.query.index || 0);
@@ -469,8 +494,8 @@ function createUnifiedServer(options = {}) {
       return res.status(500).json({ ok: false, error: "qr_generation_failed" });
     }
   });
-  app.post("/api/remote/pairing/regenerate", (_req, res) => res.json({ ok: true, pairing: remote.regeneratePairingCode() }));
-  app.post("/api/remote/sessions/revoke-all", (_req, res) => res.json({ ok: true, revoked: remote.revokeAllSessions() }));
+  app.post("/api/remote/pairing/regenerate", requireAdmin, (_req, res) => res.json({ ok: true, pairing: remote.regeneratePairingCode() }));
+  app.post("/api/remote/sessions/revoke-all", requireAdmin, (_req, res) => res.json({ ok: true, revoked: remote.revokeAllSessions() }));
   app.get("/admin", (_req, res) => res.type("html").send(`<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>VCreatorTools Server</title><style>
@@ -478,15 +503,29 @@ body{font:16px system-ui;margin:0;background:#111827;color:#e5e7eb}main{max-widt
   h1{margin:0 0 8px}.ok{color:#34d399}.card{background:#1f2937;border:1px solid #374151;border-radius:12px;padding:18px;margin-top:18px}
   .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.qrs{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}.qr{padding:10px;background:#fff;color:#111;border-radius:9px;text-align:center}.qr img{display:block;width:180px;height:180px}.qr small{display:block;max-width:180px;overflow-wrap:anywhere}button{padding:9px 12px;border:1px solid #4b5563;border-radius:7px;background:#1f2937;color:#e5e7eb;cursor:pointer}
 dl{display:grid;grid-template-columns:180px 1fr;gap:10px;margin:0}dt{color:#9ca3af}dd{margin:0}code{color:#93c5fd}
-  </style></head><body><main><h1>VCreatorTools Server</h1><p id="summary">確認中...</p><div class="card"><dl id="status"></dl><div id="remote-qrs" class="qrs"></div><div class="actions"><button onclick="remoteAction('/api/remote/pairing/regenerate')">Pairing code再生成</button><button onclick="remoteAction('/api/remote/sessions/revoke-all','すべてのRemote端末をログアウトしますか？')">全Remote Session破棄</button></div></div>
+  </style></head><body><main><h1>VCreatorTools Server</h1><p id="summary">確認中...</p><div class="card"><dl id="status"></dl><div id="remote-qrs" class="qrs"></div><div id="admin-actions" class="actions"><button onclick="remoteAction('/api/remote/pairing/regenerate')">Pairing code再生成</button><button onclick="remoteAction('/api/remote/sessions/revoke-all','すべてのRemote端末をログアウトしますか？')">全Remote Session破棄</button></div></div>
   <script>const summaryElement=document.getElementById('summary');const statusElement=document.getElementById('status');
   async function refresh(){try{const [h,r]=await Promise.all([fetch('/health',{cache:'no-store'}).then(r=>r.json()),fetch('/api/remote/status',{cache:'no-store'}).then(r=>r.json())]);summaryElement.innerHTML='<span class="ok">● 稼働中</span>';
-  const rows={バージョン:h.version,待受:h.host+':'+h.port,Remote:h.features.remote.state+(h.features.remote.error?' ('+h.features.remote.error.code+')':''),'Remote URL':h.features.remote.urls.join(' / ')||'無効','Pairing code':r.pairing.active?r.pairing.code:'未発行','Remote Session':r.pairing.sessions.length,稼働時間:h.uptimeSeconds+' 秒',WebSocket接続:h.websocketClients,
+  const rows={バージョン:h.version,待受:h.host+':'+h.port,Remote:h.features.remote.state+(h.features.remote.error?' ('+h.features.remote.error.code+')':''),'Remote URL':h.features.remote.urls.join(' / ')||'無効','Pairing code':r.pairing.restricted?'Electron Appで管理':(r.pairing.active?r.pairing.code:'未発行'),'Remote Session':r.pairing.restricted?'非表示':r.pairing.sessions.length,稼働時間:h.uptimeSeconds+' 秒',WebSocket接続:h.websocketClients,
 'Bridge受信':h.counters.bridgeEvents,'Material更新':h.counters.materialUpdates};
-  statusElement.innerHTML=Object.entries(rows).map(([k,v])=>'<dt>'+k+'</dt><dd><code>'+v+'</code></dd>').join('');document.getElementById('remote-qrs').innerHTML=h.features.remote.urls.map((url,index)=>'<div class="qr"><img src="/api/remote/qr?index='+index+'" alt="Remote URL QR"><small>'+url+'</small></div>').join('')}catch(e){summaryElement.textContent='サーバー状態を取得できません'}}
+  statusElement.innerHTML=Object.entries(rows).map(([k,v])=>'<dt>'+k+'</dt><dd><code>'+v+'</code></dd>').join('');document.getElementById('admin-actions').hidden=r.pairing.restricted===true;document.getElementById('remote-qrs').innerHTML=h.features.remote.urls.map((url,index)=>'<div class="qr"><img src="/api/remote/qr?index='+index+'" alt="Remote URL QR"><small>'+url+'</small></div>').join('')}catch(e){summaryElement.textContent='サーバー状態を取得できません'}}
   async function remoteAction(path,message){if(message&&!confirm(message))return;await fetch(path,{method:'POST'});refresh()}refresh();setInterval(refresh,3000)</script>
 </main></body></html>`));
 
+  if (userGadgetsAvailable) {
+    const realUserGadgetsDir = fs.realpathSync(userGadgetsDir);
+    app.use("/user_gadgets", (req, res, next) => {
+      try {
+        const requested = path.resolve(userGadgetsDir, `.${decodeURIComponent(req.path)}`);
+        if (!fs.existsSync(requested)) return next();
+        const relative = path.relative(realUserGadgetsDir, fs.realpathSync(requested));
+        if (relative.startsWith("..") || path.isAbsolute(relative)) return res.status(403).json({ ok: false, error: "user_gadget_path_forbidden" });
+        return next();
+      } catch {
+        return res.status(400).json({ ok: false, error: "invalid_user_gadget_path" });
+      }
+    }, express.static(userGadgetsDir, { index: false, fallthrough: true }));
+  }
   app.use(express.static(publicDir));
   app.use((error, _req, res, next) => {
     if (res.headersSent) return next(error);

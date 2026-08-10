@@ -81,7 +81,7 @@ async function refreshGadgets() {
     for (const gadget of gadgets) {
       const details = element("details", "gadget");
       const summary = element("summary");
-      const category = gadget.root === "vct_web_app" ? "Web App" : gadget.root === "V_CreatorTools" ? "Gadget" : "Custom";
+      const category = gadget.root === "vct_web_app" ? "Web App" : gadget.root === "V_CreatorTools" ? "Gadget" : gadget.root === "user_gadgets" ? "User" : "Custom";
       summary.append(element("span", "role", category), element("strong", "", gadget.rawName), element("span", "gadget-meta", `  v${gadget.version || "-"} / ${gadget.status || "-"}`));
       details.append(summary);
       for (const page of gadget.pages) {

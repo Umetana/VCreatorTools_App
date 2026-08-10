@@ -14,6 +14,8 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /mainHost: "127\.0\.0\.1"/);
   assert.match(main, /remoteHost: "0\.0\.0\.0"/);
   assert.match(main, /url\.origin !== mainBaseUrl\(\)/);
+  assert.match(main, /"X-VCT-Admin-Token": adminToken/);
+  assert.match(main, /VCT_USER_GADGETS_DIR: current\.userGadgetsDir/);
   for (const channel of ["gadgets:list", "gadget:copy", "gadget:open", "remote:status", "remote:pairing-regenerate", "remote:sessions-revoke-all", "remote:qr"]) {
     assert.match(main, new RegExp(`ipcMain\\.handle\\("${channel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   }
@@ -29,6 +31,7 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
+  assert.match(app, /gadget\.root === "user_gadgets" \? "User"/);
   assert.match(app, /confirm\("すべてのRemote端末をログアウトしますか？"\)/);
   assert.match(app, /if \(!await refresh\(\)\)/);
   assert.match(app, /if \(forceGadgets \|\| !gadgetsLoaded\) await refreshGadgets\(\)/);

@@ -2,10 +2,12 @@
 
 const { app, BrowserWindow, clipboard, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const APP_VERSION = "0.1.0-dev";
+const adminToken = crypto.randomBytes(32).toString("hex");
 let mainWindow = null;
 let serverProcess = null;
 let serverStatus = { state: "stopped", pid: null, error: null };
@@ -37,6 +39,7 @@ function ensureRuntime() {
       port: 3000,
       bodyLimit: "256kb",
       publicDir: current.publicDir,
+      userGadgetsDir: current.userGadgetsDir,
       materialDataFile: path.join(current.dataDir, "material-view.json"),
       gpCounterDataFile: path.join(current.dataDir, "gp-counter.json"),
       gpCounterV2DataFile: path.join(current.dataDir, "gp-counter-v2.json"),
@@ -82,6 +85,7 @@ async function saveSettings(value) {
   config.host = "127.0.0.1";
   config.port = mainPort;
   config.publicDir = current.publicDir;
+  config.userGadgetsDir = current.userGadgetsDir;
   config.remote = { ...(config.remote || {}), enabled: remoteEnabled, host: "0.0.0.0", port: remotePort };
   await stopServer();
   fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
@@ -94,7 +98,8 @@ function mainBaseUrl() {
 }
 
 async function serverJson(pathname, options = {}) {
-  const response = await fetch(`${mainBaseUrl()}${pathname}`, { ...options, signal: AbortSignal.timeout(2500) });
+  const headers = { ...(options.headers || {}), "X-VCT-Admin-Token": adminToken };
+  const response = await fetch(`${mainBaseUrl()}${pathname}`, { ...options, headers, signal: AbortSignal.timeout(2500) });
   if (!response.ok) throw new Error(`Server API error: ${response.status}`);
   return response.json();
 }
@@ -123,7 +128,7 @@ function startServer() {
   serverProcess = spawn(process.execPath, [current.serverEntry], {
     cwd: current.userData,
     windowsHide: true,
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile },
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_USER_GADGETS_DIR: current.userGadgetsDir },
     stdio: ["ignore", "pipe", "pipe"]
   });
   serverStatus = { state: "running", pid: serverProcess.pid, error: null };
