@@ -4,6 +4,9 @@ const badge = document.getElementById("badge");
 const status = document.getElementById("status");
 const log = document.getElementById("log");
 const qrCache = new Map();
+let serverConnected = false;
+let gadgetsLoaded = false;
+let refreshCycleRunning = false;
 
 function showStatus(server, health) {
   const state = health?.ok ? "running" : server.state;
@@ -17,6 +20,8 @@ async function refresh() {
   const [info, health] = await Promise.all([window.vct.info(), window.vct.health()]);
   document.getElementById("version").textContent = info.version;
   showStatus(info.server, health);
+  serverConnected = health?.ok === true;
+  return serverConnected;
 }
 
 async function loadSettings() {
@@ -99,13 +104,40 @@ async function refreshGadgets() {
       }
       container.append(details);
     }
+    gadgetsLoaded = true;
   } catch {
+    gadgetsLoaded = false;
     container.replaceChildren(element("p", "error", "ガジェット一覧を取得できません。Serverを起動してください。"));
   }
 }
 
-document.getElementById("start").onclick = async () => { await window.vct.startServer(); setTimeout(refresh, 500); };
-document.getElementById("stop").onclick = async () => { await window.vct.stopServer(); refresh(); };
+function showDisconnectedManagement() {
+  const state = document.getElementById("remote-state");
+  state.textContent = "Server未接続";
+  state.className = "note";
+  document.getElementById("remote-content").replaceChildren(element("p", "note", "Server起動後にRemote情報を自動表示します。"));
+  document.getElementById("pairing-regenerate").disabled = true;
+  document.getElementById("sessions-revoke").disabled = true;
+  if (!gadgetsLoaded) document.getElementById("gadgets").replaceChildren(element("p", "note", "Server起動後に一覧を自動取得します。"));
+}
+
+async function refreshCycle(forceGadgets = false) {
+  if (refreshCycleRunning) return;
+  refreshCycleRunning = true;
+  try {
+    if (!await refresh()) {
+      showDisconnectedManagement();
+      return;
+    }
+    await refreshRemote();
+    if (forceGadgets || !gadgetsLoaded) await refreshGadgets();
+  } finally {
+    refreshCycleRunning = false;
+  }
+}
+
+document.getElementById("start").onclick = async () => { await window.vct.startServer(); setTimeout(() => refreshCycle(true), 500); };
+document.getElementById("stop").onclick = async () => { await window.vct.stopServer(); gadgetsLoaded = false; refreshCycle(); };
 document.getElementById("home").onclick = () => window.vct.openServerPage("home");
 document.getElementById("admin").onclick = () => window.vct.openServerPage("admin");
 document.getElementById("settings").onsubmit = async (event) => {
@@ -117,13 +149,15 @@ document.getElementById("settings").onsubmit = async (event) => {
     await window.vct.saveSettings({ mainPort: Number(document.getElementById("main-port").value), remoteEnabled: document.getElementById("remote-enabled").checked, remotePort: Number(document.getElementById("remote-port").value) });
     result.className = "success";
     result.textContent = "保存して再起動しました";
-    setTimeout(() => { refresh(); refreshRemote(); refreshGadgets(); }, 700);
+    serverConnected = false;
+    gadgetsLoaded = false;
+    setTimeout(() => refreshCycle(true), 700);
   } catch (error) {
     result.className = "error";
     result.textContent = error.message;
   }
 };
-document.getElementById("gadgets-refresh").onclick = refreshGadgets;
+document.getElementById("gadgets-refresh").onclick = () => refreshCycle(true);
 document.getElementById("pairing-regenerate").onclick = async () => {
   const result = document.getElementById("remote-result");
   try { await window.vct.regeneratePairing(); result.className = "success"; result.textContent = "Pairing codeを再生成しました"; await refreshRemote(); }
@@ -136,11 +170,8 @@ document.getElementById("sessions-revoke").onclick = async () => {
   catch (error) { result.className = "error"; result.textContent = error.message; }
 };
 document.querySelectorAll("[data-path]").forEach((button) => { button.onclick = () => window.vct.openPath(button.dataset.path); });
-window.vct.onStatus(() => refresh());
+window.vct.onStatus(() => refreshCycle());
 window.vct.onLog((line) => { log.textContent += line; log.scrollTop = log.scrollHeight; });
-refresh();
 loadSettings();
-refreshRemote();
-refreshGadgets();
-setInterval(refresh, 3000);
-setInterval(refreshRemote, 3000);
+refreshCycle();
+setInterval(refreshCycle, 3000);

@@ -30,4 +30,8 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
   assert.match(app, /confirm\("すべてのRemote端末をログアウトしますか？"\)/);
+  assert.match(app, /if \(!await refresh\(\)\)/);
+  assert.match(app, /if \(forceGadgets \|\| !gadgetsLoaded\) await refreshGadgets\(\)/);
+  assert.doesNotMatch(app, /^refreshRemote\(\);$/m);
+  assert.doesNotMatch(app, /^refreshGadgets\(\);$/m);
 });
