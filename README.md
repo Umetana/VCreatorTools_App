@@ -11,4 +11,6 @@ npm start
 
 初回起動時にElectronのuserData配下へ`server.config.json`、`data/`、`logs/`、`user_gadgets/`を作成します。現段階の`user_gadgets/`は保存場所のみで、静的配信は未実装です。
 
-この段階では開発用起動・停止・状態表示を検証します。Installerおよび正式配布Buildは未実装です。
+Mainは`127.0.0.1`、Remoteは有効時のみ`0.0.0.0`へ固定します。管理UIではMain Port、Remote有効／無効、Remote Portを変更でき、保存時にServerを再起動します。
+
+この段階では開発用起動・停止・状態表示と接続設定を検証します。Installerおよび正式配布Buildは未実装です。

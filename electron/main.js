@@ -57,6 +57,42 @@ function ensureRuntime() {
   return current;
 }
 
+function readConfig() {
+  const current = ensureRuntime();
+  return JSON.parse(fs.readFileSync(current.configFile, "utf8"));
+}
+
+function publicSettings(config = readConfig()) {
+  return { mainHost: "127.0.0.1", mainPort: Number(config.port || 3000), remoteEnabled: config.remote?.enabled === true, remoteHost: "0.0.0.0", remotePort: Number(config.remote?.port || 3010) };
+}
+
+function normalizePort(value, name) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error(`${name}は1024〜65535で指定してください`);
+  return port;
+}
+
+async function saveSettings(value) {
+  const mainPort = normalizePort(value?.mainPort, "Main Port");
+  const remotePort = normalizePort(value?.remotePort, "Remote Port");
+  const remoteEnabled = value?.remoteEnabled === true;
+  if (remoteEnabled && mainPort === remotePort) throw new Error("Main PortとRemote Portは別の番号にしてください");
+  const current = paths();
+  const config = readConfig();
+  config.host = "127.0.0.1";
+  config.port = mainPort;
+  config.publicDir = current.publicDir;
+  config.remote = { ...(config.remote || {}), enabled: remoteEnabled, host: "0.0.0.0", port: remotePort };
+  await stopServer();
+  fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  startServer();
+  return publicSettings(config);
+}
+
+function mainBaseUrl() {
+  return `http://127.0.0.1:${publicSettings().mainPort}`;
+}
+
 function publishStatus() {
   mainWindow?.webContents.send("server:status", serverStatus);
 }
@@ -118,28 +154,31 @@ function createWindow() {
 
 async function runSmokeTest() {
   startServer();
+  const baseUrl = mainBaseUrl();
   let health = null;
   for (let attempt = 0; attempt < 30; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 200));
-    health = await fetch("http://127.0.0.1:3000/health").then((response) => response.json()).catch(() => null);
+    health = await fetch(`${baseUrl}/health`).then((response) => response.json()).catch(() => null);
     if (health?.ok) break;
   }
   if (!health?.ok) throw new Error("embedded server did not become healthy");
-  const gadgets = await fetch("http://127.0.0.1:3000/api/get-gadgets").then((response) => response.json());
+  const gadgets = await fetch(`${baseUrl}/api/get-gadgets`).then((response) => response.json());
   console.log(JSON.stringify({ ok: true, appVersion: APP_VERSION, serverVersion: health.version, gadgets: gadgets.length }));
   await stopServer();
 }
 
 ipcMain.handle("app:info", () => ({ version: APP_VERSION, ...paths(), server: serverStatus }));
+ipcMain.handle("settings:get", () => publicSettings());
+ipcMain.handle("settings:save", (_event, value) => saveSettings(value));
 ipcMain.handle("server:start", () => startServer());
 ipcMain.handle("server:stop", () => stopServer());
 ipcMain.handle("server:health", async () => {
   try {
-    const response = await fetch("http://127.0.0.1:3000/health", { signal: AbortSignal.timeout(1500) });
+    const response = await fetch(`${mainBaseUrl()}/health`, { signal: AbortSignal.timeout(1500) });
     return await response.json();
   } catch { return null; }
 });
-ipcMain.handle("open:external", (_event, url) => shell.openExternal(url));
+ipcMain.handle("open:server-page", (_event, page) => shell.openExternal(`${mainBaseUrl()}${page === "admin" ? "/admin" : "/"}`));
 ipcMain.handle("open:path", (_event, target) => shell.openPath(paths()[target]));
 
 app.whenReady().then(async () => {

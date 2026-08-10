@@ -18,12 +18,35 @@ async function refresh() {
   showStatus(info.server, health);
 }
 
+async function loadSettings() {
+  const settings = await window.vct.getSettings();
+  document.getElementById("main-port").value = settings.mainPort;
+  document.getElementById("remote-enabled").checked = settings.remoteEnabled;
+  document.getElementById("remote-port").value = settings.remotePort;
+}
+
 document.getElementById("start").onclick = async () => { await window.vct.startServer(); setTimeout(refresh, 500); };
 document.getElementById("stop").onclick = async () => { await window.vct.stopServer(); refresh(); };
-document.getElementById("home").onclick = () => window.vct.openExternal("http://127.0.0.1:3000/");
-document.getElementById("admin").onclick = () => window.vct.openExternal("http://127.0.0.1:3000/admin");
+document.getElementById("home").onclick = () => window.vct.openServerPage("home");
+document.getElementById("admin").onclick = () => window.vct.openServerPage("admin");
+document.getElementById("settings").onsubmit = async (event) => {
+  event.preventDefault();
+  const result = document.getElementById("settings-result");
+  result.className = "";
+  result.textContent = "保存中…";
+  try {
+    await window.vct.saveSettings({ mainPort: Number(document.getElementById("main-port").value), remoteEnabled: document.getElementById("remote-enabled").checked, remotePort: Number(document.getElementById("remote-port").value) });
+    result.className = "success";
+    result.textContent = "保存して再起動しました";
+    setTimeout(refresh, 500);
+  } catch (error) {
+    result.className = "error";
+    result.textContent = error.message;
+  }
+};
 document.querySelectorAll("[data-path]").forEach((button) => { button.onclick = () => window.vct.openPath(button.dataset.path); });
 window.vct.onStatus(() => refresh());
 window.vct.onLog((line) => { log.textContent += line; log.scrollTop = log.scrollHeight; });
 refresh();
+loadSettings();
 setInterval(refresh, 3000);
