@@ -1,0 +1,102 @@
+.crown-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    animation: fullFade 3s forwards;
+}
+
+.crown-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: contentPop 3s forwards;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.crown-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: popScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.crown-text {
+    font-weight: 800;
+    text-align: center;
+    transform-origin: center;
+}
+
+@keyframes fullFade {
+    0% {
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes contentPop {
+    0% {
+        transform: scale(0.8);
+    }
+
+    10% {
+        transform: scale(1);
+    }
+
+    80% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes popScale {
+    0% {
+        transform: scale(0);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Sparkle effect class */
+.sparkle-particle {
+    position: absolute;
+    background: white;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    animation: sparkleAni 1s infinite alternate;
+}
+
+@keyframes sparkleAni {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Material Hub | 配信ネタ供給アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@600;800&display=swap');
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .brand-font {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .switch-input:checked+.switch-label {
+            background-color: #4f46e5;
+        }
+
+        .switch-input:checked+.switch-label .switch-dot {
+            transform: translateX(100%);
+        }
+
+        #settingsDrawer {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .input-toggle-btn {
+            @apply p-1 rounded hover:bg-slate-200 text-slate-400 transition-colors;
+        }
+
+        .input-toggle-btn.active {
+            @apply text-indigo-600 bg-indigo-50;
+        }
+
+        .safety-badge {
+            @apply inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative flex flex-col overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-40 glass-card border-b border-slate-200 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span
+                        class="text-xl font-extrabold brand-font tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-indigo-600">Material
+                        Hub</span>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Streaming Intelligence
+                        Tool</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="modeIndicator"
+                    class="hidden md:block px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 tracking-wider">
+                    PREVIEW MODE</div>
+                <button onclick="openHistory()"
+                    class="p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shadow-sm border border-indigo-100 group"
+                    title="リサーチ履歴を開く" aria-label="リサーチ履歴を開く">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </button>
+                <button onclick="openExportBasket()"
+                    class="p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors shadow-sm border border-indigo-100 group"
+                    title="出力候補を開く" aria-label="出力候補を開く">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M5 7l1 13h12l1-13M9 11v5m6-5v5M9 4h6l1 3H8l1-3z"></path>
+                    </svg>
+                </button>
+                <button onclick="toggleSettings()"
+                    class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full transition-colors shadow-sm border border-slate-200 group"
+                    title="設定を開く">
+                    <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Research History Modal -->
+    <div id="historyModal" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeHistory()"></div>
+        <div class="relative mx-auto my-4 md:my-10 w-[calc(100%-2rem)] max-w-5xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-5rem)] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-5 bg-white border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <h2 id="historyTitle" class="text-lg font-bold text-slate-800">リサーチ履歴</h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">日付を選ぶと、その日に生成したネタを確認できます</p>
+                </div>
+                <button onclick="closeHistory()" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full" aria-label="閉じる">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 md:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-5 gap-5">
+                <section class="md:col-span-3 bg-white rounded-2xl border border-slate-200 p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="moveHistoryMonth(-1)" class="p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-full" aria-label="前の月">‹</button>
+                        <div id="historyCalendarLabel" class="text-sm font-bold text-slate-700"></div>
+                        <button onclick="moveHistoryMonth(1)" class="p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-full" aria-label="次の月">›</button>
+                    </div>
+                    <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 mb-2">
+                        <span class="text-red-400">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="text-blue-400">土</span>
+                    </div>
+                    <div id="historyCalendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+                </section>
+                <section class="md:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col min-h-[300px]">
+                    <div class="p-4 border-b border-slate-100">
+                        <h3 id="historyDateLabel" class="text-sm font-bold text-slate-700">保存された履歴</h3>
+                    </div>
+                    <div id="historySessionList" class="p-3 space-y-2 overflow-y-auto"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Basket Modal -->
+    <div id="exportBasketModal" class="fixed inset-0 z-[65] hidden" role="dialog" aria-modal="true" aria-labelledby="exportBasketTitle">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeExportBasket()"></div>
+        <div class="relative mx-auto my-4 md:my-10 w-[calc(100%-2rem)] max-w-4xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-5rem)] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-5 bg-white border-b border-slate-200 flex items-center justify-between gap-4">
+                <div>
+                    <h2 id="exportBasketTitle" class="text-lg font-bold text-slate-800">出力候補</h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">ジャンルや履歴をまたいで選んだネタをまとめて書き出します</p>
+                </div>
+                <button onclick="closeExportBasket()" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full" aria-label="閉じる">✕</button>
+            </div>
+            <div id="exportBasketList" class="p-4 md:p-6 space-y-3 overflow-y-auto min-h-[240px]"></div>
+            <div class="p-4 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button onclick="chooseMaterialViewDirectory()" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-bold hover:bg-slate-200">保存先フォルダを選択</button>
+                    <span id="directSaveStatus" class="text-[10px] text-slate-400">保存先未設定</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="clearExportBasket()" class="px-3 py-2 bg-white text-red-500 border border-red-100 rounded-xl text-[10px] font-bold hover:bg-red-50">候補をすべて削除</button>
+                    <button onclick="exportSelectedMaterials('json')" class="px-3 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-xl text-[10px] font-bold hover:bg-indigo-50">保管用JSON</button>
+                    <button onclick="exportSelectedMaterials('js')" class="px-3 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-xl text-[10px] font-bold hover:bg-indigo-50">JSをダウンロード</button>
+                    <button id="directSaveButton" onclick="saveActiveMaterialDirectly()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold hover:bg-indigo-700">Material Viewへ保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay & Settings Drawer -->
+    <div id="settingsOverlay" onclick="toggleSettings()"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"></div>
+    <div id="settingsDrawer"
+        class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 transform translate-x-full opacity-0 flex flex-col">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                    </path>
+                </svg>
+                詳細設定
+            </h2>
+            <button onclick="toggleSettings()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-6 overflow-y-auto flex-grow">
+            <!-- AI Output Count -->
+            <div class="space-y-3">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">一度に生成する件数</label>
+                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <input type="range" id="countRange" min="3" max="6" value="4" class="flex-grow accent-indigo-600"
+                        oninput="updateCountLabel(this.value)">
+                    <span id="countLabel" class="text-sm font-bold text-indigo-600 w-4">4</span>
+                </div>
+            </div>
+
+            <!-- Detail Level (情報の深度) -->
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">情報の解像度 (深度)</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setConfig('infoDepth', 'casual')" id="btn-casual"
+                        class="depth-btn py-2 text-[10px] font-bold rounded-xl border border-slate-200 transition">低</button>
+                    <button onclick="setConfig('infoDepth', 'balanced')" id="btn-balanced"
+                        class="depth-btn py-2 text-[10px] font-bold rounded-xl border border-slate-200 transition bg-slate-900 text-white border-slate-900">標準</button>
+                    <button onclick="setConfig('infoDepth', 'deep')" id="btn-deep"
+                        class="depth-btn py-2 text-[10px] font-bold rounded-xl border border-slate-200 transition">高</button>
+                </div>
+            </div>
+
+            <!-- Safety Filters -->
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">セーフガード設定</label>
+
+                <div class="bg-slate-50 p-3 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-600">政治・宗教・炎上を除外</span>
+                        <input type="checkbox" id="filterPolitics" class="switch-input hidden" checked
+                            onchange="saveAppConfig()">
+                        <label for="filterPolitics"
+                            class="switch-label relative inline-block w-8 h-4 bg-slate-200 rounded-full cursor-pointer transition-colors">
+                            <span
+                                class="switch-dot absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-600">不適切な言葉を除外</span>
+                        <input type="checkbox" id="filterAdult" class="switch-input hidden" checked
+                            onchange="saveAppConfig()">
+                        <label for="filterAdult"
+                            class="switch-label relative inline-block w-8 h-4 bg-slate-200 rounded-full cursor-pointer transition-colors">
+                            <span
+                                class="switch-dot absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">追加の除外ワード (カンマ区切り)</label>
+                    <textarea id="excludedWords" placeholder="例: 蜘蛛, ホラー, 虫..."
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 transition h-16 resize-none"
+                        onchange="saveAppConfig()"></textarea>
+                </div>
+                <p class="text-[9px] text-amber-600 leading-relaxed font-medium">※除外を解除した話題の取り扱いは自己責任でお願いします。</p>
+            </div>
+
+            <!-- Auth Selection -->
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-600">手動APIキーを使用</span>
+                    <input type="checkbox" id="modeToggle" class="switch-input hidden" onchange="updateModeUI()">
+                    <label for="modeToggle"
+                        class="switch-label relative inline-block w-10 h-5 bg-slate-200 rounded-full cursor-pointer transition-colors">
+                        <span
+                            class="switch-dot absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm"></span>
+                    </label>
+                </div>
+
+                <div id="apiSettingsArea" class="opacity-50 pointer-events-none transition-all space-y-3">
+                    <input type="password" id="userApiKey" placeholder="AI-..."
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="saveKeyToggle" class="w-3 h-3 accent-indigo-600" checked
+                            onchange="saveAppConfig()">
+                        <label for="saveKeyToggle" class="text-[10px] text-slate-500">このブラウザに保存する</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">システム情報</label>
+                <div class="p-3 bg-slate-900 text-[10px] font-mono text-slate-300 rounded-xl space-y-1">
+                    <div class="flex justify-between"><span class="text-slate-500">VERSION</span><span>1.0.0</span></div>
+                    <div class="flex items-center justify-between gap-3">
+                        <label for="modelSelect" class="text-slate-500">ENGINE</label>
+                        <select id="modelSelect" onchange="saveAppConfig()"
+                            class="min-w-0 max-w-[190px] bg-slate-800 border border-slate-700 text-slate-200 rounded-md px-2 py-1 text-[10px] font-mono outline-none focus:ring-1 focus:ring-indigo-400">
+                            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+                            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between"><span class="text-slate-500">GROUNDING</span><span>Google
+                            Search</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">STATUS</span><span
+                            class="text-green-400">ACTIVE</span></div>
+                </div>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">データ管理</label>
+                <p class="text-[10px] leading-relaxed text-slate-400">APIキーはバックアップにも初期化にも含めません。</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportHubBackup()" class="py-2 px-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold">バックアップ</button>
+                    <button onclick="document.getElementById('hubRestoreInput').click()" class="py-2 px-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold">復元</button>
+                    <button onclick="clearHubHistory()" class="py-2 px-2 bg-white border border-red-100 text-red-500 rounded-lg text-[10px] font-bold">履歴を初期化</button>
+                    <button onclick="clearHubStock()" class="py-2 px-2 bg-white border border-red-100 text-red-500 rounded-lg text-[10px] font-bold">ストック等を初期化</button>
+                    <button onclick="clearAllHubData()" class="col-span-2 py-2 px-2 bg-red-50 border border-red-100 text-red-600 rounded-lg text-[10px] font-bold">Hubデータをすべて初期化</button>
+                    <input id="hubRestoreInput" type="file" accept="application/json,.json" onchange="importHubBackup(event)" class="hidden">
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-slate-100 bg-slate-50">
+            <button onclick="toggleSettings()"
+                class="w-full py-2 bg-slate-800 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-900 transition-colors">設定を保存して閉じる</button>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-3 space-y-6">
+
+            <!-- Generate Config -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                        生成設定
+                    </h2>
+                </div>
+                <div class="p-5 space-y-5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">配信ジャンル</label>
+                        <select id="genre"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="">指定なし（キーワード優先）</option>
+                            <option value="雑談・トレンド" selected>雑談・トレンド</option>
+                            <option value="ゲーム実況・eスポーツ">ゲーム実況・eスポーツ</option>
+                            <option value="最新テクノロジー・AI">最新テクノロジー・AI</option>
+                            <option value="エンタメ・芸能ニュース">エンタメ・芸能ニュース</option>
+                            <option value="ライフスタイル・ガジェット">ライフスタイル・ガジェット</option>
+                            <option value="サブカル・アニメ・漫画">サブカル・アニメ・漫画</option>
+                            <option value="お悩み相談・人生訓">お悩み相談・人生訓</option>
+                            <option value="B級ニュース・おもしろネタ">B級ニュース・おもしろネタ</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">キーワード(任意)</label>
+                        <input type="text" id="customTopic" placeholder="例：最新のAIトレンド"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+
+                    <div class="pt-2 space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">雰囲気</label>
+                                <button onclick="toggleInputMode('vibe')" id="vibeToggleBtn" class="input-toggle-btn"
+                                    title="手動入力に切り替え">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="vibeSelectContainer">
+                                <select id="vibeSelect"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
+                                    <option value="賑やか" selected>賑やか・明るい</option>
+                                    <option value="知的・冷静">知的・冷静・真面目</option>
+                                    <option value="シュール・カオス">シュール・カオス</option>
+                                    <option value="毒舌・キレ芸">毒舌・エッジの効いた</option>
+                                    <option value="癒やし・チル">癒やし・チル・まったり</option>
+                                    <option value="深夜のテンション">深夜のテンション</option>
+                                    <option value="メタ的・分析的">メタ的・業界の裏側風</option>
+                                </select>
+                            </div>
+                            <div id="vibeInputContainer" class="hidden">
+                                <input type="text" id="vibeInput" placeholder="例：サイバーパンク風"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">話し方</label>
+                                <button onclick="toggleInputMode('tone')" id="toneToggleBtn" class="input-toggle-btn"
+                                    title="手動入力に切り替え">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="toneSelectContainer">
+                                <select id="toneSelect"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
+                                    <option value="丁寧" selected>丁寧（です・ます）</option>
+                                    <option value="フレンドリー">フレンドリー（タメ口）</option>
+                                    <option value="関西弁風">関西弁風（やで・やん）</option>
+                                    <option value="お嬢様口調">お嬢様（〜ですわ）</option>
+                                    <option value="淡々とした語り">淡々とした語り</option>
+                                    <option value="語尾に特徴（〜だじぇ、〜存じます等）">キャラ立ち（〜だじぇ等）</option>
+                                    <option value="ギャル語">ギャル語（まじ最高）</option>
+                                </select>
+                            </div>
+                            <div id="toneInputContainer" class="hidden">
+                                <input type="text" id="toneInput" placeholder="例：江戸っ子風"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="generateBtn" onclick="fetchAIGeneratedNeta()"
+                        class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-md hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        ネタを生成
+                    </button>
+                </div>
+            </section>
+
+            <!-- Material Stock -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z">
+                            </path>
+                        </svg>
+                        記事ストック
+                    </h2>
+                    <span id="favCount"
+                        class="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div id="favoritesList" class="p-4 space-y-3 max-h-[300px] overflow-y-auto">
+                    <p class="text-[11px] text-slate-400 text-center py-4">配信で使う記事をストック</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Main Area -->
+        <div class="lg:col-span-9 space-y-6">
+            <div id="statusBar"
+                class="hidden flex flex-wrap items-center justify-between gap-3 bg-indigo-50 border border-indigo-100 p-3 rounded-2xl">
+                <div class="flex items-center gap-3">
+                    <div class="px-2 py-1 bg-indigo-500 text-white rounded text-[10px] font-bold">READY</div>
+                    <span id="statusText" class="text-xs font-medium text-indigo-700">準備完了</span>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button onclick="openExportBasket()" class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold hover:bg-indigo-200"><span id="exportSelectionCount">出力候補 0件</span></button>
+                    <button onclick="selectAllForExport()"
+                        class="px-3 py-1.5 bg-white text-indigo-600 border border-indigo-200 rounded-lg text-[10px] font-bold hover:bg-indigo-100">表示中をすべて候補へ</button>
+                    <button onclick="exportSelectedMaterials('json')"
+                        class="px-3 py-1.5 bg-white text-indigo-600 border border-indigo-200 rounded-lg text-[10px] font-bold hover:bg-indigo-100">保管用JSON</button>
+                    <button onclick="exportSelectedMaterials('js')"
+                        class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700">Material View用JS</button>
+                    <div class="flex items-center gap-1.5" id="safetyStatus">
+                        <span class="safety-badge bg-green-50 text-green-600 border-green-100">SAFE MODE ACTIVE</span>
+                    </div>
+                    <button onclick="clearAll()"
+                        class="text-[10px] font-bold text-indigo-400 hover:text-indigo-600 uppercase">クリア</button>
+                </div>
+            </div>
+
+            <div id="resultsWrapper">
+                <div id="placeholderUI"
+                    class="flex flex-col items-center justify-center py-32 bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem]">
+                    <div
+                        class="w-20 h-20 bg-slate-50 rounded-full mb-6 flex items-center justify-center text-slate-300">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-slate-800 font-bold text-lg mb-2">配信の準備を始めましょう</h3>
+                    <p class="text-slate-400 text-sm">ジャンルを選んで「ネタを生成」をクリック</p>
+                </div>
+
+                <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer / Disclaimer -->
+    <footer class="mt-12 mb-8 px-6">
+        <div class="max-w-7xl mx-auto border-t border-slate-200 pt-8 pb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 opacity-50">
+                        <div class="w-6 h-6 bg-slate-400 rounded-lg flex items-center justify-center text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Disclaimer /
+                            免責事項</span>
+                    </div>
+                    <p class="text-[10px] leading-relaxed text-slate-400 max-w-xl">
+                        本アプリで生成されるコンテンツはAI（Gemini 3.5
+                        Flash）およびGoogle検索の結果に基づいています。情報の正確性、最新性、安全性については細心の注意を払っておりますが、その内容を保証するものではありません。配信での利用に際しては、必要に応じて公式情報等の裏付け確認を行うことを推奨します。また、本アプリの利用により生じた直接的・間接的損失について、制作者は一切の責任を負いかねます。
+                    </p>
+                </div>
+                <div class="flex md:justify-end">
+                    <p class="text-[10px] font-medium text-slate-400">© 2026 Material Hub Project. All Rights Reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="notification"
+        class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl transform scale-0 transition-transform duration-300 pointer-events-none text-white font-bold text-sm">
+    </div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script>
+        const STORAGE_KEY = 'stream_hub_api_key';
+        const CONFIG_STORAGE_KEY = 'stream_hub_app_config_v4';
+        const HISTORY_STORAGE_KEY = 'stream_hub_history_v1';
+        const EXPORT_BASKET_STORAGE_KEY = 'stream_hub_export_basket_v1';
+        const STOCK_STORAGE_KEY = 'material_hub_stock_v1';
+        const FILE_HANDLE_DB_NAME = 'material_hub_file_handles';
+        const FILE_HANDLE_STORE_NAME = 'handles';
+        const MATERIAL_VIEW_DIRECTORY_KEY = 'material_view_directory';
+        const HISTORY_LIMIT = 200;
+        const AVAILABLE_MODELS = [
+            'gemini-2.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-3.5-flash'
+        ];
+
+        let favorites = [];
+        let currentNetaList = [];
+        let exportBasket = new Map();
+        let researchHistory = [];
+        let historyViewDate = new Date();
+        let selectedHistoryDate = toLocalDateKey(new Date());
+        let inputModes = { vibe: 'select', tone: 'select' };
+
+        // App Config 初期値
+        let appConfig = {
+            generateCount: 4,
+            filterPolitics: true,
+            filterAdult: true,
+            excludedWords: "",
+            saveApiKey: true,
+            infoDepth: 'balanced',
+            modelId: 'gemini-2.5-flash'
+        };
+
+        window.onload = () => {
+            loadConfig();
+            loadFavorites();
+            loadResearchHistory();
+            loadExportBasket();
+            updateModeUI();
+        };
+
+        function setConfig(key, val) {
+            appConfig[key] = val;
+            if (key === 'infoDepth') updateDepthUI(val);
+            saveAppConfig();
+        }
+
+        function updateDepthUI(val) {
+            document.querySelectorAll('.depth-btn').forEach(b => {
+                b.classList.remove('bg-slate-900', 'text-white', 'border-slate-900');
+            });
+            const targetBtn = document.getElementById(`btn-${val}`);
+            if (targetBtn) targetBtn.classList.add('bg-slate-900', 'text-white', 'border-slate-900');
+        }
+
+        function saveAppConfig() {
+            appConfig.filterPolitics = document.getElementById('filterPolitics').checked;
+            appConfig.filterAdult = document.getElementById('filterAdult').checked;
+            appConfig.excludedWords = document.getElementById('excludedWords').value;
+            appConfig.saveApiKey = document.getElementById('saveKeyToggle').checked;
+            const selectedModel = document.getElementById('modelSelect').value;
+            appConfig.modelId = AVAILABLE_MODELS.includes(selectedModel) ? selectedModel : AVAILABLE_MODELS[0];
+
+            localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(appConfig));
+
+            if (appConfig.saveApiKey) {
+                const key = document.getElementById('userApiKey').value.trim();
+                if (key) localStorage.setItem(STORAGE_KEY, key);
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+
+            updateSafetyUI();
+        }
+
+        function loadConfig() {
+            const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+            if (saved) {
+                appConfig = JSON.parse(saved);
+                document.getElementById('countRange').value = appConfig.generateCount || 4;
+                document.getElementById('countLabel').innerText = appConfig.generateCount || 4;
+                document.getElementById('filterPolitics').checked = appConfig.filterPolitics !== false;
+                document.getElementById('filterAdult').checked = appConfig.filterAdult !== false;
+                document.getElementById('excludedWords').value = appConfig.excludedWords || "";
+                document.getElementById('saveKeyToggle').checked = appConfig.saveApiKey !== false;
+                if (appConfig.infoDepth) updateDepthUI(appConfig.infoDepth);
+            }
+            if (!AVAILABLE_MODELS.includes(appConfig.modelId)) appConfig.modelId = AVAILABLE_MODELS[0];
+            document.getElementById('modelSelect').value = appConfig.modelId;
+            updateSafetyUI();
+            const savedKey = localStorage.getItem(STORAGE_KEY);
+            if (savedKey && appConfig.saveApiKey) {
+                document.getElementById('userApiKey').value = savedKey;
+                document.getElementById('modeToggle').checked = true;
+            }
+        }
+
+        function updateSafetyUI() {
+            const badge = document.getElementById('safetyStatus');
+            const isAllSafe = appConfig.filterPolitics && appConfig.filterAdult;
+            badge.innerHTML = isAllSafe
+                ? `<span class="safety-badge bg-green-50 text-green-600 border-green-100">SAFE MODE ACTIVE</span>`
+                : `<span class="safety-badge bg-amber-50 text-amber-600 border-amber-100">CUSTOM FILTERS</span>`;
+        }
+
+        function updateCountLabel(val) {
+            document.getElementById('countLabel').innerText = val;
+            appConfig.generateCount = parseInt(val);
+            saveAppConfig();
+        }
+
+        function toggleSettings() {
+            const drawer = document.getElementById('settingsDrawer');
+            const overlay = document.getElementById('settingsOverlay');
+            const isOpen = !drawer.classList.contains('translate-x-full');
+            if (isOpen) {
+                drawer.classList.add('translate-x-full', 'opacity-0');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            } else {
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    drawer.classList.remove('translate-x-full', 'opacity-0');
+                }, 10);
+            }
+        }
+
+        function updateModeUI() {
+            const isManual = document.getElementById('modeToggle').checked;
+            const settingsArea = document.getElementById('apiSettingsArea');
+            const indicator = document.getElementById('modeIndicator');
+            if (isManual) {
+                settingsArea.classList.remove('opacity-50', 'pointer-events-none');
+                indicator.innerText = "MANUAL KEY";
+                indicator.className = "px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 tracking-wider";
+            } else {
+                settingsArea.classList.add('opacity-50', 'pointer-events-none');
+                indicator.innerText = "PREVIEW MODE";
+                indicator.className = "px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 tracking-wider";
+            }
+        }
+
+        function setInputMode(type, mode) {
+            inputModes[type] = mode;
+            const selectCont = document.getElementById(`${type}SelectContainer`);
+            const inputCont = document.getElementById(`${type}InputContainer`);
+            const btn = document.getElementById(`${type}ToggleBtn`);
+            if (mode === 'input') {
+                selectCont.classList.add('hidden');
+                inputCont.classList.remove('hidden');
+                btn.classList.add('active');
+            } else {
+                selectCont.classList.remove('hidden');
+                inputCont.classList.add('hidden');
+                btn.classList.remove('active');
+            }
+        }
+
+        function toggleInputMode(type) {
+            const mode = inputModes[type] === 'select' ? 'input' : 'select';
+            setInputMode(type, mode);
+        }
+
+        let notifyTimeout;
+        function notify(msg, type = 'success') {
+            const el = document.getElementById('notification');
+            el.innerText = msg;
+            el.className = `fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl transform transition-transform duration-300 pointer-events-none text-white font-bold text-sm ${type === 'success' ? 'bg-slate-900' : 'bg-red-500'}`;
+
+            if (notifyTimeout) clearTimeout(notifyTimeout);
+
+            el.classList.remove('scale-0');
+            el.classList.add('scale-100');
+
+            notifyTimeout = setTimeout(() => {
+                el.classList.remove('scale-100');
+                el.classList.add('scale-0');
+            }, 3000);
+        }
+
+        async function fetchAIGeneratedNeta() {
+            const btn = document.getElementById('generateBtn');
+            const grid = document.getElementById('cardsGrid');
+            const placeholder = document.getElementById('placeholderUI');
+            const statusBar = document.getElementById('statusBar');
+
+            const genre = document.getElementById('genre').value;
+            const customTopic = document.getElementById('customTopic').value.trim();
+
+            if (!genre && !customTopic) { notify("ジャンルまたはキーワードを入力してください", "error"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> リサーチ中...`;
+
+            placeholder.classList.add('hidden');
+            statusBar.classList.remove('hidden');
+            grid.innerHTML = createSkeleton(appConfig.generateCount);
+
+            const isManual = document.getElementById('modeToggle').checked;
+            const envApiKey = typeof apiKey !== 'undefined' ? apiKey : "";
+            let keyToUse = isManual ? document.getElementById('userApiKey').value.trim() : envApiKey;
+
+            if (isManual && appConfig.saveApiKey) localStorage.setItem(STORAGE_KEY, keyToUse);
+
+            const currentVibe = inputModes.vibe === 'select' ? document.getElementById('vibeSelect').value : document.getElementById('vibeInput').value || '賑やか';
+            const currentTone = inputModes.tone === 'select' ? document.getElementById('toneSelect').value : document.getElementById('toneInput').value || '丁寧';
+
+            const now = new Date();
+            const timestamp = now.toLocaleString('ja-JP', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                weekday: 'short'
+            });
+
+            let safetyInstructions = "【重要: コンテンツ制限】";
+            if (appConfig.filterPolitics) safetyInstructions += "\n- 政治、宗教、国際紛争、極端な思想、陰謀論については一切除外してください。";
+            if (appConfig.filterAdult) safetyInstructions += "\n- 下ネタ、暴力、犯罪、過激な不謹慎ネタは厳禁。配信をBANされるリスクのある話題は避けてください。";
+            if (appConfig.excludedWords) safetyInstructions += `\n- 以下の単語に関連する話題は含めないでください: ${appConfig.excludedWords}`;
+
+            const systemPrompt = `配信ネタ供給アプリの専門家AI。
+【リサーチ実行日時(現在時刻): ${timestamp}】
+ユーザーの指定条件に基づき、Google検索を使用して最新かつ正確なネタをリサーチしてください。
+有効なJSON配列(マークダウンなし)のみを出力してください。
+各オブジェクト：{title, fact, tips, reaction, category}
+
+情報深度: ${appConfig.infoDepth}
+※casual（低）なら要点を簡潔に、balanced（標準）なら一般的解説を、deep（高）なら専門的な背景や数値、比較データまで含めてください。
+
+${safetyInstructions}`;
+
+            let topicConstraint = genre && customTopic ? `「${genre}」の中で「${customTopic}」に関連する話題` : (customTopic || `「${genre}」に関連する話題`);
+
+            const userPrompt = `${topicConstraint}を計${appConfig.generateCount}件提案してください。
+Google検索結果に基づき、最新の具体的情報を反映してください（日付指定がある場合は実行日時を基準にすること）。
+雰囲気: ${currentVibe}, 話し方: ${currentTone}
+JSON配列のみ返却してください。`;
+
+            try {
+                const results = await callGeminiAPI(keyToUse, systemPrompt, userPrompt);
+                currentNetaList = results;
+                saveResearchSession(results, {
+                    genre,
+                    customTopic,
+                    vibe: currentVibe,
+                    tone: currentTone,
+                    infoDepth: appConfig.infoDepth,
+                    modelId: appConfig.modelId
+                });
+                renderCards(results);
+                document.getElementById('statusText').innerText = `トピック: ${genre || customTopic} (${results.length}件)`;
+            } catch (err) {
+                notify("生成に失敗しました。APIキーまたはネットワークを確認してください。", "error");
+                placeholder.classList.remove('hidden');
+                statusBar.classList.add('hidden');
+            } finally {
+                // APIレートリミット（連打による制限）を防止するため、3秒間のクールダウンを設定
+                btn.innerHTML = `クールダウン中 (3s)...`;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> ネタを生成`;
+                }, 3000);
+            }
+        }
+
+        async function callGeminiAPI(key, system, user) {
+            const modelId = AVAILABLE_MODELS.includes(appConfig.modelId) ? appConfig.modelId : AVAILABLE_MODELS[0];
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${key}`;
+            const payload = {
+                contents: [{ parts: [{ text: user }] }],
+                systemInstruction: { parts: [{ text: system }] },
+                tools: [{ "google_search": {} }]
+            };
+
+            console.log("🔥 APIを叩いたよ");
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error.message);
+
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawText) throw new Error("No Content");
+
+            try {
+                return JSON.parse(rawText.replace(/```json|```/g, "").trim());
+            } catch (e) {
+                const match = rawText.match(/\[[\s\S]*\]/);
+                if (match) return JSON.parse(match[0]);
+                throw new Error("JSON Parse Error");
+            }
+        }
+
+        function createSkeleton(count) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                <div class="bg-white rounded-[2.5rem] p-7 border border-slate-100 shadow-sm">
+                    <div class="h-4 w-20 loading-shimmer rounded mb-6"></div>
+                    <div class="h-6 w-3/4 loading-shimmer rounded mb-4"></div>
+                    <div class="h-20 w-full loading-shimmer rounded mb-4"></div>
+                    <div class="h-10 w-full loading-shimmer rounded-2xl"></div>
+                </div>`;
+            }
+            return html;
+        }
+
+        function renderCards(data) {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = "";
+            data.forEach((item, index) => {
+                const isFaved = favorites.some(f => f.title === item.title);
+                const card = document.createElement('div');
+                card.className = "group bg-white rounded-[2.5rem] p-7 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-500 opacity-0 transform translate-y-4 flex flex-col";
+                card.style.animation = `fadeInUp 0.4s ease-out forwards ${index * 0.1}s`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-3 py-1 bg-slate-100 text-slate-500 text-[9px] font-bold rounded-full uppercase tracking-widest">${escape(item.category)}</span>
+                         <div class="flex gap-2">
+                            <label class="p-2.5 rounded-full ${exportBasket.has(stableMaterialId(item)) ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'} transition-all cursor-pointer" title="出力候補に追加">
+                                <input type="checkbox" class="sr-only" ${exportBasket.has(stableMaterialId(item)) ? 'checked' : ''} onchange="toggleExportSelection(${index}, this.checked)">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            </label>
+                            <button onclick="toggleFavorite(${index})" class="p-2.5 rounded-full ${isFaved ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-pink-500'} transition-all">
+                                <svg class="w-4 h-4" fill="${isFaved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                            </button>
+                            <button onclick="copyCard(${index})" class="p-2.5 bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-full transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg></button>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 leading-snug">${escape(item.title)}</h3>
+                    <div class="space-y-4 flex-grow">
+                        <div class="text-sm text-slate-600 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-50">${escape(item.fact)}</div>
+                        
+                        <div class="mt-2">
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">リスナーの想定反応</label>
+                            <div class="p-3 bg-slate-50 rounded-xl text-xs italic text-slate-500 border-l-4 border-indigo-200">
+                                「${escape(item.reaction)}」
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-indigo-50/50 rounded-[1.5rem] flex items-start gap-3 text-xs text-indigo-700 font-medium">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] uppercase font-bold text-indigo-400">配信への活用ヒント</span>
+                                <span>${escape(item.tips)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            updateExportSelectionUI();
+        }
+
+        function readBackupValue(key, fallback) {
+            try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+            catch (error) { return fallback; }
+        }
+
+        function downloadBackupJson(filename, value) {
+            const blob = new Blob([`${JSON.stringify(value, null, 2)}\n`], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function exportHubBackup() {
+            const backup = {
+                format: 'material-hub-backup',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                data: {
+                    appConfig: readBackupValue(CONFIG_STORAGE_KEY, null),
+                    researchHistory: readBackupValue(HISTORY_STORAGE_KEY, []),
+                    exportBasket: readBackupValue(EXPORT_BASKET_STORAGE_KEY, []),
+                    stock: readBackupValue(STOCK_STORAGE_KEY, [])
+                }
+            };
+            downloadBackupJson(`material_hub_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`, backup);
+            notify('APIキーを除くHubデータをバックアップしました');
+        }
+
+        async function importHubBackup(event) {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) return;
+            try {
+                const backup = JSON.parse(await file.text());
+                if (backup?.format !== 'material-hub-backup' || backup.version !== 1 || !backup.data || typeof backup.data !== 'object') throw new Error('unsupported');
+                if (!confirm('現在のHubデータをバックアップ内容で置き換えます。APIキーは変更されません。よろしいですか？')) return;
+                const entries = [
+                    [CONFIG_STORAGE_KEY, backup.data.appConfig],
+                    [HISTORY_STORAGE_KEY, backup.data.researchHistory],
+                    [EXPORT_BASKET_STORAGE_KEY, backup.data.exportBasket],
+                    [STOCK_STORAGE_KEY, backup.data.stock]
+                ];
+                entries.forEach(([key, value]) => value === null || value === undefined ? localStorage.removeItem(key) : localStorage.setItem(key, JSON.stringify(value)));
+                location.reload();
+            } catch (error) {
+                notify('対応するHubバックアップを読み込めませんでした', 'error');
+            }
+        }
+
+        function clearHubHistory() {
+            if (!confirm(`リサーチ履歴 ${researchHistory.length}件をすべて削除します。よろしいですか？`)) return;
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+            researchHistory = [];
+            renderHistory();
+            notify('リサーチ履歴を初期化しました');
+        }
+
+        function clearHubStock() {
+            if (!confirm(`記事ストック ${favorites.length}件と出力候補 ${exportBasket.size}件をすべて削除します。よろしいですか？`)) return;
+            localStorage.removeItem(STOCK_STORAGE_KEY);
+            localStorage.removeItem(EXPORT_BASKET_STORAGE_KEY);
+            favorites = [];
+            exportBasket = new Map();
+            renderFavorites();
+            renderExportBasket();
+            renderCards(currentNetaList);
+            updateExportSelectionUI();
+            notify('記事ストックと出力候補を初期化しました');
+        }
+
+        function clearAllHubData() {
+            if (!confirm('Hubの設定・履歴・ストック・出力候補を初期化します。APIキーは保持されます。よろしいですか？')) return;
+            [CONFIG_STORAGE_KEY, HISTORY_STORAGE_KEY, EXPORT_BASKET_STORAGE_KEY, STOCK_STORAGE_KEY].forEach(key => localStorage.removeItem(key));
+            location.reload();
+        }
+
+        function toggleExportSelection(index, checked) {
+            const item = currentNetaList[index];
+            if (!item) return;
+            const id = stableMaterialId(item);
+            if (checked) exportBasket.set(id, normalizeMaterialItem(item));
+            else exportBasket.delete(id);
+            persistExportBasket();
+            renderCards(currentNetaList);
+        }
+
+        function selectAllForExport() {
+            currentNetaList.forEach(item => exportBasket.set(stableMaterialId(item), normalizeMaterialItem(item)));
+            persistExportBasket();
+            renderCards(currentNetaList);
+            notify(`${currentNetaList.length}件を出力候補へ追加しました`);
+        }
+
+        function clearExportBasket() {
+            exportBasket.clear();
+            persistExportBasket();
+            renderCards(currentNetaList);
+            renderExportBasket();
+        }
+
+        function updateExportSelectionUI() {
+            const label = document.getElementById('exportSelectionCount');
+            if (label) label.textContent = `出力候補 ${exportBasket.size}件`;
+        }
+
+        function stableMaterialId(item) {
+            const input = `${item.title || ''}\u0000${item.fact || ''}`;
+            let hash = 2166136261;
+            for (let i = 0; i < input.length; i++) {
+                hash ^= input.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return `material-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+        }
+
+        function buildMaterialExport() {
+            const items = [...exportBasket.values()];
+            const exportedAt = new Date().toISOString();
+            return {
+                schemaVersion: '1.0',
+                batchId: createExportBatchId(exportedAt),
+                exportedAt,
+                source: 'material-hub',
+                items
+            };
+        }
+
+        function createExportBatchId(exportedAt) {
+            const randomPart = Math.random().toString(36).slice(2, 10);
+            return `batch-${exportedAt.replace(/\D/g, '').slice(0, 17)}-${randomPart}`;
+        }
+
+        function normalizeMaterialItem(item) {
+            return {
+                id: stableMaterialId(item),
+                title: String(item.title || ''),
+                category: String(item.category || ''),
+                fact: String(item.fact || ''),
+                reaction: String(item.reaction || ''),
+                tips: String(item.tips || '')
+            };
+        }
+
+        function loadExportBasket() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(EXPORT_BASKET_STORAGE_KEY) || '[]');
+                exportBasket = new Map((Array.isArray(saved) ? saved : []).filter(item => item?.id).map(item => [item.id, item]));
+            } catch (error) {
+                exportBasket = new Map();
+                console.warn('出力候補を読み込めませんでした', error);
+            }
+            updateExportSelectionUI();
+        }
+
+        function persistExportBasket() {
+            localStorage.setItem(EXPORT_BASKET_STORAGE_KEY, JSON.stringify([...exportBasket.values()]));
+            updateExportSelectionUI();
+        }
+
+        function openExportBasket() {
+            renderExportBasket();
+            document.getElementById('exportBasketModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            refreshDirectSaveStatus();
+        }
+
+        function closeExportBasket() {
+            document.getElementById('exportBasketModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function renderExportBasket() {
+            const list = document.getElementById('exportBasketList');
+            if (!exportBasket.size) {
+                list.innerHTML = '<div class="py-16 text-center text-xs text-slate-400">出力候補はありません。生成結果や履歴から追加してください。</div>';
+                return;
+            }
+            list.innerHTML = [...exportBasket.values()].map(item => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <span class="text-[9px] font-bold text-indigo-500 uppercase">${escape(item.category || 'TOPIC')}</span>
+                        <h3 class="mt-1 text-sm font-bold text-slate-800">${escape(item.title)}</h3>
+                    </div>
+                    <div class="shrink-0 flex items-center gap-1">
+                        <button onclick="moveExportBasketItem('${item.id}', -1)" class="px-2 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-100 rounded-lg" aria-label="上へ移動">↑</button>
+                        <button onclick="moveExportBasketItem('${item.id}', 1)" class="px-2 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-100 rounded-lg" aria-label="下へ移動">↓</button>
+                        <button onclick="removeFromExportBasket('${item.id}')" class="px-3 py-1.5 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg">削除</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function moveExportBasketItem(id, direction) {
+            const entries = [...exportBasket.entries()];
+            const index = entries.findIndex(([itemId]) => itemId === id);
+            const target = index + direction;
+            if (index < 0 || target < 0 || target >= entries.length) return;
+            [entries[index], entries[target]] = [entries[target], entries[index]];
+            exportBasket = new Map(entries);
+            persistExportBasket();
+            renderExportBasket();
+            renderCards(currentNetaList);
+        }
+
+        function removeFromExportBasket(id) {
+            exportBasket.delete(id);
+            persistExportBasket();
+            renderExportBasket();
+            renderCards(currentNetaList);
+        }
+
+        function downloadTextFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function exportSelectedMaterials(format) {
+            const data = buildMaterialExport();
+            if (data.items.length === 0) {
+                notify('書き出すネタを1件以上選択してください', 'error');
+                return;
+            }
+            if (format === 'js') {
+                downloadTextFile('active_material.js', `window.MATERIAL_HUB_DATA = ${JSON.stringify(data, null, 2)};\n`, 'text/javascript');
+                markStockItemsExported(data.items, data.exportedAt);
+                notify('Material View用JSを書き出しました');
+                return;
+            }
+            const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').slice(0, 15);
+            downloadTextFile(`material-hub_${stamp}.json`, `${JSON.stringify(data, null, 2)}\n`, 'application/json');
+            notify('保管用JSONを書き出しました');
+        }
+
+        function openFileHandleDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(FILE_HANDLE_DB_NAME, 1);
+                request.onupgradeneeded = () => request.result.createObjectStore(FILE_HANDLE_STORE_NAME);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function storeDirectoryHandle(handle) {
+            const db = await openFileHandleDatabase();
+            await new Promise((resolve, reject) => {
+                const transaction = db.transaction(FILE_HANDLE_STORE_NAME, 'readwrite');
+                transaction.objectStore(FILE_HANDLE_STORE_NAME).put(handle, MATERIAL_VIEW_DIRECTORY_KEY);
+                transaction.oncomplete = resolve;
+                transaction.onerror = () => reject(transaction.error);
+            });
+            db.close();
+        }
+
+        async function getStoredDirectoryHandle() {
+            const db = await openFileHandleDatabase();
+            const handle = await new Promise((resolve, reject) => {
+                const request = db.transaction(FILE_HANDLE_STORE_NAME).objectStore(FILE_HANDLE_STORE_NAME).get(MATERIAL_VIEW_DIRECTORY_KEY);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            db.close();
+            return handle;
+        }
+
+        async function chooseMaterialViewDirectory() {
+            if (!window.showDirectoryPicker) {
+                notify('このブラウザは保存先フォルダの登録に対応していません', 'error');
+                return;
+            }
+            try {
+                const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'material-view-output' });
+                await storeDirectoryHandle(handle);
+                await refreshDirectSaveStatus();
+                notify(`保存先を「${handle.name}」に設定しました`);
+            } catch (error) {
+                if (error.name !== 'AbortError') notify('保存先フォルダを設定できませんでした', 'error');
+            }
+        }
+
+        async function ensureWritePermission(handle) {
+            const options = { mode: 'readwrite' };
+            if ((await handle.queryPermission(options)) === 'granted') return true;
+            return (await handle.requestPermission(options)) === 'granted';
+        }
+
+        async function refreshDirectSaveStatus() {
+            const status = document.getElementById('directSaveStatus');
+            const button = document.getElementById('directSaveButton');
+            if (!window.showDirectoryPicker) {
+                status.textContent = '直接保存非対応（ダウンロードを利用できます）';
+                button.disabled = true;
+                button.classList.add('opacity-40', 'cursor-not-allowed');
+                return;
+            }
+            try {
+                const handle = await getStoredDirectoryHandle();
+                status.textContent = handle ? `保存先: ${handle.name}` : '保存先未設定';
+                button.disabled = !handle;
+                button.classList.toggle('opacity-40', !handle);
+                button.classList.toggle('cursor-not-allowed', !handle);
+            } catch (error) {
+                status.textContent = '保存先を確認できませんでした';
+            }
+        }
+
+        async function saveActiveMaterialDirectly() {
+            const data = buildMaterialExport();
+            if (!data.items.length) {
+                notify('書き出すネタを1件以上候補へ追加してください', 'error');
+                return;
+            }
+            try {
+                const directory = await getStoredDirectoryHandle();
+                if (!directory) {
+                    notify('先に保存先フォルダを選択してください', 'error');
+                    return;
+                }
+                if (!(await ensureWritePermission(directory))) {
+                    notify('保存先への書き込みが許可されませんでした', 'error');
+                    return;
+                }
+                const file = await directory.getFileHandle('active_material.js', { create: true });
+                const writable = await file.createWritable();
+                await writable.write(`window.MATERIAL_HUB_DATA = ${JSON.stringify(data, null, 2)};\n`);
+                await writable.close();
+                markStockItemsExported(data.items, data.exportedAt);
+                notify('active_material.js を上書きしました');
+            } catch (error) {
+                console.error(error);
+                notify('active_material.js を保存できませんでした', 'error');
+            }
+        }
+
+        function toggleFavorite(index) {
+            const item = currentNetaList[index];
+            const id = stableMaterialId(item);
+            const favIndex = favorites.findIndex(f => stableMaterialId(f) === id);
+            if (favIndex === -1) {
+                favorites.unshift({ ...normalizeMaterialItem(item), stockedAt: new Date().toISOString(), exportCount: 0, lastExportedAt: null });
+                notify("ストックへ追加しました");
+            } else {
+                favorites.splice(favIndex, 1);
+                notify("ストックから削除しました");
+            }
+            saveFavorites(); renderFavorites(); renderCards(currentNetaList);
+        }
+
+        function renderFavorites() {
+            const list = document.getElementById('favoritesList');
+            document.getElementById('favCount').innerText = favorites.length;
+            if (favorites.length === 0) { list.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-4">ストックした記事はありません</p>`; return; }
+            list.innerHTML = favorites.map((f, i) => `
+                <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-[11px] font-bold text-slate-700 leading-tight">${escape(f.title)}</h4>
+                        <button onclick="removeFavorite(${i})" class="text-slate-300 hover:text-red-400">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[9px] font-bold ${f.exportCount ? 'text-emerald-600' : 'text-slate-400'}">${f.exportCount ? `出力済み ${f.exportCount}回` : '未出力'}</span>
+                        <div class="flex gap-2">
+                            <button onclick="addStockToExport(${i})" class="text-[9px] text-indigo-500 font-bold hover:text-indigo-700">出力候補へ</button>
+                            <button onclick="copyFavoriteItem(${i})" class="text-[9px] text-slate-500 font-bold hover:text-slate-700">コピー</button>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function saveFavorites() { localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(favorites)); }
+        function loadFavorites() {
+            const saved = localStorage.getItem(STOCK_STORAGE_KEY) || localStorage.getItem('stream_hub_favs_v3');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    favorites = (Array.isArray(parsed) ? parsed : []).map(item => ({
+                        ...normalizeMaterialItem(item),
+                        stockedAt: item.stockedAt || new Date().toISOString(),
+                        exportCount: Number(item.exportCount) || 0,
+                        lastExportedAt: item.lastExportedAt || null
+                    }));
+                    saveFavorites();
+                } catch (error) { console.warn('記事ストックを読み込めませんでした', error); }
+            }
+            renderFavorites();
+        }
+        function removeFavorite(i) { favorites.splice(i, 1); saveFavorites(); renderFavorites(); renderCards(currentNetaList); }
+
+        function addStockToExport(index) {
+            const item = favorites[index];
+            if (!item) return;
+            exportBasket.set(item.id, normalizeMaterialItem(item));
+            persistExportBasket();
+            renderFavorites();
+            notify('出力候補へ追加しました');
+        }
+
+        function markStockItemsExported(items, exportedAt) {
+            const ids = new Set(items.map(item => item.id));
+            let changed = false;
+            favorites = favorites.map(item => {
+                if (!ids.has(item.id)) return item;
+                changed = true;
+                return { ...item, exportCount: (Number(item.exportCount) || 0) + 1, lastExportedAt: exportedAt };
+            });
+            if (changed) {
+                saveFavorites();
+                renderFavorites();
+            }
+        }
+
+        function toLocalDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseLocalDate(dateKey) {
+            const [y, m, d] = dateKey.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function loadResearchHistory() {
+            try {
+                const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+                const parsed = saved ? JSON.parse(saved) : [];
+                researchHistory = Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                researchHistory = [];
+                console.warn('履歴データを読み込めませんでした', error);
+            }
+        }
+
+        function persistResearchHistory() {
+            try {
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(researchHistory.slice(0, HISTORY_LIMIT)));
+            } catch (error) {
+                notify('履歴を保存できませんでした。ブラウザの保存容量を確認してください。', 'error');
+            }
+        }
+
+        function saveResearchSession(items, conditions) {
+            if (!Array.isArray(items) || items.length === 0) return;
+            const now = new Date();
+            researchHistory.unshift({
+                id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+                researchedAt: now.toISOString(),
+                dateKey: toLocalDateKey(now),
+                conditions: { ...conditions },
+                items: items.map(item => ({ ...item })),
+                createdAt: now.toISOString()
+            });
+            researchHistory = researchHistory.slice(0, HISTORY_LIMIT);
+            persistResearchHistory();
+        }
+
+        function openHistory() {
+            loadResearchHistory();
+            const latestDate = researchHistory[0]?.dateKey || toLocalDateKey(new Date());
+            selectedHistoryDate = latestDate;
+            historyViewDate = parseLocalDate(latestDate);
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            renderHistoryCalendar();
+            renderHistorySessions();
+        }
+
+        function closeHistory() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function moveHistoryMonth(offset) {
+            historyViewDate = new Date(historyViewDate.getFullYear(), historyViewDate.getMonth() + offset, 1);
+            renderHistoryCalendar();
+        }
+
+        function selectHistoryDate(dateKey) {
+            selectedHistoryDate = dateKey;
+            renderHistoryCalendar();
+            renderHistorySessions();
+        }
+
+        function renderHistoryCalendar() {
+            const grid = document.getElementById('historyCalendarGrid');
+            const year = historyViewDate.getFullYear();
+            const month = historyViewDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const counts = researchHistory.reduce((map, session) => {
+                map[session.dateKey] = (map[session.dateKey] || 0) + 1;
+                return map;
+            }, {});
+            document.getElementById('historyCalendarLabel').textContent = `${year}年 ${month + 1}月`;
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.insertAdjacentHTML('beforeend', '<span class="aspect-square"></span>');
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateKey = toLocalDateKey(date);
+                const count = counts[dateKey] || 0;
+                const selected = dateKey === selectedHistoryDate;
+                const today = dateKey === toLocalDateKey(new Date());
+                const weekday = date.getDay();
+                const dayColor = weekday === 0 ? 'text-red-500' : weekday === 6 ? 'text-blue-500' : 'text-slate-600';
+                grid.insertAdjacentHTML('beforeend', `
+                    <button onclick="selectHistoryDate('${dateKey}')"
+                        class="relative aspect-square rounded-xl text-xs font-bold transition-colors ${selected ? 'bg-indigo-600 text-white shadow-md' : `bg-slate-50 hover:bg-indigo-50 ${dayColor}`} ${today && !selected ? 'ring-1 ring-indigo-300' : ''}">
+                        ${day}
+                        ${count ? `<span class="absolute bottom-1 left-1/2 -translate-x-1/2 min-w-4 h-3 px-1 rounded-full text-[8px] leading-3 ${selected ? 'bg-white text-indigo-600' : 'bg-indigo-500 text-white'}">${count}</span>` : ''}
+                    </button>`);
+            }
+        }
+
+        function renderHistorySessions() {
+            const list = document.getElementById('historySessionList');
+            const sessions = researchHistory.filter(session => session.dateKey === selectedHistoryDate);
+            const date = parseLocalDate(selectedHistoryDate);
+            document.getElementById('historyDateLabel').textContent = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            if (sessions.length === 0) {
+                list.innerHTML = '<div class="py-16 text-center text-xs text-slate-400">この日の履歴はありません</div>';
+                return;
+            }
+            list.innerHTML = sessions.map(session => {
+                const time = new Date(session.researchedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                const topic = session.conditions?.customTopic || session.conditions?.genre || '指定なし';
+                return `
+                    <div class="group p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors">
+                        <button onclick="restoreResearchSession('${session.id}')" class="w-full text-left">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[10px] font-bold text-indigo-500">${escape(time)} · ${session.items?.length || 0}件</span>
+                                <span class="text-[9px] text-slate-400">${escape(session.conditions?.modelId || session.conditions?.infoDepth || '')}</span>
+                            </div>
+                            <div class="mt-1 text-xs font-bold text-slate-700 line-clamp-2">${escape(topic)}</div>
+                            <div class="mt-1 text-[10px] text-slate-400">${escape(session.conditions?.vibe || '')} / ${escape(session.conditions?.tone || '')}</div>
+                        </button>
+                        <div class="mt-2 pt-2 border-t border-slate-100 text-right">
+                            <button onclick="deleteResearchSession('${session.id}')" class="text-[9px] font-bold text-slate-300 hover:text-red-500">削除</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function restoreResearchSession(id) {
+            const session = researchHistory.find(entry => entry.id === id);
+            if (!session || !Array.isArray(session.items)) return;
+            const conditions = session.conditions || {};
+            currentNetaList = session.items.map(item => ({ ...item }));
+            if (conditions.genre !== undefined) document.getElementById('genre').value = conditions.genre;
+            if (conditions.customTopic !== undefined) document.getElementById('customTopic').value = conditions.customTopic;
+            
+            // 雰囲気 (vibe) の復元
+            if (conditions.vibe !== undefined) {
+                const vibeOptions = ["賑やか", "知的・冷静", "シュール・カオス", "毒舌・キレ芸", "癒やし・チル", "深夜のテンション", "メタ的・分析的"];
+                if (vibeOptions.includes(conditions.vibe)) {
+                    document.getElementById('vibeSelect').value = conditions.vibe;
+                    setInputMode('vibe', 'select');
+                } else {
+                    document.getElementById('vibeInput').value = conditions.vibe;
+                    setInputMode('vibe', 'input');
+                }
+            }
+            
+            // 話し方 (tone) の復元
+            if (conditions.tone !== undefined) {
+                const toneOptions = ["丁寧", "フレンドリー", "関西弁風", "お嬢様口調", "淡々とした語り", "語尾に特徴（〜だじぇ、〜存じます等）", "ギャル語"];
+                if (toneOptions.includes(conditions.tone)) {
+                    document.getElementById('toneSelect').value = conditions.tone;
+                    setInputMode('tone', 'select');
+                } else {
+                    document.getElementById('toneInput').value = conditions.tone;
+                    setInputMode('tone', 'input');
+                }
+            }
+            
+            // 情報解像度 (infoDepth) の復元
+            if (conditions.infoDepth !== undefined) {
+                setConfig('infoDepth', conditions.infoDepth);
+            }
+
+            renderCards(currentNetaList);
+            document.getElementById('placeholderUI').classList.add('hidden');
+            document.getElementById('statusBar').classList.remove('hidden');
+            document.getElementById('statusText').innerText = `履歴: ${conditions.customTopic || conditions.genre || '指定なし'} (${currentNetaList.length}件)`;
+            closeHistory();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            notify('保存したリサーチを呼び出しました');
+        }
+
+        function deleteResearchSession(id) {
+            researchHistory = researchHistory.filter(entry => entry.id !== id);
+            persistResearchHistory();
+            renderHistoryCalendar();
+            renderHistorySessions();
+            notify('履歴を削除しました');
+        }
+
+        // 修正: フル情報をコピーするように変更
+        function copyCard(i) {
+            const t = currentNetaList[i];
+            const text = formatNetaForCopy(t);
+            copyToClipboard(text);
+        }
+
+        // 修正: お気に入りからのコピーもフル情報を保持するように追加
+        function copyFavoriteItem(i) {
+            const f = favorites[i];
+            const text = formatNetaForCopy(f);
+            copyToClipboard(text);
+        }
+
+        // 共通のフォーマット関数
+        function formatNetaForCopy(item) {
+            return `【${item.title}】\n\n■事実・背景\n${item.fact}\n\n■想定反応\n「${item.reaction}」\n\n■活用ヒント\n${item.tips}`;
+        }
+
+        function copyToClipboard(t) {
+            const a = document.createElement('textarea');
+            a.value = t;
+            document.body.appendChild(a);
+            a.select();
+            document.execCommand('copy');
+            document.body.removeChild(a);
+            notify("クリップボードにコピーしました");
+        }
+
+        function clearAll() { currentNetaList = []; document.getElementById('cardsGrid').innerHTML = ""; document.getElementById('placeholderUI').classList.remove('hidden'); document.getElementById('statusBar').classList.add('hidden'); updateExportSelectionUI(); }
+        function escape(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.getElementById('historyModal').classList.contains('hidden')) closeHistory();
+            if (event.key === 'Escape' && !document.getElementById('exportBasketModal').classList.contains('hidden')) closeExportBasket();
+        });
+    </script>
+</body>
+
+</html>

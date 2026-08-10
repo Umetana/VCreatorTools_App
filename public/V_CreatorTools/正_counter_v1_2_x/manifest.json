@@ -1,0 +1,15 @@
+{
+  "id": "正_counter_v1_2_x",
+  "schemaVersion": 1,
+  "version": "1.2.0",
+  "name": "正_COUNTER_V1_2_X",
+  "status": "release",
+  "modes": ["standalone"],
+  "pages": [
+    {
+      "name": "index.html",
+      "file": "index.html",
+      "type": "view", "role": "display", "obs": true, "modes": ["standalone"]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1120">
+<title>VCreatorTools Remote</title>
+<link rel="stylesheet" href="/remote/style.css">
+</head>
+<body>
+<header>
+  <div><h1>VCreatorTools Remote</h1><span id="connection" class="status">接続確認中</span></div>
+  <button id="logout" class="subtle" hidden>ログアウト</button>
+</header>
+
+<nav id="remote-tabs" aria-label="Remote機能" hidden>
+  <button class="tab active" data-tab="counter" aria-controls="remote-counter">Counter</button>
+  <button class="tab" data-tab="effect" aria-controls="remote-effect">Effect</button>
+</nav>
+
+<main>
+  <section id="pairing" class="panel" hidden>
+    <h2>端末をペアリング</h2>
+    <p>配信PCの管理画面に表示された6桁のコードを入力してください。</p>
+    <form id="pair-form">
+      <label>ペアリングコード<input id="pair-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label>
+      <label>端末名<input id="device-name" maxlength="80" placeholder="例: 配信用スマホ"></label>
+      <button type="submit">接続する</button>
+    </form>
+    <p id="pair-error" class="error"></p>
+  </section>
+
+  <div id="remote-content" hidden>
+    <section id="remote-counter" class="panel tab-panel active" data-panel="counter">
+      <div class="section-head"><h2>Counter</h2><span id="counter-revision" class="muted"></span></div>
+      <div id="counters" class="counter-list"></div>
+    </section>
+    <section id="remote-effect" class="panel tab-panel" data-panel="effect">
+      <div class="section-head"><h2>Screen Effect</h2><span id="effect-revision" class="muted"></span></div>
+      <div id="effects" class="effect-grid"></div>
+    </section>
+  </div>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/remote/app.js"></script>
+</body>
+</html>

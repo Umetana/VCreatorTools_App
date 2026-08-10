@@ -1,0 +1,62 @@
+/* プレフィックス .fx-feather- を使用して衝突を防止 */
+
+.fx-feather-root {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+}
+
+.fx-feather-item {
+    position: absolute;
+    top: -100px; /* 画面外から開始 */
+    user-select: none;
+    will-change: transform;
+    /* 落下と揺れの2つのアニメーションを組み合わせる */
+    animation-name: fx-feather-fall, fx-feather-sway;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+.fx-feather-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* 白い羽根の色味を微調整するためのフィルタ */
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+}
+
+/* 垂直方向の落下アニメーション */
+@keyframes fx-feather-fall {
+    0% {
+        top: -15%;
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        top: 115%;
+        opacity: 0;
+    }
+}
+
+/* 左右のひらひらした揺れアニメーション */
+@keyframes fx-feather-sway {
+    0%, 100% {
+        transform: translateX(0) rotate(0deg);
+    }
+    25% {
+        transform: translateX(40px) rotate(20deg);
+    }
+    50% {
+        transform: translateX(0) rotate(0deg);
+    }
+    75% {
+        transform: translateX(-40px) rotate(-20deg);
+    }
+}

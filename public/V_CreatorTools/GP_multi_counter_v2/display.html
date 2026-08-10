@@ -1,0 +1,197 @@
+<!-- GP MULTI COUNTER V2 表示パネル -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>GP MULTI COUNTER - Display</title>
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            padding: 10px;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            color: #ffffff;
+        }
+
+        .counter-box {
+            border: 3px solid #ffffff;
+            border-radius: 8px;
+            padding: 15px 25px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .label {
+            font-size: 20px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+
+        .count-container {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .count {
+            font-size: 48px;
+            line-height: 1.2;
+        }
+
+        .unit {
+            font-size: 0.5em;
+            margin-left: 2px;
+        }
+
+        .goal-display {
+            font-size: 0.6em;
+            opacity: 0.8;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="counterBox" class="counter-box">
+        <div id="labelText" class="label">読み込み中...</div>
+        <div class="count-container">
+            <div id="countValue" class="count">
+                0
+                <span id="goalText" class="goal-display"></span>
+            </div>
+            <div id="unitText" class="unit"></div>
+        </div>
+    </div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="counter-core.js"></script>
+    <script src="counter-schema.js"></script>
+    <script src="counter-protocol.js"></script>
+    <script src="counter-store.js"></script>
+    <script src="counter-client.js"></script>
+    <script src="gp-counter-server.js"></script>
+    <script>
+                /**
+         * カウンターIDの判定ロジック（拡張版）
+         * 優先順位: ?id=XXX > #XXX > ファイル名
+         * - ?id=3 / #3 は counter3 に補完
+         * - counterN は小文字に正規化
+         */
+        function getMyId() {
+
+            const normalize = (raw) => {
+                if (!raw) return null;
+                const s = String(raw).trim();
+                if (!s) return null;
+
+                if (/^\d+$/.test(s)) return 'counter' + s;
+                if (/^counter\d+$/i.test(s)) return s.toLowerCase();
+
+                return s; // カスタムIDはそのまま
+            };
+
+            // 1) query (?id=counter3 / ?id=3)
+            const params = new URLSearchParams(window.location.search);
+            const q = normalize(params.get('id'));
+            if (q) return q;
+
+            // 2) hash (#counter3 / #3)
+            const h = normalize((window.location.hash || '').replace(/^#/, ''));
+            if (h) return h;
+
+            // 3) filename (display_counter3.html / counter3.html etc)
+            const fileName = window.location.pathname.split('/').pop();
+            const match = fileName.match(/counter(\d+)/i);
+            return match ? 'counter' + match[1] : 'counter1';
+        }
+
+        const Core = window.GPMultiCounter;
+        const MY_COUNTER_ID = Core.getCounterId(window.location);
+        const repository = new CounterStateRepository({ storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode) });
+        const counterClient = new CounterClient({ role: 'display', repository, canRespond: false });
+        const serverClient = window.GPCounterServer.createClient({
+            role: 'display',
+            onState(serverState) {
+                try {
+                    const counters = Core.normalizeCounters(serverState.counters);
+                    const myData = counters.find(c => c.id === MY_COUNTER_ID);
+                    if (myData) updateUI(myData);
+                } catch (error) {
+                    console.warn('Invalid GP Counter Server state was ignored.', error);
+                }
+            }
+        });
+
+        function updateUI(data) {
+            if (!data || data.id !== MY_COUNTER_ID) return;
+
+            const box = document.getElementById("counterBox");
+            const countEl = document.getElementById("countValue");
+            const labelEl = document.getElementById("labelText");
+            const unitEl = document.getElementById("unitText");
+            const goalEl = document.getElementById("goalText");
+
+            countEl.childNodes[0].textContent = data.count;
+            unitEl.textContent = data.unit || "";
+            labelEl.textContent = data.label;
+
+            box.style.backgroundColor = data.bgColor;
+            box.style.borderColor = data.borderColor;
+            box.style.fontFamily = data.fontFamily || 'sans-serif';
+            
+            labelEl.style.fontSize = data.labelSize;
+            countEl.style.fontSize = data.countSize;
+
+            countEl.style.fontWeight = data.isBold ? 'bold' : 'normal';
+            const shadowStyle = data.isShadow ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none';
+            labelEl.style.textShadow = shadowStyle;
+            countEl.style.textShadow = shadowStyle;
+            unitEl.style.textShadow = shadowStyle;
+
+            if (data.showGoal) {
+                goalEl.textContent = ` / ${data.goalCount}`;
+                goalEl.style.display = "inline";
+                if (parseInt(data.count) >= parseInt(data.goalCount)) {
+                    countEl.style.color = "#ffeb3b";
+                } else {
+                    countEl.style.color = data.textColor;
+                }
+            } else {
+                goalEl.style.display = "none";
+                countEl.style.color = data.textColor;
+            }
+            document.body.style.color = data.textColor;
+        }
+
+        async function init() {
+            const localCounters = repository.load([]).counters;
+            const myData = localCounters.find(c => c.id === MY_COUNTER_ID);
+            if (myData) updateUI(myData);
+            if (serverClient.enabled) {
+                try {
+                    // 表示部は受信専用。サーバーが空でもローカル初期値を正本として登録しない。
+                    await serverClient.initialize([]);
+                    document.documentElement.dataset.vctServer = 'connected';
+                } catch (error) {
+                    document.documentElement.dataset.vctServer = 'fallback';
+                    console.warn('GP Counter Server unavailable; local cache is active.', error);
+                }
+            }
+        }
+
+        init();
+        counterClient.subscribe(event => {
+            if (serverClient.enabled || !event.state) return;
+            const myData = event.state.counters.find(counter => counter.id === MY_COUNTER_ID);
+            if (myData) updateUI(myData);
+        });
+        if (!serverClient.enabled) counterClient.start({ knownRevision: repository.getState().revision });
+    </script>
+</body>
+</html>

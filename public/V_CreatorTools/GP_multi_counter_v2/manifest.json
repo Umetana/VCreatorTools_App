@@ -1,0 +1,35 @@
+{
+  "id": "GP_multi_counter_v2",
+  "schemaVersion": 1,
+  "version": "2.0.0",
+  "name": "GP_MULTI_COUNTER_V2",
+  "status": "release",
+  "modes": ["sync", "server"],
+  "pages": [
+    {
+      "name": "control_ops.html",
+      "file": "control_ops.html",
+      "type": "view", "role": "control", "obs": false, "modes": ["sync", "server"]
+    },
+    {
+      "name": "control_setting.html",
+      "file": "control_setting.html",
+      "type": "view", "role": "settings", "obs": false, "modes": ["sync", "server"]
+    },
+    {
+      "name": "control_setting_obs.html",
+      "file": "control_setting_obs.html",
+      "type": "view", "role": "settings", "obs": true, "modes": ["sync", "server"]
+    },
+    {
+      "name": "display.html",
+      "file": "display.html",
+      "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"]
+    },
+    {
+      "name": "display_layout.html",
+      "file": "display_layout.html",
+      "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"]
+    }
+  ]
+}

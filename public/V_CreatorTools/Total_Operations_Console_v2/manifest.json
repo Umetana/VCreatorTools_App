@@ -1,0 +1,15 @@
+{
+  "id": "total_operations_console_v2",
+  "schemaVersion": 1,
+  "version": "2.0.0-beta.1",
+  "name": "Total Operations Console V2",
+  "status": "beta",
+  "modes": ["sync", "server"],
+  "pages": [
+    {
+      "name": "Total Operations Console V2",
+      "file": "index.html",
+      "type": "view", "role": "control", "obs": true, "modes": ["sync", "server"]
+    }
+  ]
+}

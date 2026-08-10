@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <title>GP Skin Template</title>
+    <style>
+        /* 1. 表示エリアの基本スタイル（配信画面に映る部分） */
+        body { 
+            margin: 0; 
+            background: transparent; 
+            font-family: sans-serif; 
+            color: #fff; 
+            overflow: hidden; 
+        }
+
+        #display-area {
+            padding: 20px;
+            display: inline-block;
+            /* ここに共通の文字影などを入れておくと便利 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* 2. 設定エリア（OBSの「対話」でのみ見える部分） */
+        .debug-settings {
+            margin-top: 100px; /* 配信画面に映らないよう大きく離す */
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            color: #ccc;
+            font-size: 12px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="display-area">
+        <div id="label-node">Loading...</div>
+        <div id="count-node">0</div>
+    </div>
+
+    <div class="debug-settings">
+        <div>対象ID: <span id="target-id">-</span></div>
+        <div style="font-size: 10px; color: #888;">
+            ※ファイル名を「display_counter2.html」等に変更すると自動で切り替わります
+        </div>
+    </div>
+
+<script src="../../../__shared/js/vct-runtime.js"></script>
+<script src="../counter-core.js"></script>
+<script src="../counter-schema.js"></script>
+<script src="../counter-protocol.js"></script>
+<script src="../counter-store.js"></script>
+<script src="../counter-client.js"></script>
+<script src="../gp-counter-server.js"></script>
+<script>
+(function() {
+    const Core = window.GPMultiCounter;
+    const MY_ID = Core.getCounterId(window.location);
+    document.getElementById('target-id').textContent = MY_ID;
+
+    const repository = new CounterStateRepository({ storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode) });
+    const counterClient = new CounterClient({ role: 'display', repository, canRespond: false });
+
+    /**
+     * 描画ロジック
+     * @param {Object} d - 仕様書に基づいたカウンターデータ1件
+     */
+    function apply(d) {
+        if (!d || d.id !== MY_ID) return;
+
+        // ラベルと数値の更新
+        document.getElementById('label-node').textContent = d.label || "";
+        document.getElementById('count-node').textContent = d.count + (d.unit || "");
+
+        // スタイルの適用例（仕様書の各項目を利用）
+        const area = document.getElementById('display-area');
+        area.style.color = d.textColor;
+        area.style.fontFamily = d.fontFamily;
+        
+        const countNode = document.getElementById('count-node');
+        countNode.style.fontSize = d.countSize;
+        countNode.style.fontWeight = d.isBold ? "bold" : "normal";
+
+        // 目標達成時の演出などの条件分岐もここで
+        if (d.showGoal && d.count >= d.goalCount) {
+            // 達成時の処理
+        }
+    }
+
+    const serverClient = window.GPCounterServer.createClient({
+        role: 'display',
+        onState(serverState) {
+            try {
+                const all = Core.normalizeCounters(serverState.counters, { allowEmpty: true });
+                const me = all.find(counter => counter.id === MY_ID);
+                if (me) apply(me);
+            } catch (error) {
+                console.warn('Invalid GP Counter Server state was ignored.', error);
+            }
+        }
+    });
+
+    // --- 初期化（既存データの読み込み） ---
+    const localCounters = repository.load([]).counters;
+    const localCounter = localCounters.find(counter => counter.id === MY_ID);
+    if (localCounter) apply(localCounter);
+
+    if (serverClient.enabled) {
+        serverClient.initialize([]).then(() => {
+            document.documentElement.dataset.vctServer = 'connected';
+        }).catch(error => {
+            document.documentElement.dataset.vctServer = 'fallback';
+            console.warn('GP Counter Server unavailable; local counter cache is active.', error);
+        });
+    } else {
+        counterClient.subscribe(event => {
+            const me = event.state?.counters.find(counter => counter.id === MY_ID);
+            if (me) apply(me);
+        });
+        counterClient.start({ knownRevision: repository.getState().revision });
+    }
+})();
+</script>
+</body>
+</html>

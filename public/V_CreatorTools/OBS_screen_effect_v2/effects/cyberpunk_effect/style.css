@@ -1,0 +1,138 @@
+/* プレフィックス: fx-cyber- */
+
+.fx-cyber-root {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 100;
+    overflow: hidden;
+    background-color: transparent;
+    animation: fx-cyber-fade-out 3s forwards;
+}
+
+@keyframes fx-cyber-fade-out {
+    0% {
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* スキャンライン（走査線）効果 */
+.fx-cyber-scanlines::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+}
+
+.fx-cyber-content {
+    position: relative;
+    text-align: center;
+}
+
+/* メインのネオンテキスト */
+.fx-cyber-text {
+    position: relative;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    /* ネオンの多重シャドウ */
+    text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px var(--neon-color),
+        0 0 30px var(--neon-color),
+        0 0 40px var(--neon-color);
+    animation: fx-cyber-flicker 2s infinite;
+}
+
+/* グリッチ用の複製テキスト */
+.fx-cyber-glitch-copy {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+.fx-cyber-glitch-copy.r {
+    color: #ff00ff;
+    left: 2px;
+    animation: fx-cyber-glitch-anim 0.3s infinite linear alternate-reverse;
+}
+
+.fx-cyber-glitch-copy.b {
+    color: #00ffff;
+    left: -2px;
+    animation: fx-cyber-glitch-anim 0.2s infinite linear alternate-reverse;
+}
+
+/* アニメーション：点滅 */
+@keyframes fx-cyber-flicker {
+
+    0%,
+    18%,
+    22%,
+    25%,
+    53%,
+    57%,
+    100% {
+        opacity: 1;
+    }
+
+    20%,
+    24%,
+    55% {
+        opacity: 0.7;
+    }
+}
+
+/* アニメーション：グリッチ */
+@keyframes fx-cyber-glitch-anim {
+    0% {
+        clip-path: inset(40% 0 61% 0);
+    }
+
+    20% {
+        clip-path: inset(92% 0 1% 0);
+    }
+
+    40% {
+        clip-path: inset(43% 0 1% 0);
+    }
+
+    60% {
+        clip-path: inset(25% 0 58% 0);
+    }
+
+    80% {
+        clip-path: inset(54% 0 7% 0);
+    }
+
+    100% {
+        clip-path: inset(58% 0 43% 0);
+    }
+}

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Maro Data Generator V2</title>
+    <script src="settings.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .ver-tag { float: right; font-size: 0.8rem; color: #999; }
+        h1 { font-size: 1.5rem; color: #ff4d79; margin-bottom: 20px; border-bottom: 2px solid #ff4d79; padding-bottom: 10px; }
+        
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff0f3; padding: 15px; border-radius: 10px; align-items: center; }
+        .btn { padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn-export { background: #ff4d79; color: white; flex-grow: 1; }
+        .btn-import { background: #6c757d; color: white; }
+        .btn-secondary { background: #eee; color: #333; font-size: 0.85rem; border: 1px solid #ccc; }
+        .btn-clear { background: #fff; color: #cc0000; border: 1px solid #cc0000; }
+        
+        .panel-item {
+            border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;
+            display: grid; grid-template-columns: 40px 1.5fr 1.5fr 2fr 180px; gap: 10px;
+            background: #fafafa;
+        }
+        .panel-id { font-weight: bold; color: #ff4d79; font-size: 1.2rem; text-align: center; }
+        label { display: block; font-size: 0.7rem; color: #777; margin-bottom: 2px; }
+        input, textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        
+        .color-settings {
+            background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 4px;
+        }
+        .color-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+        .color-row input[type="color"] { width: 30px; height: 24px; padding: 0; border: none; background: none; cursor: pointer; }
+        .color-row span { font-size: 0.7rem; color: #555; }
+
+        .manual-area { margin-top: 40px; border-top: 2px dashed #ddd; padding-top: 20px; }
+        .manual-area summary { cursor: pointer; color: #888; font-size: 0.9rem; margin-bottom: 10px; outline: none; }
+        .copy-box { width: 100%; height: 200px; font-family: monospace; font-size: 0.8rem; background: #f9f9f9; color: #555; margin-top: 10px; }
+        .info { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="ver-tag">Generator V2</div>
+    <h1>マロデータ作成機 (V2)</h1>
+    
+    <div class="toolbar">
+        <button class="btn btn-import" onclick="document.getElementById('file-input').click()">data.js を読み込む</button>
+        <input type="file" id="file-input" style="display:none" accept=".js" onchange="importFile(this)">
+        <button class="btn btn-export" onclick="exportFile()">data.js を書き出す (ダウンロード)</button>
+    </div>
+
+    <div id="panel-list"></div>
+
+    <details class="manual-area">
+        <summary>【救済策】ダウンロード・自動読み込みが動かない場合はこちら</summary>
+        <div class="info">
+            下のテキストエリアに <code>data.js</code> の中身を貼り付けて「手動読み込み」を押すか、<br>
+            「テキストを生成」を押して出力された内容をコピーして自分の <code>data.js</code> に貼り付けてください。
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="manualImport()">手動読み込み (テキストから反映)</button>
+            <button class="btn btn-secondary" onclick="manualExport()">テキストを生成 (表示する)</button>
+            <button class="btn btn-secondary btn-clear" onclick="clearManualText()">クリア</button>
+        </div>
+        <textarea id="manual-text" class="copy-box" placeholder="ここに data.js のコードを貼り付け"></textarea>
+    </details>
+</div>
+
+<script>
+    const settings = (typeof CONFIG !== 'undefined') ? CONFIG : { grid: { cols: 5, rows: 4 } };
+    const totalCount = settings.grid.cols * settings.grid.rows;
+    const listContainer = document.getElementById('panel-list');
+
+    function createInputs() {
+        for (let i = 1; i <= totalCount; i++) {
+            const item = document.createElement('div');
+            item.className = 'panel-item';
+            item.innerHTML = `
+                <div class="panel-id">${i}</div>
+                <div><label>タイトル</label><input type="text" id="t-${i}"></div>
+                <div><label>フレーズ</label><input type="text" id="p-${i}"></div>
+                <div><label>本文</label><textarea id="c-${i}" style="height:60px"></textarea></div>
+                <div class="color-settings">
+                    <label style="margin-bottom:5px">個別色指定 (背景/文字)</label>
+                    <div class="color-row">
+                        <input type="checkbox" id="cb-c-${i}">
+                        <input type="color" id="bg-c-${i}" value="#ffffff">
+                        <input type="color" id="tx-c-${i}" value="#333333">
+                        <span>未開封</span>
+                    </div>
+                    <div class="color-row">
+                        <input type="checkbox" id="cb-a-${i}">
+                        <input type="color" id="bg-a-${i}" value="#ff85a2">
+                        <input type="color" id="tx-a-${i}" value="#ffffff">
+                        <span>開封済</span>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(item);
+        }
+    }
+
+    function generateFullJS() {
+        let fileContent = "// マロデータ V2\n\n";
+        let arrayEntries = [];
+        for (let i = 1; i <= totalCount; i++) {
+            const t = document.getElementById(`t-${i}`).value.trim();
+            const p = document.getElementById(`p-${i}`).value.trim();
+            const c = document.getElementById(`c-${i}`).value.trim();
+            const useC = document.getElementById(`cb-c-${i}`).checked;
+            const useA = document.getElementById(`cb-a-${i}`).checked;
+
+            if (t || p || c) {
+                const varName = `MARO_${String(i).padStart(2, '0')}`;
+                let str = `const ${varName} = {\n`;
+                str += `    title: ${JSON.stringify(t)},\n`;
+                str += `    phrase: ${JSON.stringify(p)},\n`;
+                str += `    content: ${JSON.stringify(c)}`;
+                
+                if (useC || useA) {
+                    str += `,\n    customStyle: {\n`;
+                    if (useC) str += `        closed: { bg: "${document.getElementById(`bg-c-${i}`).value}", text: "${document.getElementById(`tx-c-${i}`).value}" }${useA ? ',' : ''}\n`;
+                    if (useA) str += `        phrase: { bg: "${document.getElementById(`bg-a-${i}`).value}", text: "${document.getElementById(`tx-a-${i}`).value}" }\n`;
+                    str += `    }`;
+                }
+                str += `\n};\n\n`;
+                fileContent += str;
+                arrayEntries.push(varName);
+            } else { arrayEntries.push("null"); }
+        }
+        fileContent += "const MARO_DATA = [\n    " + arrayEntries.join(",\n    ") + "\n];";
+        return fileContent;
+    }
+
+    function exportFile() {
+        const fileContent = generateFullJS();
+        const blob = new Blob([fileContent], { type: 'text/javascript' });
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url; a.download = 'data.js'; a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function manualExport() {
+        document.getElementById('manual-text').value = generateFullJS();
+    }
+
+    function parseTextToUI(text) {
+        try {
+            for (let i = 1; i <= totalCount; i++) {
+                const idStr = String(i).padStart(2, '0');
+                const startIdx = text.indexOf(`const MARO_${idStr}`);
+                
+                // リセット
+                document.getElementById(`t-${i}`).value = "";
+                document.getElementById(`p-${i}`).value = "";
+                document.getElementById(`c-${i}`).value = "";
+                document.getElementById(`cb-c-${i}`).checked = false;
+                document.getElementById(`cb-a-${i}`).checked = false;
+
+                if (startIdx === -1) continue;
+
+                let endIdx = text.indexOf(`const MARO_${String(i+1).padStart(2, '0')}`, startIdx);
+                if (endIdx === -1) endIdx = text.indexOf('const MARO_DATA', startIdx);
+                if (endIdx === -1) endIdx = text.length;
+                const block = text.substring(startIdx, endIdx);
+
+                const readString = key => {
+                    const match = block.match(new RegExp(`${key}:\\s*("(?:\\\\.|[^"\\\\])*")`));
+                    return match ? JSON.parse(match[1]) : "";
+                };
+                document.getElementById(`t-${i}`).value = readString('title');
+                document.getElementById(`p-${i}`).value = readString('phrase');
+                document.getElementById(`c-${i}`).value = readString('content');
+
+                const closedMatch = block.match(/closed:\s*{\s*bg:\s*"(#.*?)",\s*text:\s*"(#.*?)"\s*}/);
+                if (closedMatch) {
+                    document.getElementById(`cb-c-${i}`).checked = true;
+                    document.getElementById(`bg-c-${i}`).value = closedMatch[1];
+                    document.getElementById(`tx-c-${i}`).value = closedMatch[2];
+                }
+              const phraseMatch = block.match(/phrase:\s*{\s*bg:\s*"(#.*?)",\s*text:\s*"(#.*?)"\s*}/
+);
+
+if (phraseMatch) {
+    document.getElementById(`cb-a-${i}`).checked = true;
+    document.getElementById(`bg-a-${i}`).value = phraseMatch[1];
+    document.getElementById(`tx-a-${i}`).value = phraseMatch[2];
+}
+
+            }
+            return true;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    }
+
+    function importFile(input) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (parseTextToUI(e.target.result)) {
+                alert("読み込み完了");
+                input.value = "";
+            } else {
+                alert("解析に失敗しました。ファイル形式を確認してください。");
+            }
+        };
+        reader.readAsText(input.files[0]);
+    }
+
+    function manualImport() {
+        const val = document.getElementById('manual-text').value;
+        if (!val) return;
+        if (parseTextToUI(val)) alert("テキストエリアの内容を反映しました。");
+        else alert("解析に失敗しました。");
+    }
+
+    function clearManualText() {
+        if (confirm("テキストエリアの内容を消去しますか？")) {
+            document.getElementById('manual-text').value = "";
+        }
+    }
+
+    createInputs();
+</script>
+</body>
+</html>

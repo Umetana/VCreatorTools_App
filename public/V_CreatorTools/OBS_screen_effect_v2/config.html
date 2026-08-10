@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詳細設定</title>
+    <style>
+        :root {
+            --bg-color: #0f0f1a;
+            --panel-bg: #1a1a2e;
+            --accent: #4ecca3;
+            --text: #ffffff;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Tabs */
+        .sidebar {
+            width: 250px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 15px 20px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .tab-btn.active {
+            background: rgba(78, 204, 163, 0.1);
+            color: var(--accent);
+            border-left: 4px solid var(--accent);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Controls */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        select option {
+            background-color: #1a1a2e;
+            color: white;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #1a1a2e;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-success {
+            background: #4ecca3 !important;
+            color: #1a1a2e !important;
+        }
+
+        /* Button Management Cards */
+        .btn-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        body.dock-view .sidebar { width: 180px; }
+        body.dock-view .main-content { margin-left: 180px; padding: 18px; }
+        body.dock-view .sidebar-header { font-size: 0.95rem; }
+        body.dock-view .developer-tool { display: none; }
+
+        @media (max-width: 700px) {
+            .sidebar, body.dock-view .sidebar {
+                position: static;
+                width: auto;
+                height: auto;
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .sidebar-header { width: 100%; }
+            .main-content, body.dock-view .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">エフェクト設定</div>
+        <button class="tab-btn active" onclick="showTab('general')">基本設定</button>
+        <button class="tab-btn" onclick="showTab('buttons')">ボタン管理</button>
+        <button class="tab-btn" onclick="showTab('export')">設定の入出力</button>
+        <button id="toc-return" class="tab-btn" hidden>↩ TOC V2へ戻る</button>
+        <button class="tab-btn developer-tool" onclick="location.href='effect_editor.html'"
+            style="border-top: 1px solid var(--border); margin-top: 10px;">🛠 リスト編集ツール</button>
+    </div>
+
+    <div class="main-content">
+        <!-- General -->
+        <div id="tab-general" class="tab-content active">
+            <h2>基本設定</h2>
+            <div class="form-group">
+                <label>基本解像度 (幅 x 高さ)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="res-w" placeholder="1920">
+                    <input type="number" id="res-h" placeholder="1080">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>操作パネルのグリッド数 (横 x 縦)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="grid-cols" placeholder="4">
+                    <input type="number" id="grid-rows" placeholder="3">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>マスター音量</label>
+                <input type="range" id="master-vol" min="0" max="1" step="0.1">
+            </div>
+
+            <div class="button-row"
+                style="align-items: center; gap: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="confirm-save" checked
+                        style="width: 18px; height: 18px; cursor: pointer;">
+                    <button class="btn btn-primary" id="btn-save-general" onclick="saveGeneral()">設定を保存</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-left: auto; opacity: 0.6; transition: opacity 0.3s;"
+                    id="reset-guard-area">
+                    <input type="checkbox" id="guard-reset" onchange="toggleResetBtn()"
+                        style="width: 18px; height: 18px; cursor: pointer;">
+                    <button class="btn btn-secondary" id="btn-reset-general" onclick="resetGeneral()" disabled
+                        style="background: rgba(255,100,100,0.1); color: #ff6464; border: 1px solid rgba(255,100,100,0.2);">初期化</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div id="tab-buttons" class="tab-content">
+            <h2>ボタン管理（グリッド編集）</h2>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 20px;">
+                グリッドのセルをクリックして編集します。配置済みボタンはドラッグして移動でき、配置先にボタンがある場合は入れ替わります。
+            </p>
+            <style>
+                #grid-editor {
+                    display: grid;
+                    gap: 8px;
+                    background: rgba(0, 0, 0, 0.2);
+                    padding: 12px;
+                    border-radius: 12px;
+                    border: 1px solid var(--border);
+                    max-width: 800px;
+                    /* Constrain total width */
+                }
+
+                .grid-cell {
+                    aspect-ratio: 1.2;
+                    /* Slightly wider than tall for text */
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px dashed rgba(255, 255, 255, 0.2);
+                    border-radius: 6px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    text-align: center;
+                    font-size: 0.75rem;
+                    padding: 8px;
+                    min-width: 80px;
+                    max-width: 150px;
+                }
+
+                .grid-cell:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: var(--accent);
+                }
+
+                .grid-cell.occupied {
+                    background: rgba(78, 204, 163, 0.1);
+                    border: 1px solid var(--accent);
+                }
+
+                .grid-cell.occupied[draggable="true"] { cursor: grab; }
+                .grid-cell.dragging { opacity: 0.4; cursor: grabbing; }
+                .grid-cell.drop-target {
+                    background: rgba(78, 204, 163, 0.28);
+                    box-shadow: 0 0 0 2px var(--accent) inset;
+                }
+
+                .modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: none;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+
+                .modal-content {
+                    background: var(--panel-bg);
+                    padding: 30px;
+                    border-radius: 12px;
+                    width: 500px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+                    border: 1px solid var(--border);
+                }
+
+                .form-section {
+                    margin-top: 25px;
+                    padding-top: 15px;
+                    border-top: 1px solid var(--border);
+                }
+
+                .form-section h4 {
+                    margin-top: 0;
+                    color: var(--accent);
+                    font-size: 0.9rem;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+
+                .form-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 15px;
+                }
+            </style>
+            <div id="grid-editor"></div>
+
+            <!-- Editor Modal -->
+            <div id="editor-modal" class="modal">
+                <div class="modal-content">
+                    <h3 id="modal-title">ボタン編集</h3>
+
+                    <div class="form-group">
+                        <label>ラベル名（パネル上の表示）</label>
+                        <input type="text" id="edit-label">
+                    </div>
+
+                    <div class="form-group">
+                        <label>エフェクトの種類</label>
+                        <select id="edit-effect-id" onchange="onEffectChange()"></select>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>共通設定</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>表示テキスト</label>
+                                <input type="text" id="edit-mainText">
+                            </div>
+                            <div class="form-group">
+                                <label>色</label>
+                                <input type="color" id="edit-mainColor" style="height: 40px; padding: 2px;">
+                            </div>
+                            <div class="form-group">
+                                <label>フォントサイズ</label>
+                                <input type="text" id="edit-fontSize" placeholder="100px">
+                            </div>
+                            <div class="form-group">
+                                <label>表示時間 (ms)</label>
+                                <input type="number" id="edit-duration" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label>音量 (0.0 - 1.0)</label>
+                                <input type="number" id="edit-volume" min="0" max="1" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>背景の暗さ (0.0 - 1.0)</label>
+                                <input type="number" id="edit-bgOpacity" min="0" max="1" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="effect-options-section">
+                        <h4>エフェクト固有設定</h4>
+                        <div id="effect-options-container" class="form-grid">
+                            <!-- Dynamic fields here -->
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>GP MULTI COUNTER 連携設定</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>発動トリガー</label>
+                                <select id="edit-trigger-type" onchange="toggleTriggerValue()">
+                                    <option value="none">なし（手動のみ）</option>
+                                    <option value="increment">カウントアップする度</option>
+                                    <option value="reach">指定した数値に達した時</option>
+                                    <option value="interval">指定した数値の間隔毎</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>対象カウンターID</label>
+                                <select id="edit-trigger-id">
+                                    <option value="counter1">counter1</option>
+                                    <option value="counter2">counter2</option>
+                                    <option value="counter3">counter3</option>
+                                    <option value="counter4">counter4</option>
+                                    <option value="counter5">counter5</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="trigger-value-group">
+                                <label id="trigger-value-label">判定数値</label>
+                                <input type="number" id="edit-trigger-value" min="1" value="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn btn-primary" onclick="saveButton()">保存</button>
+                        <button class="btn btn-secondary" onclick="deleteButton()">削除</button>
+                        <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export -->
+        <div id="tab-export" class="tab-content">
+            <h2>設定の入出力</h2>
+            <p style="color: rgba(255,255,255,0.5)">通常ブラウザとOBSのストレージが別の場合は、JSONをコピーまたはファイルで受け渡してください。</p>
+            <textarea id="export-json" readonly
+                style="height: 200px; font-family: monospace; width: 100%; margin-bottom: 20px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 8px;"></textarea>
+            <div class="button-row">
+                <button class="btn btn-primary" onclick="copyJSON()">コードをコピー</button>
+                <button class="btn btn-secondary" onclick="downloadSettingsJSON()">settings.json をダウンロード</button>
+                <button class="btn btn-secondary" id="btn-file-system-save" onclick="saveWithFileSystemAccess()" style="display:none;">settings.js の保存先を選択</button>
+                <button class="btn btn-secondary" onclick="downloadSettingsJS()">settings.js としてダウンロード</button>
+                <button class="btn btn-secondary" onclick="reloadFileSettings()">settings.js を再読込</button>
+            </div>
+            <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <h3>設定を読み込む</h3>
+                <textarea id="import-json" placeholder="設定JSONを貼り付け"
+                    style="height: 160px; font-family: monospace; width: 100%; margin-bottom: 12px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 8px;"></textarea>
+                <div class="button-row">
+                    <button class="btn btn-primary" onclick="applyImportedJSON()">貼り付けた設定を適用</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('settings-file-input').click()">JSONファイルを開く</button>
+                    <input type="file" id="settings-file-input" accept=".json,application/json" onchange="loadSettingsFile(this)" style="display:none;">
+                </div>
+            </div>
+            <div style="margin-top: 20px; font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.7);">
+                <p><strong>同期のヒント:</strong></p>
+                <ul>
+                    <li><strong>方法A:</strong> JSONをコピーして、OBSドック表示の同じ画面へ貼り付けます。</li>
+                    <li><strong>方法B:</strong> settings.jsonをダウンロードし、OBS側でファイルを開きます。</li>
+                    <li><strong>方法C (恒久保存):</strong> 「settings.js」をダウンロードし、ガジェットのフォルダ内にある同名ファイルを上書きします。
+                        <br><small>※差し替え後は「settings.js を再読込」でブラウザ内の設定よりファイルを優先できます。</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="js/settings_default.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/effects_list.js"></script>
+    <script src="js/effects_user.js"></script>
+    <script src="js/effect-message-protocol.js"></script>
+    <script src="js/settings-schema.js"></script>
+    <script src="js/settings-repository.js"></script>
+    <script src="js/broadcast-transport.js"></script>
+    <script src="js/server-effect-transport.js"></script>
+    <script src="js/effect-transport-router.js"></script>
+    <script src="js/counter-trigger-engine.js"></script>
+    <script src="js/effect-registry.js"></script>
+    <script src="js/core.js"></script>
+    <script>
+        const core = new EffectCore('config');
+        let effectList = [];
+        let currentEditingIndex = -1;
+        let draggedGridIndex = null;
+        let suppressGridClickUntil = 0;
+
+        async function init() {
+            // Merge Official and User lists
+            const official = typeof OFFICIAL_EFFECTS !== 'undefined' ? OFFICIAL_EFFECTS : [];
+            const user = typeof USER_EFFECTS !== 'undefined' ? USER_EFFECTS : [];
+            effectList = [...official, ...user];
+
+            if (effectList.length > 0) {
+                populateEffectSelect();
+            } else {
+                // Fallback attempt for fetch
+                try {
+                    const response = await fetch('./effects/list.json');
+                    effectList = await response.json();
+                    populateEffectSelect();
+                } catch (e) {
+                    console.error("Failed to load effect list via both methods", e);
+                }
+            }
+            renderUI();
+        }
+
+        function populateEffectSelect() {
+            const select = document.getElementById('edit-effect-id');
+            select.replaceChildren(...effectList.map((effect) => {
+                const option = document.createElement('option');
+                option.value = effect.id;
+                option.textContent = effect.name;
+                return option;
+            }));
+        }
+
+        function showTab(tabId, sourceButton = null) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const selectedButton = sourceButton || window.event?.currentTarget ||
+                document.querySelector(`.tab-btn[onclick*="'${tabId}'"]`);
+            selectedButton?.classList.add('active');
+
+            if (tabId === 'export') {
+                document.getElementById('export-json').value = JSON.stringify(core.settings, null, 2);
+            }
+        }
+
+        function saveGeneral() {
+            const confirmCheck = document.getElementById('confirm-save');
+            if (!confirmCheck.checked) {
+                alert("「設定を保存」のチェックを入れてから実行してください。");
+                return;
+            }
+
+            const newSettings = {
+                ...core.settings,
+                resolution: {
+                    width: parseInt(document.getElementById('res-w').value),
+                    height: parseInt(document.getElementById('res-h').value)
+                },
+                gridConfig: {
+                    cols: parseInt(document.getElementById('grid-cols').value),
+                    rows: parseInt(document.getElementById('grid-rows').value)
+                },
+                masterVolume: parseFloat(document.getElementById('master-vol').value)
+            };
+            core.saveSettings(newSettings);
+
+            // Visual feedback instead of alert
+            const btn = document.getElementById('btn-save-general');
+            const originalText = btn.innerText;
+            btn.innerText = "保存しました！";
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('btn-success');
+            }, 1500);
+
+            renderUI();
+        }
+
+        function toggleResetBtn() {
+            const guard = document.getElementById('guard-reset');
+            const btn = document.getElementById('btn-reset-general');
+            const area = document.getElementById('reset-guard-area');
+            btn.disabled = !guard.checked;
+            area.style.opacity = guard.checked ? "1" : "0.6";
+        }
+
+        function resetGeneral() {
+            // Revert to the product defaults, not the user-generated settings.js.
+            core.saveSettings(window.OBS_EFFECT_DEFAULT_SETTINGS);
+            location.reload(); // Quickest way to sync all UI
+        }
+
+        function renderUI() {
+            // General init
+            document.getElementById('res-w').value = core.settings.resolution.width;
+            document.getElementById('res-h').value = core.settings.resolution.height;
+            document.getElementById('grid-cols').value = core.settings.gridConfig.cols;
+            document.getElementById('grid-rows').value = core.settings.gridConfig.rows;
+            document.getElementById('master-vol').value = core.settings.masterVolume;
+
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const editor = document.getElementById('grid-editor');
+            editor.replaceChildren();
+            const { cols, rows } = core.settings.gridConfig;
+            editor.style.gridTemplateColumns = `repeat(${cols}, minmax(80px, 1fr))`;
+
+            for (let i = 0; i < cols * rows; i++) {
+                const btn = core.settings.buttons.find(b => b.gridIndex === i);
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell' + (btn ? ' occupied' : '');
+                cell.dataset.gridIndex = i;
+                if (btn) {
+                    cell.draggable = true;
+                    cell.title = 'クリックで編集／ドラッグで移動・入れ替え';
+                    const label = document.createElement('strong');
+                    label.textContent = btn.label;
+                    const effectId = document.createElement('small');
+                    effectId.textContent = btn.effectId;
+                    cell.append(label, document.createElement('br'), effectId);
+                } else {
+                    cell.textContent = '+';
+                }
+                cell.addEventListener('dragstart', (event) => {
+                    if (!btn) return;
+                    draggedGridIndex = i;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(i));
+                    cell.classList.add('dragging');
+                });
+                cell.addEventListener('dragover', (event) => {
+                    if (draggedGridIndex === null || draggedGridIndex === i) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    cell.classList.add('drop-target');
+                });
+                cell.addEventListener('dragleave', () => cell.classList.remove('drop-target'));
+                cell.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    cell.classList.remove('drop-target');
+                    if (draggedGridIndex === null || draggedGridIndex === i) return;
+                    moveGridButton(draggedGridIndex, i);
+                    suppressGridClickUntil = Date.now() + 300;
+                });
+                cell.addEventListener('dragend', () => {
+                    draggedGridIndex = null;
+                    document.querySelectorAll('.grid-cell').forEach((item) => item.classList.remove('dragging', 'drop-target'));
+                });
+                cell.onclick = () => {
+                    if (Date.now() < suppressGridClickUntil) return;
+                    openModal(i);
+                };
+                editor.appendChild(cell);
+            }
+        }
+
+        function moveGridButton(sourceIndex, targetIndex) {
+            const source = core.settings.buttons.find((button) => button.gridIndex === sourceIndex);
+            if (!source) return;
+            const target = core.settings.buttons.find((button) => button.gridIndex === targetIndex);
+            const buttons = core.settings.buttons.map((button) => {
+                if (button.id === source.id) return { ...button, gridIndex: targetIndex };
+                if (target && button.id === target.id) return { ...button, gridIndex: sourceIndex };
+                return button;
+            });
+            core.saveSettings({ ...core.settings, buttons });
+            renderGrid();
+        }
+
+        async function openModal(index) {
+            currentEditingIndex = index;
+            const btn = core.settings.buttons.find(b => b.gridIndex === index);
+
+            document.getElementById('modal-title').innerText = btn ? 'ボタン編集' : 'エフェクト割り当て';
+            document.getElementById('edit-label').value = btn ? btn.label : '新しいボタン';
+
+            const effectId = btn ? btn.effectId : (effectList[0]?.id || 'crown_effect');
+            document.getElementById('edit-effect-id').value = effectId;
+
+            // Base params
+            const params = btn ? btn.params : (DEFAULT_SETTINGS.buttons[0]?.params || {});
+            document.getElementById('edit-mainText').value = params.mainText || '';
+            document.getElementById('edit-mainColor').value = params.mainColor || '#ffffff';
+            document.getElementById('edit-fontSize').value = params.fontSize || '100px';
+            document.getElementById('edit-duration').value = params.duration || 3000;
+            document.getElementById('edit-volume').value = params.volume || 0.5;
+            document.getElementById('edit-bgOpacity').value = params.bgOpacity !== undefined ? params.bgOpacity : 0.4;
+
+            await updateEffectOptions(effectId, params.options || {});
+
+            // Counter trigger params
+            const trigger = params.trigger || { type: 'none', linkedId: 'counter1', value: 100 };
+            document.getElementById('edit-trigger-type').value = trigger.type;
+            document.getElementById('edit-trigger-id').value = trigger.linkedId;
+            document.getElementById('edit-trigger-value').value = trigger.value;
+            toggleTriggerValue();
+
+            document.getElementById('editor-modal').style.display = 'flex';
+        }
+
+        function toggleTriggerValue() {
+            const type = document.getElementById('edit-trigger-type').value;
+            const group = document.getElementById('trigger-value-group');
+            const label = document.getElementById('trigger-value-label');
+
+            if (type === 'none' || type === 'increment') {
+                group.style.display = 'none';
+            } else {
+                group.style.display = 'block';
+                label.innerText = (type === 'reach') ? '到達数値' : '発動間隔';
+            }
+        }
+
+        async function onEffectChange() {
+            const effectId = document.getElementById('edit-effect-id').value;
+            await updateEffectOptions(effectId, {});
+        }
+
+        async function updateEffectOptions(effectId, currentOptions) {
+            const container = document.getElementById('effect-options-container');
+            container.textContent = '読み込み中...';
+
+            const effectClass = await core.loadEffect(effectId);
+            if (!effectClass || !effectClass.manifest) {
+                const empty = document.createElement('p');
+                empty.style.gridColumn = 'span 2';
+                empty.style.color = '#ff8a8a';
+                empty.textContent = core.effectRegistry.getError(effectId) || '固有設定はありません';
+                container.replaceChildren(empty);
+                return;
+            }
+
+            container.replaceChildren();
+            effectClass.manifest.fields.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+
+                const val = (currentOptions[f.name] !== undefined) ? currentOptions[f.name] : f.default;
+                const label = document.createElement('label');
+                label.textContent = f.label || f.name;
+                let input;
+                if (f.type === 'boolean') {
+                    input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.checked = Boolean(val);
+                    input.style.width = 'auto';
+                } else if (f.type === 'number') {
+                    input = document.createElement('input');
+                    input.type = 'number';
+                    input.value = val;
+                    if (f.min !== undefined) input.min = f.min;
+                    if (f.max !== undefined) input.max = f.max;
+                    input.step = f.step !== undefined ? f.step : 'any';
+                } else if (f.type === 'color') {
+                    input = document.createElement('input');
+                    input.type = 'color';
+                    input.value = val;
+                    input.style.height = '38px';
+                    input.style.padding = '2px';
+                } else if (f.type === 'select' && f.options) {
+                    input = document.createElement('select');
+                    f.options.forEach((item) => {
+                        const option = document.createElement('option');
+                        option.value = item.value;
+                        option.textContent = item.label;
+                        option.selected = item.value == val;
+                        input.appendChild(option);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = val;
+                }
+                input.className = 'opt-input';
+                input.dataset.name = f.name;
+                input.dataset.type = f.type === 'number' ? 'number' : (f.type === 'boolean' ? 'boolean' : 'string');
+                div.append(label, input);
+                container.appendChild(div);
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('editor-modal').style.display = 'none';
+        }
+
+        function saveButton() {
+            const label = document.getElementById('edit-label').value;
+            const effectId = document.getElementById('edit-effect-id').value;
+
+            // Collect base params
+            let fontSize = document.getElementById('edit-fontSize').value;
+            if (fontSize && !isNaN(fontSize)) {
+                fontSize += 'px';
+            }
+
+            const params = {
+                mainText: document.getElementById('edit-mainText').value,
+                mainColor: document.getElementById('edit-mainColor').value,
+                fontSize: fontSize,
+                duration: parseInt(document.getElementById('edit-duration').value),
+                volume: parseFloat(document.getElementById('edit-volume').value),
+                bgOpacity: parseFloat(document.getElementById('edit-bgOpacity').value),
+                trigger: {
+                    type: document.getElementById('edit-trigger-type').value,
+                    linkedId: document.getElementById('edit-trigger-id').value,
+                    value: parseInt(document.getElementById('edit-trigger-value').value)
+                },
+                options: {}
+            };
+
+            // Collect effect-specific options
+            document.querySelectorAll('.opt-input').forEach(input => {
+                const name = input.getAttribute('data-name');
+                const type = input.getAttribute('data-type');
+                let val;
+                if (type === 'boolean') val = input.checked;
+                else if (type === 'number') val = parseFloat(input.value);
+                else val = input.value;
+                params.options[name] = val;
+            });
+
+            let btn = core.settings.buttons.find(b => b.gridIndex === currentEditingIndex);
+            if (!btn) {
+                btn = {
+                    id: "btn_" + Date.now(),
+                    gridIndex: currentEditingIndex
+                };
+                core.settings.buttons.push(btn);
+            }
+            btn.label = label;
+            btn.effectId = effectId;
+            btn.params = params;
+
+            core.saveSettings(core.settings);
+            closeModal();
+            renderGrid();
+        }
+
+        function deleteButton() {
+            const index = core.settings.buttons.findIndex(b => b.gridIndex === currentEditingIndex);
+            if (index !== -1) {
+                core.settings.buttons.splice(index, 1);
+                core.saveSettings(core.settings);
+            }
+            closeModal();
+            renderGrid();
+        }
+
+        function copyJSON() {
+            const area = document.getElementById('export-json');
+            area.select();
+            try {
+                // Try modern clipboard API first
+                navigator.clipboard.writeText(area.value).then(() => {
+                    handleCopySuccess();
+                }).catch(() => {
+                    // Fallback to execCommand
+                    document.execCommand('copy');
+                    handleCopySuccess();
+                });
+            } catch (err) {
+                // Fallback to execCommand
+                document.execCommand('copy');
+                handleCopySuccess();
+            }
+        }
+
+        function handleCopySuccess() {
+            const btn = document.querySelector('button[onclick="copyJSON()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "コピーしました！";
+            btn.style.background = "#4ecaa3";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = "";
+            }, 2000);
+        }
+
+        function downloadSettingsJS() {
+            downloadBlob('settings.js', settingsJS(), 'text/javascript');
+        }
+
+        function settingsJSON() {
+            return JSON.stringify(core.settings, null, 2);
+        }
+
+        function settingsJS() {
+            return `// Generated by OBS Screen Effect V2 config.\nwindow.OBS_EFFECT_USER_SETTINGS = ${settingsJSON()};\n`;
+        }
+
+        function downloadBlob(filename, content, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadSettingsJSON() {
+            downloadBlob('settings.json', settingsJSON(), 'application/json');
+        }
+
+        let settingsFileHandle = null;
+
+        async function saveWithFileSystemAccess() {
+            try {
+                if (!settingsFileHandle) {
+                    settingsFileHandle = await window.showSaveFilePicker({
+                        suggestedName: 'settings.js',
+                        types: [{
+                            description: 'OBS Screen Effect settings',
+                            accept: { 'text/javascript': ['.js'] }
+                        }]
+                    });
+                }
+                const writable = await settingsFileHandle.createWritable();
+                await writable.write(settingsJS());
+                await writable.close();
+                document.getElementById('btn-file-system-save').textContent = '同じ settings.js に上書き';
+                alert('settings.jsを保存しました。OBS側で再読込してください。');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    settingsFileHandle = null;
+                    document.getElementById('btn-file-system-save').textContent = 'settings.js の保存先を選択';
+                    alert(`保存できませんでした: ${error.message}`);
+                }
+            }
+        }
+
+        function reloadFileSettings() {
+            core.clearSettings();
+            location.reload();
+        }
+
+        function applyImportedJSON() {
+            const input = document.getElementById('import-json');
+            try {
+                core.saveSettings(JSON.parse(input.value));
+                input.value = '';
+                renderUI();
+                document.getElementById('export-json').value = settingsJSON();
+                alert('設定を適用しました。');
+            } catch (error) {
+                alert(`設定を適用できませんでした: ${error.message}`);
+            }
+        }
+
+        async function loadSettingsFile(input) {
+            const file = input.files?.[0];
+            if (!file) return;
+            try {
+                document.getElementById('import-json').value = await file.text();
+                applyImportedJSON();
+            } catch (error) {
+                alert(`設定ファイルを読み込めませんでした: ${error.message}`);
+            } finally {
+                input.value = '';
+            }
+        }
+
+        const pageParams = new URLSearchParams(location.search);
+        const viewMode = pageParams.get('view');
+        if (viewMode === 'dock') document.body.classList.add('dock-view');
+        if (pageParams.get('from') === 'toc-v2') {
+            const returnButton = document.getElementById('toc-return');
+            const returnParams = new URLSearchParams();
+            if (pageParams.get('vctMode') === 'server') returnParams.set('vctMode', 'server');
+            returnButton.hidden = false;
+            returnButton.addEventListener('click', () => {
+                location.href = `../Total_Operations_Console_v2/index.html${returnParams.size ? `?${returnParams}` : ''}`;
+            });
+        }
+        if ('showSaveFilePicker' in window) {
+            document.getElementById('btn-file-system-save').style.display = '';
+        }
+
+        core.onConfigUpdate = () => renderUI();
+
+        init();
+    </script>
+</body>
+
+</html>

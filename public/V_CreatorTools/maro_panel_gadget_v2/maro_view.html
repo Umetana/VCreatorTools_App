@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Maro View V2</title>
+  <style>
+    :root { --panel-default:#fff; --text-default:#333; --panel-active:#ff85a2; --text-active:#fff; --accent:#ff4d79; --modal-bg:#fffcf9; }
+    * { box-sizing:border-box } html,body { width:100%;height:100%;margin:0;background:transparent;overflow:hidden;font-family:system-ui,sans-serif }
+    body[data-hidden="true"] #stage { opacity:0; pointer-events:none }
+    #stage { position:absolute;inset:0;display:grid;gap:14px;padding:20px;transition:opacity .2s }
+    .panel { position:relative;border:3px solid transparent;border-radius:12px;background:var(--panel-default);color:var(--text-default);display:flex;align-items:center;justify-content:center;padding:14px;text-align:center;font-weight:700;cursor:pointer;box-shadow:0 4px 12px #0002;transition:.25s }
+    .panel.open { background:var(--panel-active);color:var(--text-active);border-color:var(--accent) }
+    .number { position:absolute;top:7px;left:7px;opacity:.65;font-size:12px }
+    #modal { position:absolute;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:5%;backdrop-filter:blur(7px) }
+    #modal.open { display:flex }.modal-card { width:min(900px,90%);max-height:90%;overflow:auto;border-radius:24px;padding:34px;background:var(--modal-bg);color:#333 }
+    #modalTitle { border-left:5px solid var(--accent);padding-left:12px }.modal-card p { white-space:pre-wrap;line-height:1.75 }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="modal"><section class="modal-card"><h2 id="modalTitle"></h2><p id="modalText"></p></section></div>
+  <script src="settings.js"></script><script src="data.js"></script><script src="legacy-bootstrap.js"></script><script src="../../__shared/js/vct-runtime.js"></script><script src="maro-schema.js"></script><script src="maro-client.js"></script>
+  <script>
+  (() => {
+    const client = new MaroClient();
+    const stage = document.getElementById('stage');
+    const modal = document.getElementById('modal');
+    function render(state) {
+      const { project, runtime } = state;
+      const d = project.design;
+      const root = document.documentElement.style;
+      [['--panel-default',d.panelDefault],['--text-default',d.textDefault],['--panel-active',d.panelActive],['--text-active',d.textActive],['--accent',d.accent],['--modal-bg',d.modalBg]].forEach(([key,value])=>root.setProperty(key,value));
+      stage.style.gridTemplateColumns = `repeat(${project.grid.cols},1fr)`;
+      stage.style.gridTemplateRows = `repeat(${project.grid.rows},1fr)`;
+      document.body.dataset.hidden = String(!runtime.visible);
+      stage.replaceChildren(...project.panels.map((panel,index) => {
+        const node = document.createElement('button'); node.className = 'panel'; node.dataset.id = panel.id;
+        const opened = runtime.openedPanelIds.includes(panel.id); node.classList.toggle('open',opened);
+        if (panel.style) { node.style.background = opened ? panel.style.openBg : panel.style.closedBg; node.style.color = opened ? panel.style.openText : panel.style.closedText; }
+        const number=document.createElement('span');number.className='number';number.textContent=String(index+1);
+        const content=document.createElement('span');content.textContent=opened?panel.phrase:panel.title;content.style.fontSize=opened?d.phraseSize:d.panelTitleSize;
+        node.append(number,content); return node;
+      }));
+      const active = project.panels.find(panel => panel.id === runtime.activePanelId);
+      modal.classList.toggle('open',Boolean(active));
+      if (active) { document.getElementById('modalTitle').textContent=active.title; document.getElementById('modalText').textContent=active.content; document.getElementById('modalText').style.fontSize=d.modalTextSize; }
+    }
+    client.subscribe(render); client.initialize();
+  })();
+  </script>
+</body></html>

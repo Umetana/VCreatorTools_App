@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Material View</title>
+  <link rel="stylesheet" href="./gadget.css">
+</head>
+<body>
+  <main id="app" class="app" aria-live="polite">
+    <section id="messageScreen" class="message-screen hidden">
+      <h1 id="messageTitle">Material View</h1>
+      <p id="messageText"></p>
+    </section>
+
+    <section id="displayScreen" class="display-screen hidden">
+      <div id="listPane" class="list-pane">
+        <header class="view-header">
+          <div>
+            <p class="eyebrow">MATERIAL VIEW</p>
+            <h1 id="panelHeadingLabel">Topics</h1>
+          </div>
+          <div class="view-header-actions">
+            <button id="viewVisibilityButton" class="view-visibility-button" type="button" aria-pressed="true">VIEW 表示中</button>
+            <span id="visibleCount" class="count-badge"></span>
+          </div>
+        </header>
+        <div id="topicList" class="topic-list"></div>
+      </div>
+
+      <article id="detailPane" class="detail-pane hidden">
+        <button id="backButton" class="back-button" type="button">← 一覧へ戻る</button>
+        <div id="detailCategory" class="detail-category"></div>
+        <h2 id="detailTitle"></h2>
+        <div class="detail-rule"></div>
+        <p id="detailFact"></p>
+        <div class="operator-details" aria-label="配信者向け補助情報">
+          <section class="operator-card">
+            <h3>想定反応</h3>
+            <p id="detailReaction"></p>
+          </section>
+          <section class="operator-card">
+            <h3>活用ヒント</h3>
+            <p id="detailTips"></p>
+          </section>
+        </div>
+      </article>
+
+      <button id="settingsButton" class="settings-button" type="button" title="設定" aria-label="設定を開く">⚙</button>
+    </section>
+
+    <section id="settingsScreen" class="settings-screen hidden" aria-labelledby="settingsTitle">
+      <header class="settings-header">
+        <div>
+          <p class="eyebrow">MATERIAL VIEW · v1.0.0</p>
+          <h1 id="settingsTitle">表示設定</h1>
+        </div>
+        <div class="settings-actions">
+          <button id="cancelSettingsButton" class="secondary-button" type="button">閉じる</button>
+          <button id="saveSettingsButton" class="primary-button" type="button">保存</button>
+        </div>
+      </header>
+
+      <div class="settings-grid">
+        <section class="settings-card">
+          <h2>読み込み状態</h2>
+          <p id="dataStatus" class="status-line"></p>
+          <p class="help-text">同一originの画面には保存内容を自動通知します。通知を受けられない場合はブラウザソースを再読み込みしてください。</p>
+        </section>
+
+        <section class="settings-card">
+          <h2>レイアウト</h2>
+          <label><input type="radio" name="layoutMode" value="switch"> 切り替え表示</label>
+          <label><input type="radio" name="layoutMode" value="split"> 分割表示</label>
+          <label class="text-setting"><span>パネル見出し</span><input id="panelHeading" type="text" maxlength="40" placeholder="Topics"></label>
+        </section>
+
+        <section class="settings-card">
+          <h2>表示するデータ</h2>
+          <label><input type="radio" name="contentMode" value="active"> 配信ネタ</label>
+          <label><input type="radio" name="contentMode" value="extra"> 案内・紹介</label>
+          <label><input type="radio" name="contentMode" value="mixed"> 両方を混在</label>
+          <label class="control-link-setting"><input id="controlLinkEnabled" type="checkbox"> allモードの操作にviewを連動する</label>
+          <p class="help-text">ONの間だけ、allモードで選んだ記事をviewモードでも開きます。</p>
+        </section>
+
+        <section class="settings-card color-settings">
+          <h2>配色</h2>
+          <label><span>外側パネル背景</span><span class="color-control"><input id="panelBackground" type="color"><input id="panelBackgroundText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="外側パネル背景のカラーコード"></span></label>
+          <label><span>外側パネル透明度</span><span class="scale-control"><input id="panelOpacity" type="range" min="0" max="100" step="5"><input id="panelOpacityNumber" type="number" min="0" max="100" step="5" aria-label="外側パネルの透明度"><span>%</span></span></label>
+          <label><span>パネル見出し文字</span><span class="color-control"><input id="panelHeadingText" type="color"><input id="panelHeadingTextText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="パネル見出し文字のカラーコード"></span></label>
+          <label><span>タイトル背景</span><span class="color-control"><input id="titleBackground" type="color"><input id="titleBackgroundText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="タイトル背景のカラーコード"></span></label>
+          <label><span>タイトル枠線</span><span class="color-control"><input id="titleBorder" type="color"><input id="titleBorderText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="タイトル枠線のカラーコード"></span></label>
+          <label><span>タイトル文字</span><span class="color-control"><input id="titleText" type="color"><input id="titleTextText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="タイトル文字のカラーコード"></span></label>
+          <label><span>詳細背景</span><span class="color-control"><input id="detailBackground" type="color"><input id="detailBackgroundText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="詳細背景のカラーコード"></span></label>
+          <label><span>詳細文字</span><span class="color-control"><input id="detailText" type="color"><input id="detailTextText" type="text" inputmode="text" maxlength="7" spellcheck="false" aria-label="詳細文字のカラーコード"></span></label>
+        </section>
+
+        <section class="settings-card typography-settings">
+          <h2>詳細画面の文字サイズ</h2>
+          <label><span>タイトル</span><span class="scale-control"><input id="detailTitleScale" type="range" min="70" max="130" step="5"><input id="detailTitleScaleNumber" type="number" min="70" max="130" step="5" aria-label="詳細タイトルの文字サイズ倍率"><span>%</span></span></label>
+          <label><span>本文</span><span class="scale-control"><input id="detailTextScale" type="range" min="70" max="130" step="5"><input id="detailTextScaleNumber" type="number" min="70" max="130" step="5" aria-label="詳細本文の文字サイズ倍率"><span>%</span></span></label>
+          <p class="help-text">現在の画面サイズに合わせた文字サイズを基準に、70～130%で調整します。</p>
+        </section>
+
+        <section class="settings-card article-settings">
+          <div class="settings-card-heading">
+            <h2>表示する記事</h2>
+            <div>
+              <button id="selectAllButton" class="text-button" type="button">すべて選択</button>
+              <button id="clearAllButton" class="text-button" type="button">すべて解除</button>
+            </div>
+          </div>
+          <div id="articleChecks" class="article-checks"></div>
+        </section>
+
+        <section class="settings-card article-settings">
+          <div class="settings-card-heading">
+            <div><h2>Viewer表示順</h2><p class="help-text">現在選択しているデータ種別の記事を、Viewerで表示する順に並べます。</p></div>
+          </div>
+          <div id="viewerOrderList" class="viewer-order-list"></div>
+        </section>
+
+        <section class="settings-card article-settings">
+          <h2>データ管理</h2>
+          <p class="help-text">この画面と同じoriginに保存されたViewer設定・記事・表示順をバックアップします。</p>
+          <div class="data-management-actions">
+            <button id="backupViewerButton" class="secondary-button" type="button">バックアップを作成</button>
+            <button id="copyViewerBackupButton" class="secondary-button" type="button" hidden>JSONをコピー</button>
+            <button id="saveViewerBackupButton" class="secondary-button" type="button" hidden>JSONファイルへ保存</button>
+            <button id="restoreViewerButton" class="secondary-button" type="button">バックアップを復元</button>
+            <button id="reloadViewerDataButton" class="danger-button" type="button">記事を読込元から再構築</button>
+            <input id="restoreViewerInput" type="file" accept="application/json,.json" hidden>
+          </div>
+          <textarea id="viewerBackupText" class="backup-text hidden" readonly aria-label="ViewerバックアップJSON"></textarea>
+          <p id="dataManagementStatus" class="help-text" aria-live="polite"></p>
+        </section>
+      </div>
+
+      <footer class="settings-footer">
+        <button id="resetSettingsButton" class="danger-button" type="button">config.js の初期設定に戻す</button>
+      </footer>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script src="./active_material.js"></script>
+  <script src="./extra_material.js"></script>
+  <script src="../../__shared/js/vct-runtime.js"></script>
+  <script src="./gadget.js"></script>
+</body>
+</html>

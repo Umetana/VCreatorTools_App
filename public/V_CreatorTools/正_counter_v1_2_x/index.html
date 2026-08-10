@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正カウンター</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="counter-display">
+        </div>
+
+    <div id="controls">
+        <button id="decrement-btn">-</button>
+        <button id="increment-btn">+</button>
+    </div>
+
+    <div id="color-settings">
+        <div class="color-mode-selection">
+            <label>表示モード:</label>
+            <input type="radio" id="mode-css" name="color-mode" value="css" checked>
+            <label for="mode-css">CSS (色変更可能)</label>
+            <input type="radio" id="mode-image" name="color-mode" value="image">
+            <label for="mode-image">画像 (色固定)</label>
+        </div>
+
+        <div id="css-color-controls"> 
+            <label for="color-input">文字色 (RGB/RGBA):</label>
+            <input type="text" id="color-input" value="255,255,255">
+            
+            <label for="alpha-slider">透明度:</label>
+            <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="1">
+            <span id="alpha-value">1.00</span>
+        </div>
+        
+        <div class="color-control-buttons"> 
+            <button id="apply-color-btn">色を適用</button>
+            <button id="reset-settings-btn">リセット</button> </div>
+    </div>
+
+    <div id="current-count-display">
+        現在のカウント: <span id="actual-count">0</span>
+    </div>
+
+    <div id="version-info">
+        正カウンター ver1.2.1
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

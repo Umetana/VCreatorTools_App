@@ -1,0 +1,397 @@
+<!-- GP MULTI COUNTER V2 操作パネル -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GP MULTI COUNTER - Ops</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #2b2e3b;
+            color: #efefef;
+        }
+
+        .header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* タブスタイル */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 10px;
+            background: #23262e;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px;
+            font-size: 11px;
+            background: transparent;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .counter-item {
+            background-color: #383c4a;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .info {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* お気に入り星ボタン */
+        .fav-star {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .fav-star.active {
+            color: #f1c40f;
+        }
+
+        .label-content {
+            flex: 1;
+        }
+
+        .label-text {
+            font-size: 11px;
+            color: #aaa;
+            display: block;
+            margin-bottom: 1px;
+        }
+
+        .count-val {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4a90e2;
+            line-height: 1;
+        }
+
+        .goal-info {
+            font-size: 10px;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .btns {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-main {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background-color: #4a90e2;
+            color: white;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        .btn-main:hover {
+            background-color: #5ba1f3;
+        }
+
+        .btn-reset {
+            background-color: transparent;
+            border: 1px solid #555;
+            color: #888;
+            padding: 6px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-reset:hover {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .page-btn {
+            background: #383c4a;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <span>カウンター操作</span>
+        <span id="counter-count" style="font-size: 10px; color: #888;"></span>
+    </div>
+
+    <div class="tabs">
+        <button id="tab-fav" class="tab-btn active" onclick="switchTab('fav')">お気に入り</button>
+        <button id="tab-all" class="tab-btn" onclick="switchTab('all')">すべて</button>
+    </div>
+
+    <div id="list">読み込み中...</div>
+
+    <div id="pagination" class="pagination" style="display:none;">
+        <button id="btn-prev" class="page-btn" onclick="changePage(-1)">前へ</button>
+        <span id="page-info">1 / 1</span>
+        <button id="btn-next" class="page-btn" onclick="changePage(1)">次へ</button>
+    </div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="counter-core.js"></script>
+    <script src="counter-schema.js"></script>
+    <script src="counter-protocol.js"></script>
+    <script src="counter-store.js"></script>
+    <script src="counter-client.js"></script>
+    <script src="gp-counter-server.js"></script>
+    <script>
+        const Core = window.GPMultiCounter;
+        const FAVORITES_KEY = 'vct:gp-multi-counter:v2:favorites';
+        const repository = new CounterStateRepository({ storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode) });
+        const counterClient = new CounterClient({ role: 'controller', repository });
+        const counterServer = window.GPCounterServer.createClient({
+            role: 'controller',
+            onState(serverState) {
+                repository.accept(serverState, { force: true });
+                allData = repository.getState().counters;
+                render();
+            }
+        });
+        let allData = [];
+        let favorites = [];
+        let state = {
+            tab: 'fav',
+            page: 0,
+            pageSize: 5
+        };
+
+        async function load() {
+            const savedData = localStorage.getItem(repository.storageKey);
+            const savedFavs = localStorage.getItem(FAVORITES_KEY);
+            allData = repository.load([]).counters;
+            try {
+                const parsed = savedFavs ? JSON.parse(savedFavs) : [];
+                favorites = Array.isArray(parsed) ? parsed.filter(id => typeof id === 'string') : [];
+            } catch (error) { favorites = []; }
+            render();
+
+            if (!savedData) document.getElementById('counter-count').title = '設定画面で保存するとカウンター構成が確定します';
+            if (counterServer.enabled) {
+                try { await counterServer.initialize(allData); }
+                catch (error) { console.warn('[GP Multi Counter V2] Server initialization failed.', error); }
+            }
+        }
+
+        function saveAndSync(operationHints) {
+            const result = counterClient.commit(allData, { operations: operationHints, cause: 'operation-panel' });
+            allData = result.state.counters;
+        }
+
+        function saveFavorites() {
+            localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+        }
+
+        window.change = async function (id, delta) {
+            if (counterServer.enabled) {
+                try { await counterServer.command(delta > 0 ? 'increment' : 'decrement', id, Math.abs(delta)); }
+                catch (error) { console.warn('[GP Multi Counter V2] Server command failed.', error); }
+                return;
+            }
+            allData = repository.getState().counters;
+            const item = allData.find(c => c.id === id);
+            if (item) {
+                item.count = Math.max(0, item.count + delta);
+                saveAndSync({ [id]: delta > 0 ? 'increment' : 'decrement' });
+                render();
+            }
+        };
+
+        window.reset = async function (id) {
+            if (counterServer.enabled) {
+                try { await counterServer.command('reset', id); }
+                catch (error) { console.warn('[GP Multi Counter V2] Server reset failed.', error); }
+                return;
+            }
+            allData = repository.getState().counters;
+            const item = allData.find(c => c.id === id);
+            if (item) {
+                item.count = 0;
+                saveAndSync({ [id]: 'reset' });
+                render();
+            }
+        };
+
+        window.toggleFavorite = function (id) {
+            const idx = favorites.indexOf(id);
+            if (idx === -1) {
+                favorites.push(id);
+            } else {
+                favorites.splice(idx, 1);
+            }
+            saveFavorites();
+            render();
+        };
+
+        window.switchTab = function (tab) {
+            state.tab = tab;
+            state.page = 0;
+            document.getElementById('tab-all').classList.toggle('active', tab === 'all');
+            document.getElementById('tab-fav').classList.toggle('active', tab === 'fav');
+            render();
+        };
+
+        window.changePage = function (delta) {
+            state.page += delta;
+            render();
+        };
+
+        function render() {
+            const container = document.getElementById('list');
+            const paginator = document.getElementById('pagination');
+
+            // フィルタリング
+            let filtered = (state.tab === 'fav')
+                ? allData.filter(c => favorites.includes(c.id))
+                : allData;
+
+            document.getElementById('counter-count').textContent = filtered.length + '件';
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="padding:20px;font-size:11px;color:#666;text-align:center;">${state.tab === 'fav' ? 'お気に入りはまだありません' : 'カウンターが設定されていません'}</div>`;
+                paginator.style.display = 'none';
+                return;
+            }
+
+            // ページネーション計算
+            const totalPages = Math.ceil(filtered.length / state.pageSize);
+            if (state.page >= totalPages) state.page = Math.max(0, totalPages - 1);
+
+            const start = state.page * state.pageSize;
+            const pagedItems = (state.tab === 'all')
+                ? filtered.slice(start, start + state.pageSize)
+                : filtered;
+
+            // ページネーションUI更新
+            if (state.tab === 'all' && totalPages > 1) {
+                paginator.style.display = 'flex';
+                document.getElementById('page-info').textContent = `${state.page + 1} / ${totalPages}`;
+                document.getElementById('btn-prev').disabled = (state.page === 0);
+                document.getElementById('btn-next').disabled = (state.page === totalPages - 1);
+            } else {
+                paginator.style.display = 'none';
+            }
+
+            container.replaceChildren(...pagedItems.map(createCounterRow));
+        }
+
+        function createCounterRow(counter) {
+            const row = document.createElement('div');
+            row.className = 'counter-item';
+            const info = document.createElement('div');
+            info.className = 'info';
+            const star = document.createElement('button');
+            star.type = 'button';
+            star.className = `fav-star ${favorites.includes(counter.id) ? 'active' : ''}`;
+            star.textContent = '★';
+            star.setAttribute('aria-label', `${counter.label}のお気に入りを切り替え`);
+            star.addEventListener('click', () => toggleFavorite(counter.id));
+            const content = document.createElement('div');
+            content.className = 'label-content';
+            const label = document.createElement('span');
+            label.className = 'label-text';
+            label.textContent = counter.label;
+            const count = document.createElement('span');
+            count.className = 'count-val';
+            count.textContent = String(counter.count);
+            content.append(label, count);
+            if (counter.showGoal) {
+                const goal = document.createElement('span');
+                goal.className = 'goal-info';
+                goal.textContent = `/ ${counter.goalCount}`;
+                content.append(goal);
+            }
+            info.append(star, content);
+            const buttons = document.createElement('div');
+            buttons.className = 'btns';
+            [['＋', 1, 'btn-main'], ['−', -1, 'btn-main']].forEach(([text, delta, className]) => {
+                const button = document.createElement('button');
+                button.type = 'button'; button.className = className; button.textContent = text;
+                button.addEventListener('click', () => change(counter.id, delta));
+                buttons.append(button);
+            });
+            const resetButton = document.createElement('button');
+            resetButton.type = 'button'; resetButton.className = 'btn-reset'; resetButton.textContent = 'リ';
+            resetButton.setAttribute('aria-label', `${counter.label}をリセット`);
+            resetButton.addEventListener('click', () => reset(counter.id));
+            buttons.append(resetButton);
+            row.append(info, buttons);
+            return row;
+        }
+
+        load();
+        counterClient.subscribe(event => {
+            if (event.state) {
+                allData = event.state.counters;
+                render();
+            }
+        });
+        if (!counterServer.enabled) counterClient.start({ knownRevision: repository.getState().revision });
+    </script>
+</body>
+
+</html>

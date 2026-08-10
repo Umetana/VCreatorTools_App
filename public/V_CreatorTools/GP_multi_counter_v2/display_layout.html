@@ -1,0 +1,606 @@
+<!-- GP MULTI COUNTER V2 / 1920x1080 layout display + interactive editor -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1">
+    <title>GP MULTI COUNTER - Layout</title>
+    <link rel="stylesheet" href="../_vct_lib/ui/inline-color-picker/v1/picker.css">
+    <link rel="stylesheet" href="../_vct_lib/ui/choice-dialog/v1/dialog.css">
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        html, body {
+            width: 1920px;
+            height: 1080px;
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        body { user-select: none; }
+        #stage-shell {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+        }
+        #stage {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+        }
+        .counter-widget {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            min-height: 50px;
+            padding: 18px 24px;
+            overflow: hidden;
+            color: var(--text-color, #fff);
+            background: var(--background-color, rgba(0, 0, 0, .55));
+            border: var(--border-width, 2px) solid var(--border-color, #fff);
+            border-radius: var(--border-radius, 12px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+            text-shadow: 0 2px 5px rgba(0, 0, 0, .7);
+            font-family: var(--font-family, system-ui, sans-serif);
+            cursor: default;
+        }
+        .counter-content {
+            display: flex;
+            width: 100%;
+            align-items: baseline;
+            justify-content: center;
+            gap: 14px;
+            white-space: nowrap;
+        }
+        .counter-widget[data-layout="vertical"] .counter-content {
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .counter-label {
+            max-width: 45%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: var(--label-size, 28px);
+        }
+        .counter-widget[data-layout="vertical"] .counter-label { max-width: 100%; }
+        .counter-value-wrap { display: flex; align-items: baseline; gap: 7px; }
+        .counter-value { font-size: var(--count-size, 64px); font-weight: var(--count-weight, 700); line-height: 1; }
+        .counter-unit { font-size: var(--unit-size, 26px); }
+        .counter-goal { font-size: var(--goal-size, 20px); opacity: .76; }
+
+        body.edit-mode #stage {
+            background-color: rgba(16, 20, 30, .72);
+            background-image:
+                linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+        }
+        body.edit-mode {
+            width: 100vw;
+            height: 100vh;
+            background: #0c1018;
+        }
+        body.edit-mode #stage-shell {
+            position: fixed;
+            inset: 76px 346px 58px 18px;
+            width: auto;
+            height: auto;
+            overflow: hidden;
+            border: 1px solid #3c475a;
+            border-radius: 8px;
+            background: #080b11;
+        }
+        body.edit-mode #stage {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(var(--editor-scale, 1));
+            transform-origin: center;
+            flex: none;
+        }
+        body.edit-mode.inspector-collapsed #stage-shell { right: 18px; }
+        body.edit-mode .counter-widget { cursor: move; }
+        body.edit-mode .counter-widget.selected { outline: 3px solid #45a9ff; outline-offset: 3px; }
+        .resize-handle { display: none; position: absolute; width: 18px; height: 18px; background: #fff; border: 3px solid #168cf0; border-radius: 50%; }
+        body.edit-mode .selected .resize-handle { display: block; }
+        .resize-handle[data-edge="nw"] { left: -11px; top: -11px; cursor: nwse-resize; }
+        .resize-handle[data-edge="ne"] { right: -11px; top: -11px; cursor: nesw-resize; }
+        .resize-handle[data-edge="sw"] { left: -11px; bottom: -11px; cursor: nesw-resize; }
+        .resize-handle[data-edge="se"] { right: -11px; bottom: -11px; cursor: nwse-resize; }
+
+        #editor-ui { display: none; }
+        body.edit-mode #editor-ui { display: block; }
+        #toolbar, #inspector, #hint {
+            position: fixed;
+            z-index: 100000;
+            color: #eef4ff;
+            background: rgba(19, 24, 35, .96);
+            border: 1px solid #465167;
+            box-shadow: 0 8px 30px rgba(0,0,0,.45);
+        }
+        #toolbar { top: 18px; left: 18px; display: flex; gap: 8px; padding: 10px; border-radius: 10px; }
+        #inspector {
+            top: 18px;
+            right: 18px;
+            bottom: 18px;
+            width: 310px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 16px;
+            border-radius: 12px;
+        }
+        #hint { left: 50%; bottom: 18px; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; font-size: 14px; pointer-events: none; }
+        button, select, input { font: inherit; }
+        button {
+            min-height: 40px;
+            padding: 7px 13px;
+            color: #f4f7ff;
+            background: #303a4d;
+            border: 1px solid #59667d;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+        button:hover { background: #3d4b63; }
+        button.primary { background: #147fcf; border-color: #36a5f9; }
+        button.danger { background: #75313a; border-color: #a8505d; }
+        .panel-title { margin: 0 0 12px; font-size: 18px; }
+        .empty-note { margin: 8px 0; color: #aeb8c9; font-size: 14px; line-height: 1.6; }
+        .field { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
+        .field input, .field select {
+            width: 100%; min-width: 0; height: 34px; padding: 5px 7px;
+            color: #fff; background: #111722; border: 1px solid #4a566a; border-radius: 5px;
+        }
+        .field.is-inherited { opacity: .42; }
+        .separator { height: 1px; margin: 13px 0; background: #3b4557; }
+        .status { align-self: center; min-width: 80px; color: #9fd4ff; font-size: 13px; }
+        body.inspector-collapsed #inspector { display: none; }
+        @media (max-width: 900px) {
+            #toolbar { right: 12px; flex-wrap: wrap; }
+            body.edit-mode #stage-shell { inset: 118px 12px 54px; }
+            #inspector { left: 12px; right: 12px; top: 112px; bottom: 54px; width: auto; }
+            #hint { max-width: calc(100vw - 24px); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        }
+    </style>
+</head>
+<body>
+<div id="stage-shell"><main id="stage" aria-label="1920×1080 counter layout"></main></div>
+
+<section id="editor-ui">
+    <div id="toolbar">
+        <select id="add-counter" aria-label="追加するカウンター"></select>
+        <button id="add-widget" class="primary">追加</button>
+        <button id="duplicate-widget">複製</button>
+        <button id="delete-widget" class="danger">削除</button>
+        <button id="toggle-inspector">設定欄</button>
+        <button id="exit-editor">編集終了 (E)</button>
+        <span id="save-status" class="status">保存済み</span>
+    </div>
+    <aside id="inspector">
+        <h2 class="panel-title">カウンター配置</h2>
+        <div id="inspector-empty" class="empty-note">カウンターを選択してください。<br>ドラッグで移動、四隅でサイズ変更できます。</div>
+        <div id="inspector-fields" hidden>
+            <label class="field"><span>カウンター</span><select data-field="counterId"></select></label>
+            <label class="field"><span>デザイン</span><select data-field="designId"></select></label>
+            <label class="field"><span>スタイル</span><select data-field="styleSource"><option value="layout">この配置で個別設定</option><option value="counter">本体設定に追従</option></select></label>
+            <label class="field"><span>配置</span><select data-field="layout"><option value="horizontal">横並び</option><option value="vertical">縦並び</option></select></label>
+            <div class="separator"></div>
+            <label class="field"><span>X</span><input data-field="x" type="number" min="0" max="1920"></label>
+            <label class="field"><span>Y</span><input data-field="y" type="number" min="0" max="1080"></label>
+            <label class="field"><span>幅</span><input data-field="width" type="number" min="80" max="1920"></label>
+            <label class="field"><span>高さ</span><input data-field="height" type="number" min="50" max="1080"></label>
+            <div class="separator"></div>
+            <label class="field"><span>ラベル</span><input data-field="labelSize" type="number" min="8" max="200"></label>
+            <label class="field"><span>数値</span><input data-field="countSize" type="number" min="8" max="300"></label>
+            <label class="field"><span>目標値</span><input data-field="goalSize" type="number" min="8" max="200"></label>
+            <label class="field"><span>単位</span><input data-field="unitSize" type="number" min="8" max="200"></label>
+            <label class="field"><span>文字色</span><input data-field="textColor" class="color-field" type="text" maxlength="7" spellcheck="false"></label>
+            <label class="field"><span>背景色</span><input data-field="backgroundColor" class="color-field" type="text" maxlength="7" spellcheck="false"></label>
+            <label class="field"><span>背景透明度</span><input data-field="backgroundAlpha" type="number" min="0" max="1" step="0.05"></label>
+            <label class="field"><span>枠色</span><input data-field="borderColor" class="color-field" type="text" maxlength="7" spellcheck="false"></label>
+            <label class="field"><span>枠幅</span><input data-field="borderWidth" type="number" min="0" max="30"></label>
+            <label class="field"><span>角丸</span><input data-field="borderRadius" type="number" min="0" max="200"></label>
+            <label class="field"><span>重なり順</span><input data-field="zIndex" type="number" min="0" max="999"></label>
+            <div id="color-picker-mount"></div>
+        </div>
+    </aside>
+    <div id="hint">E: 編集終了　矢印: 1px移動　Shift+矢印: 10px移動　Delete: 削除　Ctrl+D: 複製</div>
+    <div id="choice-dialog-mount"></div>
+</section>
+
+<script src="../_vct_lib/ui/inline-color-picker/v1/picker.js"></script>
+<script src="../_vct_lib/ui/choice-dialog/v1/dialog.js"></script>
+<script src="../../__shared/js/vct-runtime.js"></script>
+<script src="counter-core.js"></script>
+<script src="counter-schema.js"></script>
+<script src="counter-protocol.js"></script>
+<script src="counter-store.js"></script>
+<script src="counter-client.js"></script>
+<script src="gp-counter-server.js"></script>
+<script src="layout-designs/design-registry.js"></script>
+<script src="layout-designs/design-loader.js"></script>
+<script>
+(() => {
+    'use strict';
+
+    const Core = window.GPMultiCounter;
+    const Designs = window.GPCounterDesigns;
+    const APP_MODE = new URLSearchParams(window.location.search).get('mode') === 'settings' ? 'settings' : 'display';
+    const LAYOUT_KEY = 'vct:gp-multi-counter:v2:layout';
+    const LAYOUT_CHANNEL = 'vct:gp-multi-counter:v2:layout-channel';
+    const STAGE_WIDTH = 1920;
+    const STAGE_HEIGHT = 1080;
+    const MIN_WIDTH = 80;
+    const MIN_HEIGHT = 50;
+    const SNAP = 10;
+    const stage = document.getElementById('stage');
+    const stageShell = document.getElementById('stage-shell');
+    const layoutChannel = new BroadcastChannel(LAYOUT_CHANNEL);
+    const counterRepository = new CounterStateRepository({ storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode) });
+    const counterClient = new CounterClient({ role: 'display', repository: counterRepository, canRespond: false });
+    const colorPicker = window.VCTInlineColorPicker.create({ mount: document.getElementById('color-picker-mount') });
+    const choiceDialog = APP_MODE === 'display'
+        ? window.VCTChoiceDialog.create({ mount: document.getElementById('choice-dialog-mount') })
+        : null;
+
+    Designs.ensureStyles(document);
+    document.querySelectorAll('.color-field').forEach(input => colorPicker.attach(input, {
+        label: element => element.closest('.field')?.querySelector('span')?.textContent || '色'
+    }));
+    if (choiceDialog) {
+        choiceDialog.attach(document.getElementById('add-counter'), { label: '追加するカウンター' });
+        choiceDialog.attach(document.querySelector('[data-field="counterId"]'), { label: 'カウンター' });
+        choiceDialog.attach(document.querySelector('[data-field="designId"]'), { label: 'デザイン' });
+        choiceDialog.attach(document.querySelector('[data-field="styleSource"]'), { label: 'スタイル' });
+        choiceDialog.attach(document.querySelector('[data-field="layout"]'), { label: '配置' });
+    }
+
+    let counters = counterRepository.load([Core.createDefaultCounter('counter1')]).counters;
+    let layout = loadLayout();
+    let selectedId = null;
+    let editMode = false;
+    let gesture = null;
+    const counterServer = window.GPCounterServer.createClient({
+        role: 'display',
+        onState(serverState) {
+            try {
+                const nextCounters = Core.normalizeCounters(serverState.counters, { allowEmpty: true });
+                if (nextCounters.length === 0) return;
+                counters = nextCounters;
+                counterRepository.accept(serverState, { force: true });
+                populateCounterSelects();
+                render();
+            } catch (error) {
+                console.warn('Invalid GP Counter Server state was ignored.', error);
+            }
+        }
+    });
+
+    function clamp(value, min, max) { return Math.min(max, Math.max(min, Number(value) || 0)); }
+    function snap(value) { return Math.round(value / SNAP) * SNAP; }
+    function makeId() { return `widget-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
+    function hexToRgba(hex, alpha) {
+        const value = /^#[0-9a-f]{6}$/i.test(hex) ? hex.slice(1) : '000000';
+        return `rgba(${parseInt(value.slice(0,2),16)}, ${parseInt(value.slice(2,4),16)}, ${parseInt(value.slice(4,6),16)}, ${clamp(alpha,0,1)})`;
+    }
+
+    function normalizeWidget(source, index) {
+        const input = source && typeof source === 'object' ? source : {};
+        return {
+            widgetId: typeof input.widgetId === 'string' ? input.widgetId : makeId(),
+            counterId: typeof input.counterId === 'string' ? input.counterId : (counters[index % counters.length]?.id || 'counter1'),
+            x: clamp(input.x ?? 120 + index * 30, 0, STAGE_WIDTH - MIN_WIDTH),
+            y: clamp(input.y ?? 100 + index * 30, 0, STAGE_HEIGHT - MIN_HEIGHT),
+            width: clamp(input.width ?? 420, MIN_WIDTH, STAGE_WIDTH),
+            height: clamp(input.height ?? 150, MIN_HEIGHT, STAGE_HEIGHT),
+            zIndex: Math.trunc(clamp(input.zIndex ?? index + 1, 0, 999)),
+            layout: input.layout === 'vertical' ? 'vertical' : 'horizontal',
+            designId: Designs.get(input.designId)?.id || 'simple',
+            styleSource: input.styleSource === 'counter' ? 'counter' : 'layout',
+            labelSize: clamp(input.labelSize ?? 28, 8, 200),
+            countSize: clamp(input.countSize ?? 64, 8, 300),
+            goalSize: clamp(input.goalSize ?? 20, 8, 200),
+            unitSize: clamp(input.unitSize ?? 26, 8, 200),
+            textColor: /^#[0-9a-f]{6}$/i.test(input.textColor) ? input.textColor : '#ffffff',
+            backgroundColor: /^#[0-9a-f]{6}$/i.test(input.backgroundColor) ? input.backgroundColor : '#000000',
+            backgroundAlpha: clamp(input.backgroundAlpha ?? .55, 0, 1),
+            borderColor: /^#[0-9a-f]{6}$/i.test(input.borderColor) ? input.borderColor : '#ffffff',
+            borderWidth: clamp(input.borderWidth ?? 2, 0, 30),
+            borderRadius: clamp(input.borderRadius ?? 12, 0, 200)
+        };
+    }
+
+    function normalizeLayout(value) {
+        const input = value && typeof value === 'object' ? value : {};
+        return {
+            version: 1,
+            width: STAGE_WIDTH,
+            height: STAGE_HEIGHT,
+            widgets: Array.isArray(input.widgets) ? input.widgets.slice(0, 100).map(normalizeWidget) : []
+        };
+    }
+
+    function loadLayout() {
+        try { return normalizeLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null')); }
+        catch (error) { console.warn('Layout load error:', error); return normalizeLayout(null); }
+    }
+
+    function saveLayout() {
+        layout = normalizeLayout(layout);
+        localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+        layoutChannel.postMessage({ type: 'layout-update', payload: layout });
+        const status = document.getElementById('save-status');
+        status.textContent = '保存済み';
+    }
+
+    function render() {
+        const existing = new Map([...stage.querySelectorAll('.counter-widget')].map(node => [node.dataset.widgetId, node]));
+        for (const widget of layout.widgets) {
+            let node = existing.get(widget.widgetId);
+            if (!node) {
+                node = document.createElement('div');
+                node.className = 'counter-widget';
+                stage.appendChild(node);
+            }
+            existing.delete(widget.widgetId);
+            const design = Designs.get(widget.designId);
+            if (!design) continue;
+            if (node.dataset.designId !== design.id) {
+                node.className = `counter-widget design-${design.id}`;
+                design.create(node);
+                node.insertAdjacentHTML('beforeend', ['nw','ne','sw','se'].map(edge => `<i class="resize-handle" data-edge="${edge}"></i>`).join(''));
+                node.dataset.designId = design.id;
+            }
+            node.dataset.widgetId = widget.widgetId;
+            node.dataset.layout = widget.layout;
+            node.classList.toggle('selected', widget.widgetId === selectedId);
+            Object.assign(node.style, {
+                left: `${widget.x}px`,
+                top: `${widget.y}px`,
+                width: `${widget.width}px`,
+                height: `${widget.height}px`,
+                zIndex: widget.zIndex
+            });
+            const data = counters.find(item => item.id === widget.counterId);
+            const inheritStyle = widget.styleSource === 'counter' && data;
+            node.style.setProperty('--label-size', inheritStyle ? data.labelSize : `${widget.labelSize}px`);
+            node.style.setProperty('--count-size', inheritStyle ? data.countSize : `${widget.countSize}px`);
+            node.style.setProperty('--goal-size', `${widget.goalSize}px`);
+            node.style.setProperty('--unit-size', `${widget.unitSize}px`);
+            node.style.setProperty('--text-color', inheritStyle ? data.textColor : widget.textColor);
+            node.style.setProperty('--background-color', inheritStyle ? data.bgColor : hexToRgba(widget.backgroundColor, widget.backgroundAlpha));
+            node.style.setProperty('--border-color', inheritStyle ? data.borderColor : widget.borderColor);
+            node.style.setProperty('--border-width', `${widget.borderWidth}px`);
+            node.style.setProperty('--border-radius', `${widget.borderRadius}px`);
+            node.style.setProperty('--font-family', inheritStyle ? data.fontFamily : 'system-ui, sans-serif');
+            node.style.setProperty('--count-weight', inheritStyle && !data.isBold ? '400' : '700');
+            node.style.textShadow = inheritStyle && !data.isShadow ? 'none' : '';
+            design.update(node, data, widget);
+        }
+        existing.forEach(node => node.remove());
+        refreshInspector();
+    }
+
+    function setEditMode(enabled) {
+        editMode = Boolean(enabled);
+        document.body.classList.toggle('edit-mode', editMode);
+        if (editMode && window.innerWidth <= 900) document.body.classList.add('inspector-collapsed');
+        if (!editMode) { selectedId = null; gesture = null; }
+        updateEditorScale();
+        render();
+    }
+
+    function updateEditorScale() {
+        if (!editMode) {
+            stage.style.removeProperty('--editor-scale');
+            return;
+        }
+        const scale = Math.min(stageShell.clientWidth / STAGE_WIDTH, stageShell.clientHeight / STAGE_HEIGHT, 1);
+        stage.style.setProperty('--editor-scale', String(Math.max(.05, scale)));
+    }
+
+    function selectedWidget() { return layout.widgets.find(item => item.widgetId === selectedId) || null; }
+
+    function populateCounterSelects() {
+        const selects = [document.getElementById('add-counter'), document.querySelector('[data-field="counterId"]')];
+        for (const select of selects) {
+            const current = select.value;
+            select.replaceChildren(...counters.map(counter => {
+                const option = document.createElement('option');
+                option.value = counter.id;
+                option.textContent = `${counter.label} (${counter.id})`;
+                return option;
+            }));
+            if ([...select.options].some(option => option.value === current)) select.value = current;
+        }
+        choiceDialog?.refresh();
+    }
+
+    function populateDesignSelect() {
+        const select = document.querySelector('[data-field="designId"]');
+        const current = select.value;
+        select.replaceChildren(...Designs.list().map(design => {
+            const option = document.createElement('option');
+            option.value = design.id;
+            option.textContent = design.name;
+            return option;
+        }));
+        if ([...select.options].some(option => option.value === current)) select.value = current;
+        choiceDialog?.refresh(select);
+    }
+
+    function refreshInspector() {
+        const widget = selectedWidget();
+        document.getElementById('inspector-empty').hidden = Boolean(widget);
+        document.getElementById('inspector-fields').hidden = !widget;
+        if (!widget) {
+            colorPicker.close();
+            return;
+        }
+        populateCounterSelects();
+        populateDesignSelect();
+        document.querySelectorAll('[data-field]').forEach(input => {
+            input.value = widget[input.dataset.field];
+        });
+        const inheritedFields = new Set(['labelSize', 'countSize', 'textColor', 'backgroundColor', 'backgroundAlpha', 'borderColor']);
+        document.querySelectorAll('[data-field]').forEach(input => {
+            const inherited = widget.styleSource === 'counter' && inheritedFields.has(input.dataset.field);
+            input.disabled = inherited;
+            input.closest('.field')?.classList.toggle('is-inherited', inherited);
+        });
+        colorPicker.refresh();
+        choiceDialog?.refresh();
+    }
+
+    function addWidget(counterId, source) {
+        const topZ = layout.widgets.reduce((max, item) => Math.max(max, item.zIndex), 0);
+        const widget = normalizeWidget({
+            ...(source || {}), widgetId: makeId(), counterId: counterId || source?.counterId || counters[0]?.id || 'counter1',
+            x: source ? source.x + 30 : 750, y: source ? source.y + 30 : 465, zIndex: topZ + 1
+        }, layout.widgets.length);
+        widget.x = clamp(widget.x, 0, STAGE_WIDTH - widget.width);
+        widget.y = clamp(widget.y, 0, STAGE_HEIGHT - widget.height);
+        layout.widgets.push(widget);
+        selectedId = widget.widgetId;
+        saveLayout(); render();
+    }
+
+    function deleteSelected() {
+        if (!selectedId) return;
+        layout.widgets = layout.widgets.filter(item => item.widgetId !== selectedId);
+        selectedId = null;
+        saveLayout(); render();
+    }
+
+    function localPoint(event) {
+        const rect = stage.getBoundingClientRect();
+        return { x: (event.clientX - rect.left) * STAGE_WIDTH / rect.width, y: (event.clientY - rect.top) * STAGE_HEIGHT / rect.height };
+    }
+
+    stage.addEventListener('pointerdown', event => {
+        if (!editMode) return;
+        const node = event.target.closest('.counter-widget');
+        if (!node) { selectedId = null; render(); return; }
+        selectedId = node.dataset.widgetId;
+        const widget = selectedWidget();
+        const start = localPoint(event);
+        gesture = { pointerId: event.pointerId, edge: event.target.dataset.edge || null, start, original: { ...widget } };
+        node.setPointerCapture(event.pointerId);
+        render();
+        event.preventDefault();
+    });
+
+    stage.addEventListener('pointermove', event => {
+        if (!gesture || gesture.pointerId !== event.pointerId) return;
+        const widget = selectedWidget();
+        if (!widget) return;
+        const point = localPoint(event);
+        const dx = point.x - gesture.start.x;
+        const dy = point.y - gesture.start.y;
+        const o = gesture.original;
+        if (!gesture.edge) {
+            widget.x = clamp(snap(o.x + dx), 0, STAGE_WIDTH - widget.width);
+            widget.y = clamp(snap(o.y + dy), 0, STAGE_HEIGHT - widget.height);
+        } else {
+            let left = o.x, top = o.y, right = o.x + o.width, bottom = o.y + o.height;
+            if (gesture.edge.includes('w')) left = clamp(snap(o.x + dx), 0, right - MIN_WIDTH);
+            if (gesture.edge.includes('e')) right = clamp(snap(o.x + o.width + dx), left + MIN_WIDTH, STAGE_WIDTH);
+            if (gesture.edge.includes('n')) top = clamp(snap(o.y + dy), 0, bottom - MIN_HEIGHT);
+            if (gesture.edge.includes('s')) bottom = clamp(snap(o.y + o.height + dy), top + MIN_HEIGHT, STAGE_HEIGHT);
+            Object.assign(widget, { x: left, y: top, width: right - left, height: bottom - top });
+        }
+        document.getElementById('save-status').textContent = '編集中…';
+        render();
+    });
+
+    function finishGesture(event) {
+        if (!gesture || gesture.pointerId !== event.pointerId) return;
+        gesture = null;
+        saveLayout(); render();
+    }
+    stage.addEventListener('pointerup', finishGesture);
+    stage.addEventListener('pointercancel', finishGesture);
+
+    document.getElementById('add-widget').onclick = () => addWidget(document.getElementById('add-counter').value);
+    document.getElementById('duplicate-widget').onclick = () => { const widget = selectedWidget(); if (widget) addWidget(widget.counterId, widget); };
+    document.getElementById('delete-widget').onclick = deleteSelected;
+    document.getElementById('toggle-inspector').onclick = () => {
+        document.body.classList.toggle('inspector-collapsed');
+        requestAnimationFrame(updateEditorScale);
+    };
+    document.getElementById('exit-editor').onclick = () => setEditMode(false);
+
+    document.querySelectorAll('[data-field]').forEach(input => {
+        input.addEventListener('input', () => {
+            const widget = selectedWidget();
+            if (!widget) return;
+            const key = input.dataset.field;
+            if (input.classList.contains('color-field') && !/^#[0-9a-f]{6}$/i.test(input.value)) return;
+            if (input.type === 'number') widget[key] = Number(input.value);
+            else widget[key] = input.value;
+            Object.assign(widget, normalizeWidget(widget, 0), { widgetId: widget.widgetId });
+            saveLayout(); render();
+        });
+    });
+
+    window.addEventListener('keydown', event => {
+        const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName);
+        if (!typing && event.key.toLowerCase() === 'e') { setEditMode(!editMode); event.preventDefault(); return; }
+        if (!editMode || typing) return;
+        if (event.key === 'Delete' || event.key === 'Backspace') { deleteSelected(); event.preventDefault(); return; }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+            const widget = selectedWidget(); if (widget) addWidget(widget.counterId, widget); event.preventDefault(); return;
+        }
+        const widget = selectedWidget();
+        if (!widget || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+        const amount = event.shiftKey ? 10 : 1;
+        if (event.key === 'ArrowLeft') widget.x -= amount;
+        if (event.key === 'ArrowRight') widget.x += amount;
+        if (event.key === 'ArrowUp') widget.y -= amount;
+        if (event.key === 'ArrowDown') widget.y += amount;
+        widget.x = clamp(widget.x, 0, STAGE_WIDTH - widget.width);
+        widget.y = clamp(widget.y, 0, STAGE_HEIGHT - widget.height);
+        saveLayout(); render(); event.preventDefault();
+    });
+
+    counterClient.subscribe(event => {
+        if (counterServer.enabled || !event.state) return;
+        counters = event.state.counters;
+        populateCounterSelects(); render();
+    });
+    layoutChannel.onmessage = event => {
+        if (event.data?.type !== 'layout-update') return;
+        layout = normalizeLayout(event.data.payload);
+        if (!layout.widgets.some(item => item.widgetId === selectedId)) selectedId = null;
+        render();
+    };
+    window.addEventListener('storage', event => {
+        if (event.key === LAYOUT_KEY) { layout = loadLayout(); render(); }
+    });
+    window.addEventListener('resize', updateEditorScale);
+
+    populateCounterSelects();
+    render();
+    if (counterServer.enabled) {
+        counterServer.initialize([]).then(() => {
+            document.documentElement.dataset.vctServer = 'connected';
+        }).catch(error => {
+            document.documentElement.dataset.vctServer = 'fallback';
+            console.warn('GP Counter Server unavailable; local counter cache is active.', error);
+        });
+    } else counterClient.start({ knownRevision: counterRepository.getState().revision });
+    if (APP_MODE === 'settings') {
+        document.body.classList.add('settings-mode');
+        setEditMode(true);
+    }
+})();
+</script>
+</body>
+</html>

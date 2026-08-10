@@ -1,0 +1,222 @@
+/* プレフィックス: .fx-mj- */
+.fx-mj-root {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 100;
+    overflow: hidden;
+    font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+}
+
+/* リーチ目（背面に常駐） */
+.fx-mj-reach-view {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    transition: opacity 0.5s;
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+}
+
+.fx-mj-tile-container {
+    perspective: 500px;
+}
+
+.fx-mj-tile-img {
+    height: 80px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    border-radius: 4px;
+}
+
+/* リーチカットイン（最前面・一時的） */
+.fx-mj-action-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+}
+
+/* 帯タイプ (101, 201) */
+.fx-mj-action-overlay.is-band {
+    height: 360px;
+    top: 50%;
+    bottom: auto;
+    /* inset:0 を上書き */
+    width: 200%;
+    left: -50%;
+    transform: translateY(-50%) rotate(-5deg) translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.4), rgba(255, 0, 0, 0.9), rgba(255, 0, 0, 0.4), transparent);
+    animation: fx-mj-cutin-band 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* 全画面タイプ (102, 202) */
+.fx-mj-action-overlay.is-full {
+    transform: translateX(-100%);
+    animation: fx-mj-cutin-full 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes fx-mj-cutin-band {
+    0% {
+        transform: translateY(-50%) rotate(-5deg) translateX(-100%);
+    }
+
+    20%,
+    80% {
+        transform: translateY(-50%) rotate(-5deg) translateX(0);
+    }
+
+    100% {
+        transform: translateY(-50%) rotate(-5deg) translateX(100%);
+    }
+}
+
+@keyframes fx-mj-cutin-full {
+    0% {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    20%,
+    80% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.fx-mj-action-img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+}
+
+/* ツモ牌（中央） */
+.fx-mj-draw-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 30;
+    opacity: 0;
+}
+
+.fx-mj-draw-container.active {
+    animation: fx-mj-pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.fx-mj-draw-tile {
+    height: 320px;
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.8));
+}
+
+/* 当たり/ハズレ表示 */
+.fx-mj-result-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fx-mj-result-img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.5));
+}
+
+/* 結果の帯タイプ */
+.fx-mj-result-overlay.is-band .fx-mj-result-img {
+    max-height: 360px;
+}
+
+.fx-mj-result-overlay.tsumo {
+    animation: fx-mj-result-bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.5) 0.4s forwards;
+}
+
+.fx-mj-result-overlay.ryukyoku {
+    animation: fx-mj-result-fade 0.8s ease-out 0.2s forwards;
+}
+
+/* アニメーション定義 */
+@keyframes fx-mj-pop-in {
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fx-mj-result-bounce {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fx-mj-result-fade {
+    0% {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 画面揺れ */
+.fx-mj-shake {
+    animation: fx-mj-screenshake 0.1s ease-in-out infinite;
+}
+
+@keyframes fx-mj-screenshake {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(-8px, 8px);
+    }
+
+    50% {
+        transform: translate(8px, -8px);
+    }
+
+    75% {
+        transform: translate(-4px, -4px);
+    }
+}

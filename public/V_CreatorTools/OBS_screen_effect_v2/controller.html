@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作パネル</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --accent-color: #4ecca3;
+            --text-color: #eeeeee;
+        }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .effect-btn {
+            aspect-ratio: 1;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .effect-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--accent-color);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 10px var(--accent-color);
+        }
+
+        .effect-btn:active {
+            transform: translateY(0);
+        }
+
+        .effect-btn.empty {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .effect-btn.empty .icon {
+            opacity: 0.1;
+        }
+
+        .effect-btn .label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .effect-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        #transport-status {
+            margin-bottom: 8px;
+            color: #aab2c8;
+            font-size: 0.75rem;
+        }
+
+        #transport-status.online { color: var(--accent-color); }
+        #transport-status.error { color: #ff8a8a; }
+    </style>
+</head>
+
+<body>
+    <div id="transport-status" aria-live="polite"></div>
+    <div id="btn-grid" class="grid"></div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/effects_list.js"></script>
+    <script src="js/effects_user.js"></script>
+    <script src="js/effect-message-protocol.js"></script>
+    <script src="js/settings-schema.js"></script>
+    <script src="js/settings-repository.js"></script>
+    <script src="js/broadcast-transport.js"></script>
+    <script src="js/server-effect-transport.js"></script>
+    <script src="js/effect-transport-router.js"></script>
+    <script src="js/counter-trigger-engine.js"></script>
+    <script src="js/effect-registry.js"></script>
+    <script src="js/core.js"></script>
+    <script>
+        const core = new EffectCore('controller');
+        const grid = document.getElementById('btn-grid');
+        const transportStatus = document.getElementById('transport-status');
+
+        core.effectTransport.subscribeStatus((status) => {
+            if (status.state === 'local') {
+                transportStatus.textContent = `${status.mode} / BroadcastChannel`;
+                transportStatus.className = 'online';
+            } else {
+                const labels = { connecting: '接続中', connected: '接続済み', reconnecting: '再接続中', error: '接続エラー', closed: '終了' };
+                transportStatus.textContent = `server / ${labels[status.state] || status.state}`;
+                transportStatus.className = status.connected ? 'online' : (status.state === 'error' ? 'error' : '');
+            }
+        });
+
+        function renderButtons(settings) {
+            grid.replaceChildren();
+            const { cols, rows } = settings.gridConfig || { cols: 4, rows: 3 };
+
+            // Set grid styles
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            const totalCells = cols * rows;
+            for (let i = 0; i < totalCells; i++) {
+                const btnData = settings.buttons.find(b => b.gridIndex === i);
+                const el = document.createElement('div');
+
+                if (btnData) {
+                    el.className = 'effect-btn';
+                    const icon = document.createElement('div');
+                    icon.className = 'icon';
+                    icon.textContent = '✨';
+                    const label = document.createElement('div');
+                    label.className = 'label';
+                    label.textContent = btnData.label;
+                    el.append(icon, label);
+                    el.onclick = () => {
+                        core.broadcast('effect.trigger', {
+                            effectId: btnData.effectId,
+                            params: btnData.params
+                        });
+                    };
+                } else {
+                    el.className = 'effect-btn empty';
+                    const icon = document.createElement('div');
+                    icon.className = 'icon';
+                    icon.textContent = '·';
+                    el.appendChild(icon);
+                }
+                grid.appendChild(el);
+            }
+        }
+
+        core.onConfigUpdate = (settings) => {
+            renderButtons(settings);
+        };
+
+        // Initial render
+        renderButtons(core.settings);
+    </script>
+</body>
+
+</html>

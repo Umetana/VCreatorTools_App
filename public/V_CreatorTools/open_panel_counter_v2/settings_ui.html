@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Open Panel Counter V2 – Settings</title>
+<style>
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:#111;
+    color:#eee;
+    margin:0;
+    padding:20px;
+  }
+  h1{ font-size:20px; margin:0 0 12px; }
+  section{
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:16px;
+  }
+  h2{ font-size:16px; margin:0 0 10px; }
+  label{ margin-right:12px; }
+  input, select, button, textarea{
+    background:#1c1c1c;
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.2);
+    border-radius:8px;
+    padding:6px 8px;
+  }
+  input[type="range"]{ height: 20px; }
+  textarea{
+    width:100%;
+    height:300px;
+    margin-top:10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size:12px;
+  }
+  button{
+    padding:8px 14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:#161616;
+    border-color: rgba(255,255,255,0.16);
+    font-weight:650;
+  }
+  .row{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .hint{ opacity:0.75; font-size:12px; margin-top:8px; line-height:1.4; }
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 8px; border-radius:999px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.06);
+    font-size:12px; opacity:0.92;
+  }
+  .mini{ font-size:12px; opacity:.85; }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  code{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* Preview */
+  .previewWrap{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .previewBlock{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .previewLabel{ font-size:12px; opacity:.78; }
+  .previewGridOuter{
+    width: 170px;
+    height: 110px;
+    border-radius: 10px;
+    border:1px solid rgba(255,255,255,0.22);
+    background: repeating-linear-gradient(45deg, #222 0 10px, #1a1a1a 10px 20px);
+    padding: 10px;
+    box-sizing:border-box;
+  }
+  .previewGrid{
+    width:100%;
+    height:100%;
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 2px;
+  }
+  .pCell{
+    background: rgba(0,0,0,0.92);
+    border-radius: 0px;
+    transition: opacity 180ms linear;
+    opacity: 1;
+  }
+  .pCell.open{ opacity: 0; }
+</style>
+</head>
+<body>
+
+<h1>Open Panel Counter V2 – Settings</h1>
+
+<section>
+  <h2>レイアウト</h2>
+  <div class="row">
+    <label><input type="radio" name="layout" value="square" checked> 正方形（5×5）</label>
+    <label><input type="radio" name="layout" value="wide"> 横長（4×6）</label>
+    <label><input type="radio" name="layout" value="tall"> 縦長（6×4）</label>
+  </div>
+  <div class="hint">
+    <span class="pill" id="recPill">推奨OBSサイズ：930 × 1080</span>
+    <span style="margin-left:10px; opacity:.75;">（操作部150px込み / 表示高さは930px）</span>
+  </div>
+</section>
+
+<section>
+  <h2>開示ルール</h2>
+  <div class="row">
+    <label>step：
+      <input type="number" id="step" value="5" min="1" style="width:80px">
+    </label>
+
+    <label>mode：
+      <select id="mode">
+        <option value="random">random</option>
+        <option value="ordered">ordered</option>
+        <option value="spiral">spiral</option>
+        <option value="centerLast">centerLast</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+<section>
+  <h2>見た目（完成パーツ）</h2>
+
+  <div class="previewWrap">
+    <div class="previewBlock">
+      <div class="previewLabel">プレビュー（gap / 角丸 / 色 / 透明度）</div>
+      <div class="previewGridOuter">
+        <div class="previewGrid" id="previewGrid"></div>
+      </div>
+      <div class="hint" style="margin:0">※一部のマスを“開いた状態”で表示してる（透け具合が見える）</div>
+    </div>
+
+    <div class="previewBlock">
+      <div class="row" style="gap:10px">
+        <label>マス間隔（gap）：
+          <input type="range" id="gridGap" min="0" max="12" value="2" style="width:240px">
+          <span class="mono" id="gapLabel">2px</span>
+        </label>
+      </div>
+
+      <div class="row" style="gap:10px">
+        <label>角丸（borderRadius）：
+          <input type="range" id="borderRadius" min="0" max="24" value="0" style="width:240px">
+          <span class="mono" id="radiusLabel">0px</span>
+        </label>
+      </div>
+
+      <div class="row" style="gap:10px">
+        <label>開く速さ（fade ms）：
+          <input type="range" id="fadeMs" min="0" max="800" value="180" style="width:240px">
+          <span class="mono" id="fadeLabel">180ms</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,0.12); margin:14px 0;">
+
+  <div class="row">
+    <label>色：
+      <input type="color" id="panelColor" value="#000000">
+    </label>
+
+    <label>透明度：
+      <input type="range" id="panelAlpha" min="0" max="100" value="92" style="width:240px">
+      <span class="mono" id="alphaLabel">0.92</span>
+    </label>
+  </div>
+
+  <div class="row" style="margin-top:10px">
+    <label class="mini">コード直打ち（rgba/hex可）：
+      <input type="text" id="panelColorCode" class="mono" style="width:420px"
+             value="rgba(0,0,0,0.92)" placeholder="rgba(0,0,0,0.92) / #RRGGBB / #RRGGBBAA">
+    </label>
+    <button id="applyCode" class="secondary" type="button">コードを反映</button>
+  </div>
+
+  <div class="hint">
+    普段は「色＋透明度」でOK。細かい指定したい時だけ「コード直打ち」を使ってね。
+  </div>
+</section>
+
+<section>
+  <h2>GP Multi Counter V2連動</h2>
+  <div class="row">
+    <label><input type="checkbox" id="syncEnabled"> 連動を有効化</label>
+    <label>Counter ID：
+      <input type="text" id="counterId" value="counter1" style="width:140px">
+    </label>
+    <label><input type="checkbox" id="lockUI" checked> sync中は操作UIをロック</label>
+  </div>
+  <div class="hint">
+    GP側のIDを購読します。Standard／Sync／Serverは画面URLから自動判定し、増加・減少とも正本へ追従します。
+  </div>
+</section>
+
+<section>
+  <h2>出力</h2>
+  <div class="row">
+    <button id="gen" type="button">settings.js を生成</button>
+    <button id="download" type="button">settings.js をダウンロード</button>
+    <button id="copy" class="secondary" type="button">コピー</button>
+    <span id="statusMsg" class="mini"></span>
+  </div>
+
+  <div class="hint">
+    いちばん簡単：<b>「ダウンロード」</b> → 生成された <code>settings.js</code> を open-panel-counter のフォルダに置く（上書き）<br>
+    ※ブラウザ環境差の保険で「コピー」も残してある。
+  </div>
+
+  <textarea id="output" readonly></textarea>
+</section>
+
+<script>
+const UI_H = 150;
+const LAYOUT_PRESETS = {
+  square: { label: "正方形", rows: 5, cols: 5, obsW: 930,  obsH: 1080, dispW: 930,  dispH: 930 },
+  wide:   { label: "横長",   rows: 4, cols: 6, obsW: 1395, obsH: 1080, dispW: 1395, dispH: 930 },
+  tall:   { label: "縦長",   rows: 6, cols: 4, obsW: 620,  obsH: 1080, dispW: 620,  dispH: 930 },
+};
+
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+function escapeJsString(s){
+  return String(s).replace(/\\/g,"\\\\").replace(/`/g,"\\`").replace(/\$\{/g,"\\${");
+}
+
+function setStatus(msg, ms=1500){
+  const el = $("#statusMsg");
+  el.textContent = msg || "";
+  if (!msg) return;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, ms);
+}
+
+// ------- helpers -------
+function clamp(n, lo, hi){ n = Number(n); if(!Number.isFinite(n)) return lo; return Math.max(lo, Math.min(hi, n)); }
+function clampInt(n, lo, hi){ return Math.floor(clamp(n, lo, hi)); }
+
+// ------- color helpers -------
+function hexToRgb(hex){
+  hex = String(hex||"").trim();
+  if(!hex.startsWith("#")) return null;
+  const h = hex.slice(1);
+  if(h.length === 3){
+    const r = parseInt(h[0]+h[0],16), g = parseInt(h[1]+h[1],16), b = parseInt(h[2]+h[2],16);
+    return {r,g,b,a:1};
+  }
+  if(h.length === 6){
+    const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return {r,g,b,a:1};
+  }
+  if(h.length === 8){
+    const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    const a=parseInt(h.slice(6,8),16)/255;
+    return {r,g,b,a:clamp(a,0,1)};
+  }
+  return null;
+}
+function rgbaParse(s){
+  s = String(s||"").trim();
+  const m = s.match(/^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9.]+)\s*)?\)$/i);
+  if(!m) return null;
+  const r=clamp(m[1],0,255), g=clamp(m[2],0,255), b=clamp(m[3],0,255);
+  const a = m[4] == null ? 1 : clamp(m[4],0,1);
+  return {r,g,b,a};
+}
+function toRgbaString(r,g,b,a){
+  r=Math.round(clamp(r,0,255)); g=Math.round(clamp(g,0,255)); b=Math.round(clamp(b,0,255));
+  a=clamp(a,0,1);
+  const aa = Math.round(a*100)/100;
+  return `rgba(${r},${g},${b},${aa})`;
+}
+
+function syncColorUIFromRGBA(r,g,b,a){
+  const hex = "#" + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,"0")).join("");
+  $("#panelColor").value = hex;
+  $("#panelAlpha").value = String(Math.round(clamp(a,0,1)*100));
+  $("#alphaLabel").textContent = (Math.round(clamp(a,0,1)*100)/100).toFixed(2);
+  const rgba = toRgbaString(r,g,b,a);
+  $("#panelColorCode").value = rgba;
+}
+
+function getPanelRGBA(){
+  const rgb = hexToRgb($("#panelColor").value) || {r:0,g:0,b:0,a:1};
+  const a = clamp(Number($("#panelAlpha").value)/100, 0, 1);
+  return {r:rgb.r,g:rgb.g,b:rgb.b,a};
+}
+
+function applyCodeToUI(){
+  const s = $("#panelColorCode").value;
+  let p = rgbaParse(s);
+  if(!p) p = hexToRgb(s);
+  if(!p) { setStatus("色コードが読めません", 1500); return false; }
+  syncColorUIFromRGBA(p.r,p.g,p.b,p.a ?? 1);
+  return true;
+}
+
+// ------- getters -------
+function getLayout(){
+  const r = $('input[name="layout"]:checked');
+  return r ? r.value : "square";
+}
+function getStep(){
+  const n = Number($("#step")?.value ?? 5);
+  if (!Number.isFinite(n) || n < 1) return 5;
+  return Math.floor(n);
+}
+function getMode(){
+  const v = String($("#mode")?.value ?? "random");
+  const ok = new Set(["random","ordered","spiral","centerLast"]);
+  return ok.has(v) ? v : "random";
+}
+function getSync(){
+  const enabled = !!$("#syncEnabled")?.checked;
+  const counterId = String($("#counterId")?.value || "counter1").trim();
+  return {
+    enabled,
+    counterId: /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(counterId) ? counterId : "counter1",
+    lockUI: !!$("#lockUI")?.checked
+  };
+}
+function getLook(){
+  const gap = clampInt($("#gridGap")?.value ?? 2, 0, 12);
+  const radius = clampInt($("#borderRadius")?.value ?? 0, 0, 48);
+  const fadeMs = clampInt($("#fadeMs")?.value ?? 180, 0, 5000);
+  return { gap, radius, fadeMs };
+}
+
+// ------- recommend text -------
+function updateRecommend(){
+  const layout = getLayout();
+  const p = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.square;
+  $("#recPill").textContent = `推奨OBSサイズ：${p.obsW} × ${p.obsH}`;
+}
+
+// ------- preview grid -------
+let previewCells = [];
+function initPreviewGrid(){
+  const g = $("#previewGrid");
+  g.innerHTML = "";
+  previewCells = [];
+  for(let i=0;i<16;i++){
+    const d = document.createElement("div");
+    d.className = "pCell";
+    g.appendChild(d);
+    previewCells.push(d);
+  }
+  // “開いた状態”を混ぜる（固定パターン）
+  const openIdx = new Set([1, 6, 9, 14]);
+  previewCells.forEach((c, idx) => c.classList.toggle("open", openIdx.has(idx)));
+}
+function applyPreview(){
+  updateRecommend();
+
+  const panel = getPanelRGBA();
+  const rgba = toRgbaString(panel.r,panel.g,panel.b,panel.a);
+  $("#alphaLabel").textContent = (Math.round(panel.a*100)/100).toFixed(2);
+
+  const look = getLook();
+  $("#gapLabel").textContent = `${look.gap}px`;
+  $("#radiusLabel").textContent = `${look.radius}px`;
+  $("#fadeLabel").textContent = `${look.fadeMs}ms`;
+
+  const grid = $("#previewGrid");
+  grid.style.gap = `${look.gap}px`;
+
+  previewCells.forEach(c => {
+    c.style.background = rgba;
+    c.style.borderRadius = `${look.radius}px`;
+    c.style.transitionDuration = `${look.fadeMs}ms`;
+  });
+}
+
+// ------- build settings.js -------
+function buildSettingsJs(){
+  const layout = getLayout();
+  const step = getStep();
+  const mode = getMode();
+  const p = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS.square;
+  const sync = getSync();
+  const panel = getPanelRGBA();
+  const rgba = toRgbaString(panel.r,panel.g,panel.b,panel.a);
+  const look = getLook();
+
+  return `/**
+ * Open Panel Counter V2 settings
+ *
+ * 推奨OBSサイズ（目安）
+ * - ${p.label}：${p.obsW} × ${p.obsH} （表示 ${p.dispW} × ${p.dispH} + 操作部 ${UI_H}）
+ * - まず推奨値で置いて、最後はOBSの拡大縮小で合わせてください。
+ */
+
+window.PANEL_REVEAL_SETTINGS = {
+  layout: "${escapeJsString(layout)}",
+
+  // layoutに連動（上級者のみ手動変更）
+  grid: { rows: ${p.rows}, cols: ${p.cols}, gap: ${look.gap} },
+
+  panel: { color: "${escapeJsString(rgba)}", opacity: 1.0, borderRadius: ${look.radius} },
+
+  reveal: {
+    step: ${step},
+    mode: "${escapeJsString(mode)}",
+    orderedDirection: "tlbr",
+    seed: null
+  },
+
+  anim: { type: "fade", durationMs: ${look.fadeMs} },
+
+  persist: { progress: true, key: "vct:open-panel-counter:v2:progress" },
+
+  sync: {
+    enabled: ${sync.enabled},
+    counterId: "${escapeJsString(sync.counterId)}",
+    lockUI: ${sync.lockUI}
+  },
+
+  ui: { version: "v2" }
+};
+`;
+}
+
+// ------- output actions -------
+function generateToTextarea(){
+  applyPreview();
+  $("#output").value = buildSettingsJs();
+  setStatus("生成しました ✔");
+}
+function downloadTextFile(filename, text){
+  const blob = new Blob([text], { type: "text/javascript;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+async function copyToClipboard(text){
+  await navigator.clipboard.writeText(text);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initPreviewGrid();
+
+  // 初期色を整える（コード→UI）
+  applyCodeToUI();
+  applyPreview();
+
+  // 入力イベント：プレビューだけ更新（textareaは触らない）
+  $all('input[name="layout"]').forEach(el => el.addEventListener("change", applyPreview));
+  $("#step")?.addEventListener("input", applyPreview);
+  $("#mode")?.addEventListener("change", applyPreview);
+
+  $("#gridGap")?.addEventListener("input", applyPreview);
+  $("#borderRadius")?.addEventListener("input", applyPreview);
+  $("#fadeMs")?.addEventListener("input", applyPreview);
+
+  $("#panelColor")?.addEventListener("input", applyPreview);
+  $("#panelAlpha")?.addEventListener("input", applyPreview);
+  $("#panelColorCode")?.addEventListener("change", () => { if(applyCodeToUI()) applyPreview(); });
+  $("#applyCode")?.addEventListener("click", () => { if(applyCodeToUI()) applyPreview(); });
+
+  $("#syncEnabled")?.addEventListener("change", applyPreview);
+  $("#counterId")?.addEventListener("input", applyPreview);
+  $("#lockUI")?.addEventListener("change", applyPreview);
+
+  // 生成
+  $("#gen")?.addEventListener("click", generateToTextarea);
+
+  // ダウンロード（ワンクリック生成→保存）
+  $("#download")?.addEventListener("click", () => {
+    $("#output").value = buildSettingsJs();
+    downloadTextFile("settings.js", $("#output").value);
+    setStatus("settings.js をダウンロードしました ✔");
+  });
+
+  // コピー（保険）
+  $("#copy")?.addEventListener("click", async () => {
+    const text = $("#output").value || buildSettingsJs();
+    try {
+      await copyToClipboard(text);
+      setStatus("コピーしました ✔");
+    } catch {
+      setStatus("コピー失敗（ブラウザ制限）", 2000);
+    }
+  });
+
+  // 初回は textarea に生成しておく（スクロール奪わない）
+  $("#output").value = buildSettingsJs();
+});
+</script>
+
+</body>
+</html>

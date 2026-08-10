@@ -1,0 +1,21 @@
+{
+  "name": "vcreator-tools-app",
+  "version": "0.1.0-dev",
+  "private": true,
+  "description": "VCreatorTools desktop application",
+  "main": "electron/main.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke-test",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "qrcode": "1.5.4",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "electron": "43.2.0"
+  }
+}

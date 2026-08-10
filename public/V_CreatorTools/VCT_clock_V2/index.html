@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VCT Clock V2 - Standalone</title>
+  <link rel="stylesheet" href="./style.css">
+  
+  <style>
+    /* CSS変数による動的カスタマイズの実現 */
+    :root {
+      --clock-font-family: Consolas, 'Courier New', monospace;
+      --clock-font-size: 48px;
+      --clock-font-color: #00ffcc;
+      --clock-bg-color: rgba(0, 0, 0, 0.4);
+      --clock-glow-color: rgba(0, 255, 204, 0.8);
+      --clock-glow-radius: 10px;
+      --clock-border-color: rgba(255, 255, 255, 0.2);
+      --clock-border-width: 1px;
+      --clock-border-radius: 8px;
+      --clock-shadow-intensity: 2px;
+      --clock-letter-spacing: 0px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background-color: #0f172a; /* OBS上で確認しやすいダーク背景 */
+      color: #e2e8f0;
+      font-family: 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif;
+    }
+
+    /* 1920x1080 のキャンバス */
+    .canvas-container {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      background-image: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 90%);
+    }
+
+    /* 時計表示エリア (OBSでクロップする対象: 340px x 120px) */
+    .clock-target-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 340px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      transition: border 0.2s ease;
+      border: var(--clock-border-width) dashed transparent;
+      
+      /* 設定反映部 */
+      font-family: var(--clock-font-family);
+      background-color: var(--clock-bg-color);
+      border-radius: var(--clock-border-radius);
+    }
+
+    /* クロップ位置が視認しやすいようにするためのガイド枠。キャンバスにホバーしている時のみ表示（配信中の誤表示を防止） */
+    .canvas-container:hover .guide-active {
+      border: var(--clock-border-width) dashed var(--clock-border-color);
+    }
+
+    /* 時計テキストのスタイリング */
+    .clock-display {
+      color: var(--clock-font-color);
+      font-size: var(--clock-font-size);
+      letter-spacing: var(--clock-letter-spacing);
+      text-shadow: 0 0 var(--clock-glow-radius) var(--clock-glow-color);
+      font-variant-numeric: tabular-nums; /* 数字の幅を均等にして揺れを防ぐ */
+      line-height: 1;
+      text-align: center;
+      font-weight: bold;
+      -webkit-text-stroke: var(--clock-text-stroke, 0px transparent);
+    }
+
+    /* 秒表示用の縮小表現 */
+    .sec-smaller {
+      font-size: 0.7em;
+      margin-left: 2px;
+    }
+
+    /* 午前/午後表示用の縮小表現 */
+    .period-smaller {
+      font-size: 0.55em;
+      margin-right: 4px;
+      vertical-align: middle;
+      opacity: 0.95;
+    }
+
+    /* 日付テキストのスタイリング */
+    .date-display {
+      color: var(--clock-font-color);
+      font-size: calc(var(--clock-font-size) * 0.35);
+      letter-spacing: 1px;
+      text-shadow: 0 0 calc(var(--clock-glow-radius) * 0.5) var(--clock-glow-color);
+      opacity: 0.9;
+      margin-bottom: 4px;
+      font-weight: 500;
+      line-height: 1;
+      -webkit-text-stroke: var(--clock-text-stroke-date, 0px transparent);
+    }
+
+    /* 点滅するコロンのアニメーション */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+    .colon-blink {
+      animation: blink 1s infinite;
+    }
+
+    /* スライダーやカラーピッカーを配置するUIエリア */
+    .ui-area {
+      position: absolute;
+      top: 140px;
+      left: 0;
+      width: 1920px;
+      height: 940px;
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 30px;
+      box-sizing: border-box;
+      background-color: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* スタイリッシュなスクロールバー */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="canvas-container">
+    
+    <!-- 1. 時計プレビューエリア (左上に配置・340x120px) -->
+    <div id="clockArea" class="clock-target-area guide-active">
+      <div id="dateDisplay" class="date-display">2026/05/23 SAT</div>
+      <div id="clockDisplay" class="clock-display">07:50<span class="sec-smaller">:00</span></div>
+    </div>
+
+    <!-- 右上：簡単なOBS設定案内タグ -->
+    <div class="absolute top-4 left-[360px] bg-slate-800/80 px-4 py-2 rounded-lg border border-slate-700 max-w-[500px]">
+      <p class="text-xs text-slate-300 font-semibold mb-1">💡 OBSへの配置方法：</p>
+      <p class="text-xs text-slate-400">1. 解像度を <span class="text-emerald-400 font-mono">1920 x 1080</span> でブラウザソースに追加</p>
+      <p class="text-xs text-slate-400">2. 設定が完了したら、<span class="text-emerald-400 font-mono">Altキーを押しながらドラッグ</span> して左上の時計部分(340x120)のみをクロップしてください。</p>
+    </div>
+
+    <!-- 2. 設定UIエリア (時計の下から広がるコントロール群) -->
+    <div class="ui-area">
+      
+      <!-- サイドバー：プリセットとスロット保存 -->
+      <div class="space-y-6 flex flex-col justify-between h-full pb-6 border-r border-slate-800 pr-6">
+        <div>
+          <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            🎨 デザインプリセット
+          </h2>
+          <div class="space-y-3">
+            <button onclick="applyPreset('cyber')" class="w-full text-left bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-500/30 hover:border-emerald-500 px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-emerald-400 group-hover:text-emerald-300">1. サイバー・ネオン</div>
+              <div class="text-xs text-slate-400 mt-1">ゲーム配信に。サイバーパンクな発光デジタル時計</div>
+            </button>
+            <button onclick="applyPreset('minimal')" class="w-full text-left bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 hover:border-slate-500 px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-slate-200 group-hover:text-white">2. ミニマル・モダン</div>
+              <div class="text-xs text-slate-400 mt-1">実況・配信の邪魔をしない、シンプルスマートな極薄座布団付</div>
+            </button>
+            <button onclick="applyPreset('retro')" class="w-full text-left bg-gradient-to-r from-pink-950/40 to-slate-900 border border-pink-500/30 hover:border-pink-500 px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-pink-400 group-hover:text-pink-300">3. レトロ・ポップ</div>
+              <div class="text-xs text-slate-400 mt-1">雑談や可愛い系の配信に。太丸ゴシックと点滅コロン</div>
+            </button>
+            <button onclick="applyPreset('shiki')" class="w-full text-left bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/30 hover:border-amber-500 px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-amber-400 group-hover:text-amber-300">4. シック・和モダン</div>
+              <div class="text-xs text-slate-400 mt-1">縦書き風「午前午後」と美しい明朝フォント。和風・Lo-Fi向け</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- カスタム保存スロット -->
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center justify-between">
+            💾 マイプリセット保存 (3スロット)
+          </h3>
+          <div class="space-y-3">
+            <!-- スロット1 -->
+            <div class="p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div class="flex items-center gap-1 mb-2">
+                <input type="text" id="slotName1" value="スロット 1" class="bg-slate-950 text-xs text-slate-200 px-2 py-1 rounded border border-slate-700 w-full focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="flex gap-2 text-xs">
+                <button onclick="saveToSlot(1)" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-1 rounded transition">ここに保存</button>
+                <button onclick="loadFromSlot(1)" id="loadBtn1" disabled class="flex-1 bg-slate-700/40 hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:hover:bg-transparent py-1 rounded transition">呼び出し</button>
+              </div>
+            </div>
+            <!-- スロット2 -->
+            <div class="p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div class="flex items-center gap-1 mb-2">
+                <input type="text" id="slotName2" value="スロット 2" class="bg-slate-950 text-xs text-slate-200 px-2 py-1 rounded border border-slate-700 w-full focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="flex gap-2 text-xs">
+                <button onclick="saveToSlot(2)" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-1 rounded transition">ここに保存</button>
+                <button onclick="loadFromSlot(2)" id="loadBtn2" disabled class="flex-1 bg-slate-700/40 hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:hover:bg-transparent py-1 rounded transition">呼び出し</button>
+              </div>
+            </div>
+            <!-- スロット3 -->
+            <div class="p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div class="flex items-center gap-1 mb-2">
+                <input type="text" id="slotName3" value="スロット 3" class="bg-slate-950 text-xs text-slate-200 px-2 py-1 rounded border border-slate-700 w-full focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="flex gap-2 text-xs">
+                <button onclick="saveToSlot(3)" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-1 rounded transition">ここに保存</button>
+                <button onclick="loadFromSlot(3)" id="loadBtn3" disabled class="flex-1 bg-slate-700/40 hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:hover:bg-transparent py-1 rounded transition">呼び出し</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- メイン設定フォーム：パラメータを細かくカスタマイズ -->
+      <div class="overflow-y-auto pr-4 custom-scrollbar space-y-8">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h1 class="text-2xl font-black text-white tracking-wide">時計デザイン調整コンソール</h1>
+            <p class="text-xs text-slate-400 mt-1">スライダーや値をいじるとリアルタイムでプレビューが変化します。調整後は右上の保存ボタンを押してください。</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- クロップガイド表示スイッチ -->
+            <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+              <label for="guideToggle" class="text-xs text-slate-300 font-semibold cursor-pointer">OBSクロップ枠を表示</label>
+              <input type="checkbox" id="guideToggle" checked onchange="toggleGuide(this.checked)" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700 rounded focus:ring-emerald-500 cursor-pointer">
+            </div>
+            <!-- 全体のセーブボタン -->
+            <button onclick="saveCurrentConfig()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">
+              💾 設定を完全に保存
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <!-- 左カラム：文字・フォント設定 -->
+          <div class="bg-slate-900/40 p-6 rounded-xl border border-slate-800 space-y-6">
+            <h3 class="text-md font-bold text-white border-b border-slate-800 pb-2 flex items-center gap-2">
+              📝 文字 ＆ フォント設定
+            </h3>
+            
+            <!-- フォント種類選択 (OBS互換用ボタングループ) -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-2">フォントスタイル</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="updateParam('fontFamily', STANDARD_FONT)" id="fontBtn_standard" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 font-mono transition">標準（オフライン）</button>
+                <button type="button" onclick="updateParam('fontFamily', '\'Share Tech Mono\', monospace')" id="fontBtn_digital" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 font-mono transition">Digital（オンライン）</button>
+                <button type="button" onclick="updateParam('fontFamily', '\'DotGothic16\', sans-serif')" id="fontBtn_dot" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'DotGothic16';">和風レトロ（オンライン）</button>
+                <button type="button" onclick="updateParam('fontFamily', '\'M PLUS Rounded 1c\', sans-serif')" id="fontBtn_rounded" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'M PLUS Rounded 1c';">ポップ・角丸（オンライン）</button>
+                <button type="button" onclick="updateParam('fontFamily', '\'M PLUS 1p\', sans-serif')" id="fontBtn_gothic" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'M PLUS 1p';">モダンゴシック（オンライン）</button>
+                <button type="button" onclick="updateParam('fontFamily', '\'Sawarabi Mincho\', serif')" id="fontBtn_mincho" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition col-span-2" style="font-family: 'Sawarabi Mincho';">シック明朝（オンライン）</button>
+              </div>
+            </div>
+
+            <!-- フォントサイズ -->
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                <span>時刻の文字サイズ</span>
+                <span id="fontSizeVal" class="text-indigo-400 font-mono">48px</span>
+              </div>
+              <input type="range" id="fontSize" min="24" max="72" value="48" oninput="updateParam('fontSize', this.value + 'px')" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+
+            <!-- 文字幅調整 -->
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                <span>文字の間隔（レタースペーシング）</span>
+                <span id="letterSpacingVal" class="text-indigo-400 font-mono">0px</span>
+              </div>
+              <input type="range" id="letterSpacing" min="-5" max="10" value="0" oninput="updateParam('letterSpacing', this.value + 'px')" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+
+            <!-- カラーピッカー ＆ テキスト入力（文字色） -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2">文字カラー</label>
+                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
+                  <input type="color" id="fontColor" value="#00ffcc" oninput="updateParam('fontColor', this.value)" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
+                  <input type="text" id="fontColorText" value="#00FFCC" oninput="updateColorFromText('fontColor', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2">光彩（ネオン）のカラー</label>
+                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
+                  <input type="color" id="glowColor" value="#00ffcc" oninput="updateParam('glowColor', this.value)" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
+                  <input type="text" id="glowColorText" value="#00FFCC" oninput="updateColorFromText('glowColor', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
+                </div>
+              </div>
+            </div>
+
+            <!-- 文字の光彩の強さ -->
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                <span>文字の発光強度（グロー範囲）</span>
+                <span id="glowRadiusVal" class="text-indigo-400 font-mono">10px</span>
+              </div>
+              <input type="range" id="glowRadius" min="0" max="30" value="10" oninput="updateParam('glowRadius', this.value + 'px')" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+          </div>
+
+          <!-- 右カラム：背景・枠線・表示スイッチ -->
+          <div class="bg-slate-900/40 p-6 rounded-xl border border-slate-800 space-y-6">
+            <h3 class="text-md font-bold text-white border-b border-slate-800 pb-2 flex items-center gap-2">
+              🖼️ 背景 ＆ 表示オプション
+            </h3>
+
+            <!-- 背景色 ＆ 透過度 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2">背景カラー</label>
+                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
+                  <input type="color" id="bgColorRaw" value="#000000" oninput="updateBgColorCombination()" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
+                  <input type="text" id="bgColorRawText" value="#000000" oninput="updateColorFromText('bgColorRaw', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                  <span>背景の透明度 (不透明度)</span>
+                  <span id="bgOpacityVal" class="text-indigo-400 font-mono">40%</span>
+                </div>
+                <input type="range" id="bgOpacity" min="0" max="100" value="40" oninput="updateBgColorCombination()" class="w-full h-1.5 mt-3 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+              </div>
+            </div>
+
+            <!-- 角丸 -->
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                <span>時計枠の丸み (角丸)</span>
+                <span id="borderRadiusVal" class="text-indigo-400 font-mono">8px</span>
+              </div>
+              <input type="range" id="borderRadius" min="0" max="40" value="8" oninput="updateParam('borderRadius', this.value + 'px')" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+
+            <!-- 表示のスイッチ群 -->
+            <div class="space-y-4 pt-2">
+              <label class="block text-xs font-semibold text-slate-400">表示切替オプション</label>
+              <div class="grid grid-cols-2 gap-3">
+                
+                <!-- 秒表示 -->
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span class="text-xs text-slate-300">秒数の表示</span>
+                  <input type="checkbox" id="showSeconds" checked onchange="updateParam('showSeconds', this.checked)" class="w-4 h-4 text-indigo-500 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500">
+                </div>
+
+                <!-- 日付表示 -->
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span class="text-xs text-slate-300">日付の表示</span>
+                  <input type="checkbox" id="showDate" checked onchange="updateParam('showDate', this.checked)" class="w-4 h-4 text-indigo-500 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500">
+                </div>
+
+                <!-- 24時間制か12時間制か -->
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span class="text-xs text-slate-300">24時間表記</span>
+                  <input type="checkbox" id="use24h" checked onchange="updateParam('use24h', this.checked)" class="w-4 h-4 text-indigo-500 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500">
+                </div>
+
+                <!-- コロンの点滅 -->
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span class="text-xs text-slate-300">コロンを点滅させる</span>
+                  <input type="checkbox" id="blinkColon" checked onchange="updateParam('blinkColon', this.checked)" class="w-4 h-4 text-indigo-500 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500">
+                </div>
+
+                <!-- 文字の黒フチ取り -->
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800 col-span-2">
+                  <span class="text-xs text-slate-300">文字の黒縁取り (レトロポップ用フチ取り)</span>
+                  <input type="checkbox" id="useOutline" onchange="updateParam('useOutline', this.checked)" class="w-4 h-4 text-indigo-500 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500">
+                </div>
+                
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- アプリ下部の注意事項・ライセンス表示 -->
+        <div class="text-center text-xs text-slate-500 pt-4 border-t border-slate-900">
+          VCT Clock V2 Standalone &copy; 2026. 設定はブラウザ内に保存されます。
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 設定変更のフィードバック用モーダル通知 -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-emerald-500 text-emerald-400 px-4 py-3 rounded-lg shadow-2xl opacity-0 transform translate-y-2 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <span>✔</span> <span id="toastMsg">設定が保存されました！</span>
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // デフォルト時計ステートと変数管理
+    // ----------------------------------------------------
+    const STANDARD_FONT = "Consolas, 'Courier New', monospace";
+    const STORAGE_KEYS = {
+      config: 'vct_clock_v2_config',
+      slots: num => `vct_clock_v2_slot_${num}`,
+      legacyConfig: 'obs_clock_config',
+      legacySlots: num => `obs_clock_slot_${num}`
+    };
+    const ONLINE_FONTS = {
+      "'Share Tech Mono', monospace": { family: 'Share Tech Mono', query: 'Share+Tech+Mono:wght@400;700' },
+      "'DotGothic16', sans-serif": { family: 'DotGothic16', query: 'DotGothic16' },
+      "'M PLUS Rounded 1c', sans-serif": { family: 'M PLUS Rounded 1c', query: 'M+PLUS+Rounded+1c:wght@700' },
+      "'M PLUS 1p', sans-serif": { family: 'M PLUS 1p', query: 'M+PLUS+1p:wght@400;700' },
+      "'Sawarabi Mincho', serif": { family: 'Sawarabi Mincho', query: 'Sawarabi+Mincho' }
+    };
+    const DEFAULT_STATE = {
+      fontFamily: STANDARD_FONT,
+      fontSize: "48px",
+      fontColor: "#00ffcc",
+      glowColor: "#00ffcc",
+      glowRadius: "10px",
+      bgColorRaw: "#000000",
+      bgOpacity: "40", // 0 to 100
+      borderRadius: "8px",
+      letterSpacing: "0px",
+      showSeconds: true,
+      showDate: true,
+      use24h: true,
+      blinkColon: true,
+      guideToggle: true,
+      useOutline: false
+    };
+    let clockState = Object.assign({}, DEFAULT_STATE);
+
+    // 各プリセットデータの定義
+    const presets = {
+      cyber: {
+        fontFamily: STANDARD_FONT,
+        fontSize: "48px",
+        fontColor: "#00ffcc",
+        glowColor: "#00ffcc",
+        glowRadius: "12px",
+        bgColorRaw: "#000000",
+        bgOpacity: "0",
+        borderRadius: "0px",
+        letterSpacing: "2px",
+        showSeconds: true,
+        showDate: false,
+        use24h: true,
+        blinkColon: true,
+        useOutline: false
+      },
+      minimal: {
+        fontFamily: "'M PLUS 1p', sans-serif",
+        fontSize: "38px",
+        fontColor: "#ffffff",
+        glowColor: "#ffffff",
+        glowRadius: "0px",
+        bgColorRaw: "#0a0a0c",
+        bgOpacity: "60",
+        borderRadius: "8px",
+        letterSpacing: "0px",
+        showSeconds: false,
+        showDate: true,
+        use24h: true,
+        blinkColon: false,
+        useOutline: false
+      },
+      retro: {
+        fontFamily: "'M PLUS Rounded 1c', sans-serif",
+        fontSize: "42px",
+        fontColor: "#ff79c6",
+        glowColor: "#ff5555",
+        glowRadius: "8px",
+        bgColorRaw: "#1a1020",
+        bgOpacity: "80",
+        borderRadius: "16px",
+        letterSpacing: "1px",
+        showSeconds: true,
+        showDate: false, // 1列コンパクトにするため日付非表示
+        use24h: false,
+        blinkColon: true,
+        useOutline: true // 太フチ仕様を適用
+      },
+      shiki: {
+        fontFamily: "'Sawarabi Mincho', serif",
+        fontSize: "36px",
+        fontColor: "#e5c158", // 墨色に映えるゴールド系に変更
+        glowColor: "#c5a059", // ゴールド系の光彩に変更
+        glowRadius: "4px",
+        bgColorRaw: "#1c1c1e", // 墨色（チャコール）
+        bgOpacity: "70",
+        borderRadius: "4px",
+        letterSpacing: "4px",
+        showSeconds: false,
+        showDate: true,
+        use24h: false,
+        blinkColon: false,
+        useOutline: false
+      }
+    };
+
+    // ----------------------------------------------------
+    // アプリ初期化処理
+    // ----------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. 保存されたカスタム設定または初期読み込み
+      loadSavedConfig();
+      
+      // 2. 時計ループのスタート
+      startClockLoop();
+      
+      // 3. スロットボタンの初期不活性状態の解除確認
+      checkSavedSlots();
+    });
+
+    // ----------------------------------------------------
+    // 時計更新ロジック
+    // ----------------------------------------------------
+    function startClockLoop() {
+      function updateClock() {
+        const now = new Date();
+        
+        // --- 日付表示の処理 ---
+        if (clockState.showDate) {
+          document.getElementById('dateDisplay').style.display = 'block';
+          const years = now.getFullYear();
+          const months = String(now.getMonth() + 1).padStart(2, '0');
+          const days = String(now.getDate()).padStart(2, '0');
+          const dayList = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+          const dayName = dayList[now.getDay()];
+          document.getElementById('dateDisplay').innerText = `${years}/${months}/${days} ${dayName}`;
+        } else {
+          document.getElementById('dateDisplay').style.display = 'none';
+        }
+
+        // --- 時刻表示の処理 ---
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        let period = "";
+        
+        // 12時間表記の場合 (午前/午後 添え字表記)
+        if (!clockState.use24h) {
+          const isPM = hours >= 12;
+          const periodText = isPM ? "午後" : "午前";
+          period = `<span class="period-smaller">${periodText}</span>`;
+          hours = hours % 12;
+          hours = hours ? hours : 12; // 0を12に変換
+        }
+        
+        const hourStr = String(hours).padStart(2, '0');
+        
+        // コロンの点滅表現
+        const blinkClass = (clockState.blinkColon && now.getSeconds() % 2 === 0) ? 'style="visibility: hidden;"' : '';
+        const colonHtml = `<span ${blinkClass}>:</span>`;
+        
+        // 秒数表示の有無
+        const secondsHtml = clockState.showSeconds ? `<span class="sec-smaller">${colonHtml}${seconds}</span>` : '';
+        
+        document.getElementById('clockDisplay').innerHTML = `${period}${hourStr}${colonHtml}${minutes}${secondsHtml}`;
+      }
+      
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    // ----------------------------------------------------
+    // UI反映 & スタイル更新
+    // ----------------------------------------------------
+    function updateParam(key, value) {
+      clockState[key] = value;
+      
+      // 各入力コントロールの同期とインラインDOM更新
+      if (key === 'fontFamily') {
+        applyFontFamily(value);
+        updateFontButtonHighlight(value);
+      }
+      if (key === 'fontSize') {
+        document.documentElement.style.setProperty('--clock-font-size', value);
+        document.getElementById('fontSizeVal').innerText = value;
+        document.getElementById('fontSize').value = parseInt(value);
+      }
+      if (key === 'letterSpacing') {
+        document.documentElement.style.setProperty('--clock-letter-spacing', value);
+        document.getElementById('letterSpacingVal').innerText = value;
+        document.getElementById('letterSpacing').value = parseInt(value);
+      }
+      if (key === 'fontColor') {
+        document.documentElement.style.setProperty('--clock-font-color', value);
+        document.getElementById('fontColor').value = value;
+        const input = document.getElementById('fontColorText');
+        if (input && input.value.toUpperCase() !== value.toUpperCase()) {
+          input.value = value.toUpperCase();
+        }
+      }
+      if (key === 'glowColor') {
+        document.documentElement.style.setProperty('--clock-glow-color', value);
+        document.getElementById('glowColor').value = value;
+        const input = document.getElementById('glowColorText');
+        if (input && input.value.toUpperCase() !== value.toUpperCase()) {
+          input.value = value.toUpperCase();
+        }
+      }
+      if (key === 'glowRadius') {
+        document.documentElement.style.setProperty('--clock-glow-radius', value);
+        document.getElementById('glowRadiusVal').innerText = value;
+        document.getElementById('glowRadius').value = parseInt(value);
+      }
+      if (key === 'borderRadius') {
+        document.documentElement.style.setProperty('--clock-border-radius', value);
+        document.getElementById('borderRadiusVal').innerText = value;
+        document.getElementById('borderRadius').value = parseInt(value);
+      }
+      if (key === 'showSeconds') {
+        document.getElementById('showSeconds').checked = value;
+      }
+      if (key === 'showDate') {
+        document.getElementById('showDate').checked = value;
+      }
+      if (key === 'use24h') {
+        document.getElementById('use24h').checked = value;
+      }
+      if (key === 'blinkColon') {
+        document.getElementById('blinkColon').checked = value;
+      }
+      if (key === 'useOutline') {
+        const isActive = !!value;
+        clockState.useOutline = isActive;
+        const strokeVal = isActive ? "2px #000000" : "0px transparent";
+        const strokeDateVal = isActive ? "0.8px #000000" : "0px transparent";
+        document.documentElement.style.setProperty('--clock-text-stroke', strokeVal);
+        document.documentElement.style.setProperty('--clock-text-stroke-date', strokeDateVal);
+        document.getElementById('useOutline').checked = isActive;
+      }
+    }
+
+    // Google Fontsはオンライン書体が選択された場合だけ読み込む。
+    const fontLoadPromises = new Map();
+    function loadOnlineFont(fontValue) {
+      const definition = ONLINE_FONTS[fontValue];
+      if (!definition) return Promise.resolve(true);
+      if (fontLoadPromises.has(fontValue)) return fontLoadPromises.get(fontValue);
+
+      const promise = new Promise(resolve => {
+        const link = document.createElement('link');
+        const timeout = setTimeout(() => resolve(false), 5000);
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${definition.query}&display=swap`;
+        link.onload = async () => {
+          try {
+            if (document.fonts && document.fonts.load) {
+              const faces = await Promise.race([
+                document.fonts.load(`16px "${definition.family}"`),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('font timeout')), 5000))
+              ]);
+              if (!faces.length) throw new Error('font unavailable');
+            }
+            clearTimeout(timeout);
+            resolve(true);
+          } catch (_) {
+            clearTimeout(timeout);
+            resolve(false);
+          }
+        };
+        link.onerror = () => {
+          clearTimeout(timeout);
+          resolve(false);
+        };
+        document.head.appendChild(link);
+      });
+      fontLoadPromises.set(fontValue, promise);
+      return promise;
+    }
+
+    async function applyFontFamily(fontValue) {
+      const requested = ONLINE_FONTS[fontValue];
+      if (!requested) {
+        document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
+        return;
+      }
+
+      // ダウンロード中と失敗時は常に通信不要の標準フォントを表示する。
+      document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
+      const loaded = await loadOnlineFont(fontValue);
+      if (clockState.fontFamily !== fontValue) return;
+      if (loaded) {
+        document.documentElement.style.setProperty('--clock-font-family', fontValue);
+      } else {
+        clockState.fontFamily = STANDARD_FONT;
+        document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
+        updateFontButtonHighlight(STANDARD_FONT);
+        showToast('オンラインフォントを読み込めないため、標準フォントを使用します。');
+      }
+    }
+
+    // 背景色と透過度を合わせてrgba化して反映する
+    function updateBgColorCombination() {
+      const hex = document.getElementById('bgColorRaw').value;
+      const opacityPercent = document.getElementById('bgOpacity').value;
+      
+      clockState.bgColorRaw = hex;
+      clockState.bgOpacity = opacityPercent;
+
+      // HexをRgbに変換
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const a = (opacityPercent / 100).toFixed(2);
+      
+      const rgbaStr = `rgba(${r}, ${g}, ${b}, ${a})`;
+      document.documentElement.style.setProperty('--clock-bg-color', rgbaStr);
+      
+      // UIの数値表示更新
+      const bgInput = document.getElementById('bgColorRawText');
+      if (bgInput && bgInput.value.toUpperCase() !== hex.toUpperCase()) {
+        bgInput.value = hex.toUpperCase();
+      }
+      document.getElementById('bgOpacityVal').innerText = opacityPercent + "%";
+    }
+
+    // クロップガイド線の表示ON/OFF
+    function toggleGuide(isActive) {
+      clockState.guideToggle = isActive;
+      const area = document.getElementById('clockArea');
+      if (isActive) {
+        area.classList.add('guide-active');
+      } else {
+        area.classList.remove('guide-active');
+      }
+      document.getElementById('guideToggle').checked = isActive;
+    }
+
+    // ----------------------------------------------------
+    // プリセット適用
+    // ----------------------------------------------------
+    function applyPreset(presetKey) {
+      const target = presets[presetKey];
+      if (!target) return;
+
+      Object.keys(target).forEach(key => {
+        updateParam(key, target[key]);
+      });
+      
+      // 背景色は特殊なので個別処理
+      document.getElementById('bgColorRaw').value = target.bgColorRaw;
+      document.getElementById('bgOpacity').value = target.bgOpacity;
+      updateBgColorCombination();
+
+      showToast(`プリセット「${getPresetNameJP(presetKey)}」を読み込みました`);
+    }
+
+    function getPresetNameJP(key) {
+      const names = { cyber: 'サイバー', minimal: 'ミニマル', retro: 'レトロ', shiki: '和モダン' };
+      return names[key] || key;
+    }
+
+    // ----------------------------------------------------
+    // ローカルストレージ（保存とロード）
+    // ----------------------------------------------------
+    
+    // 現在の表示設定をデフォルトロード値として保存
+    function saveCurrentConfig() {
+      localStorage.setItem(STORAGE_KEYS.config, JSON.stringify({ version: 2, settings: clockState }));
+      showToast('時計の設定を保存しました。次回起動時に適用されます！');
+    }
+
+    function normalizeSettings(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      const source = value.settings && typeof value.settings === 'object' ? value.settings : value;
+      const result = Object.assign({}, DEFAULT_STATE);
+      const strings = ['fontFamily', 'fontSize', 'fontColor', 'glowColor', 'glowRadius', 'bgColorRaw', 'bgOpacity', 'borderRadius', 'letterSpacing'];
+      const booleans = ['showSeconds', 'showDate', 'use24h', 'blinkColon', 'guideToggle', 'useOutline'];
+      strings.forEach(key => { if (typeof source[key] === 'string') result[key] = source[key]; });
+      booleans.forEach(key => { if (typeof source[key] === 'boolean') result[key] = source[key]; });
+      if (result.fontFamily !== STANDARD_FONT && !ONLINE_FONTS[result.fontFamily]) result.fontFamily = STANDARD_FONT;
+      if (!/^#[0-9a-f]{6}$/i.test(result.fontColor)) result.fontColor = DEFAULT_STATE.fontColor;
+      if (!/^#[0-9a-f]{6}$/i.test(result.glowColor)) result.glowColor = DEFAULT_STATE.glowColor;
+      if (!/^#[0-9a-f]{6}$/i.test(result.bgColorRaw)) result.bgColorRaw = DEFAULT_STATE.bgColorRaw;
+      result.bgOpacity = String(Math.min(100, Math.max(0, Number(result.bgOpacity) || 0)));
+      return result;
+    }
+
+    function readStoredJson(key) {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (_) { return null; }
+    }
+
+    function applySettings(settings) {
+      Object.keys(settings).forEach(key => {
+        if (key === 'bgColorRaw' || key === 'bgOpacity') {
+          clockState[key] = settings[key];
+        } else if (key === 'guideToggle') {
+          toggleGuide(settings[key]);
+        } else {
+          updateParam(key, settings[key]);
+        }
+      });
+      document.getElementById('bgColorRaw').value = clockState.bgColorRaw;
+      document.getElementById('bgOpacity').value = clockState.bgOpacity;
+      updateBgColorCombination();
+    }
+
+    // ロード処理
+    function loadSavedConfig() {
+      const current = readStoredJson(STORAGE_KEYS.config);
+      const legacy = current ? null : readStoredJson(STORAGE_KEYS.legacyConfig);
+      const settings = normalizeSettings(current || legacy);
+      if (settings) {
+        clockState = settings;
+        applySettings(settings);
+        if (legacy) localStorage.setItem(STORAGE_KEYS.config, JSON.stringify({ version: 2, settings }));
+      } else {
+        // 初回起動はサイバーに
+        applyPreset('cyber');
+      }
+    }
+
+    // ----------------------------------------------------
+    // ユーザー保存スロット（マイプリセット）処理
+    // ----------------------------------------------------
+    function saveToSlot(num) {
+      const slotNameInput = document.getElementById(`slotName${num}`);
+      const slotName = slotNameInput.value.trim() || `スロット ${num}`;
+      
+      const payload = {
+        name: slotName,
+        settings: Object.assign({}, clockState)
+      };
+
+      localStorage.setItem(STORAGE_KEYS.slots(num), JSON.stringify({ version: 2, ...payload }));
+      checkSavedSlots();
+      showToast(`「${slotName}」としてスロット${num}に保存しました`);
+    }
+
+    function loadFromSlot(num) {
+      const current = readStoredJson(STORAGE_KEYS.slots(num));
+      const legacy = current ? null : readStoredJson(STORAGE_KEYS.legacySlots(num));
+      const payload = current || legacy;
+      if (!payload) return;
+
+      try {
+        const settings = normalizeSettings(payload.settings);
+        if (!settings) throw new Error('invalid slot');
+        clockState = settings;
+        applySettings(settings);
+
+        // スロット名入力フォームの同期
+        document.getElementById(`slotName${num}`).value = payload.name;
+        
+        if (legacy) localStorage.setItem(STORAGE_KEYS.slots(num), JSON.stringify({ version: 2, name: payload.name, settings }));
+
+        showToast(`マイプリセット「${payload.name}」を呼び出しました`);
+      } catch (e) {
+        showToast('スロットデータの読み込みに失敗しました。');
+      }
+    }
+
+    // 呼び出しボタンの有効・無効化の確認
+    function checkSavedSlots() {
+      for (let i = 1; i <= 3; i++) {
+        const data = readStoredJson(STORAGE_KEYS.slots(i)) || readStoredJson(STORAGE_KEYS.legacySlots(i));
+        const loadBtn = document.getElementById(`loadBtn${i}`);
+        const nameInput = document.getElementById(`slotName${i}`);
+        
+        if (data) {
+          loadBtn.disabled = false;
+          try {
+            nameInput.value = data.name || `スロット ${i}`;
+            loadBtn.classList.add('bg-indigo-900', 'text-white');
+            loadBtn.classList.remove('text-slate-400');
+          } catch (e) {}
+        } else {
+          loadBtn.disabled = true;
+          loadBtn.classList.remove('bg-indigo-900', 'text-white');
+          loadBtn.classList.add('text-slate-400');
+        }
+      }
+    }
+
+    // トースト通知の表示
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      
+      toastMsg.innerText = msg;
+      
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+      }, 3000);
+    }
+
+    // テキスト入力による色の手動更新 (OBSブラウザ対策)
+    function updateColorFromText(key, textVal) {
+      let hex = textVal.trim();
+      if (hex && !hex.startsWith('#')) {
+        hex = '#' + hex;
+      }
+      
+      const isValidHex = /^#([0-9a-fA-F]{3}){1,2}$/.test(hex);
+      if (isValidHex) {
+        if (key === 'bgColorRaw') {
+          document.getElementById('bgColorRaw').value = hex;
+          updateBgColorCombination();
+        } else {
+          updateParam(key, hex);
+        }
+      }
+    }
+
+    // フォントボタンの選択状態ハイライト更新 (OBSブラウザ対策)
+    function updateFontButtonHighlight(value) {
+      const btnMap = {
+        [STANDARD_FONT]: "standard",
+        "'Share Tech Mono', monospace": "digital",
+        "'DotGothic16', sans-serif": "dot",
+        "'M PLUS Rounded 1c', sans-serif": "rounded",
+        "'M PLUS 1p', sans-serif": "gothic",
+        "'Sawarabi Mincho', serif": "mincho"
+      };
+      
+      const activeSuffix = btnMap[value];
+      const suffixes = ["standard", "digital", "dot", "rounded", "gothic", "mincho"];
+      
+      suffixes.forEach(suffix => {
+        const btn = document.getElementById(`fontBtn_${suffix}`);
+        if (!btn) return;
+        if (suffix === activeSuffix) {
+          btn.classList.add('border-indigo-500', 'bg-indigo-950/40', 'text-indigo-400');
+          btn.classList.remove('border-slate-700', 'bg-slate-950', 'text-slate-300');
+        } else {
+          btn.classList.remove('border-indigo-500', 'bg-indigo-950/40', 'text-indigo-400');
+          btn.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-300');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

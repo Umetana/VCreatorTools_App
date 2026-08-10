@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>エフェクト表示画面</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #effect-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #backdrop {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 100%);
+            transition: opacity 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="backdrop"></div>
+    <div id="effect-container"></div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="../GP_multi_counter_v2/counter-core.js"></script>
+    <script src="../GP_multi_counter_v2/counter-schema.js"></script>
+    <script src="../GP_multi_counter_v2/counter-protocol.js"></script>
+    <script src="../GP_multi_counter_v2/counter-store.js"></script>
+    <script src="../GP_multi_counter_v2/counter-client.js"></script>
+    <script src="../GP_multi_counter_v2/gp-counter-server.js"></script>
+    <script src="js/settings_default.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/effects_list.js"></script>
+    <script src="js/effects_user.js"></script>
+    <script src="js/effect-message-protocol.js"></script>
+    <script src="js/settings-schema.js"></script>
+    <script src="js/settings-repository.js"></script>
+    <script src="js/broadcast-transport.js"></script>
+    <script src="js/server-effect-transport.js"></script>
+    <script src="js/effect-transport-router.js"></script>
+    <script src="js/counter-trigger-engine.js"></script>
+    <script src="js/gp-counter-v2-adapter.js"></script>
+    <script src="js/effect-registry.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/effect-context.js"></script>
+    <script src="js/effect-runtime.js"></script>
+    <script>
+        const core = new EffectCore('screen');
+        const container = document.getElementById('effect-container');
+        const backdrop = document.getElementById('backdrop');
+        const runtime = new EffectRuntime({
+            registry: core.effectRegistry,
+            container,
+            backdrop
+        });
+
+        core.onEffectTrigger = (effectId, params) => runtime.trigger(effectId, params);
+        const counterAdapter = new GPCounterV2Adapter({
+            onChanged: (changes, cause) => core.handleCounterChanges(changes, cause)
+        });
+        counterAdapter.start();
+
+        core.onConfigUpdate = (settings) => {
+            console.log("Config updated in Screen", settings);
+            // Re-apply global settings like resolution if needed
+        };
+
+        window.addEventListener('pagehide', () => {
+            counterAdapter.close();
+            runtime.destroyAll();
+        });
+    </script>
+</body>
+
+</html>

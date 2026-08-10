@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Stream Overlay Gadget</title>
+    <!-- 設定ファイルを読み込む -->
+    <script src="settings.js"></script>
+    <!-- わんコメ連携用SDK -->
+    <script src="../__origin/js/onesdk.js"></script>
+    <!-- GP MULTI COUNTER V2 Consumer -->
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="../GP_multi_counter_v2/counter-core.js"></script>
+    <script src="../GP_multi_counter_v2/counter-schema.js"></script>
+    <script src="../GP_multi_counter_v2/counter-protocol.js"></script>
+    <script src="../GP_multi_counter_v2/counter-store.js"></script>
+    <script src="../GP_multi_counter_v2/counter-client.js"></script>
+    <script src="../GP_multi_counter_v2/gp-counter-server.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+        :root {
+            --bg-accent: rgba(0, 0, 0, 0.6);
+            --text-color: #ffffff;
+            --highlight: #00ffcc;
+            --font-main: 'Inter', 'Noto Sans JP', sans-serif;
+            --accent-gradient: linear-gradient(90deg, #00ffcc, #0099ff);
+            --color-x: #000000;
+            --color-youtube: #FF0000;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            background-color: transparent;
+            font-family: var(--font-main);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: fit-content;
+        }
+
+        .clock-card {
+            background: var(--bg-accent);
+            padding: 12px 24px;
+            box-sizing: border-box;
+            width: 442px;
+            border-radius: 12px;
+            border-left: 4px solid var(--highlight);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.8s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .time-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #time {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 5px;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+        }
+
+        #date {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            letter-spacing: 0.05em;
+        }
+
+        .sub-section {
+            padding-left: 12px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 70px;
+        }
+
+        /* ラベルと数値の基本スタイル */
+        .sub-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--highlight);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .sub-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+        }
+
+        .info-card {
+            background: var(--bg-accent);
+            padding: 2px 15px 2px 5px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            backdrop-filter: blur(8px);
+            animation: slideIn 1s ease-out;
+            width: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .label-wrapper {
+            background: var(--accent-gradient);
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+            height: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+
+        #ticker-text {
+            position: absolute;
+            white-space: nowrap;
+            display: inline-block;
+            will-change: transform;
+        }
+
+        @keyframes scrollText {
+
+            0%,
+            10% {
+                transform: translateX(0);
+            }
+
+            90%,
+            100% {
+                transform: translateX(var(--scroll-distance));
+            }
+        }
+
+        .social-card {
+            display: flex;
+            gap: 10px;
+            animation: slideIn 1.2s ease-out;
+        }
+
+        .social-item {
+            background: var(--bg-accent);
+            padding: 5px 15px 5px 5px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .social-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.7rem;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .pulse::after {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--highlight);
+            filter: blur(4px);
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                opacity: 0.3;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* --- Settings Panel Styles --- */
+        .settings-trigger-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+        }
+
+        body:hover .settings-trigger-btn,
+        .settings-trigger-btn:hover {
+            opacity: 0.8;
+        }
+
+        .settings-trigger-btn:hover {
+            transform: rotate(45deg);
+            background: rgba(0, 0, 0, 0.8);
+            opacity: 1;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-sizing: border-box;
+            z-index: 10000;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .settings-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reload-source-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 6px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 8px 10px;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        .reload-source-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.28);
+            color: #ffffff;
+        }
+
+        .reload-source-btn:active {
+            transform: translateY(1px);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #f8fafc;
+        }
+
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            padding: 10px 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--highlight);
+            border-bottom-color: var(--highlight);
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .input-control {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: var(--highlight);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.2);
+        }
+
+        select.input-control option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .checkbox-control {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--highlight);
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--highlight);
+            border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+            padding-bottom: 4px;
+            margin: 8px 0 4px 0;
+            text-transform: uppercase;
+        }
+
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-item.disabled {
+            opacity: 0.58;
+        }
+
+        .message-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-right: 28px;
+        }
+
+        .message-order-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .move-msg-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 5px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 5px 8px;
+        }
+
+        .move-msg-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.35;
+        }
+
+        .remove-msg-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 6px;
+        }
+
+        .add-msg-btn {
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px dashed var(--highlight);
+            color: var(--highlight);
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .add-msg-btn:hover {
+            background: rgba(0, 255, 204, 0.2);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .backup-textarea {
+            width: 100%;
+            height: 120px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #a7f3d0;
+            padding: 8px;
+            resize: none;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="clock-card pulse">
+            <div class="time-section">
+                <div id="time">00:00:00</div>
+                <div id="date">YYYY/MM/DD (SUN)</div>
+            </div>
+            <!-- サブセクション -->
+            <div class="sub-section" id="sub-section">
+                <div class="sub-label" id="sub-label">Uptime</div>
+                <div class="sub-value" id="sub-value">00:00:00</div>
+            </div>
+            <div class="sub-section" id="sub-section-2" style="display: none;">
+                <div class="sub-label" id="sub-label-2">Likes</div>
+                <div class="sub-value" id="sub-value-2">0</div>
+            </div>
+        </div>
+
+        <div class="info-card" id="ticker-card">
+            <div class="label-wrapper" id="label-box"><span id="ticker-label">INFO</span></div>
+            <div class="content-area" id="ticker-container"><span id="ticker-text">Loading...</span></div>
+        </div>
+
+        <div class="social-card" id="social-card">
+            <div class="social-item">
+                <div class="social-icon" style="background: var(--color-x);">X</div>
+                <span id="sns-x">@YourID_X</span>
+            </div>
+            <div class="social-item">
+                <div class="social-icon" style="background: var(--color-youtube);">YT</div>
+                <span id="sns-yt">ChannelName</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定ギアボタン -->
+    <button class="settings-trigger-btn" id="settings-trigger-btn" title="設定を開く">⚙️</button>
+
+    <!-- 設定スライドパネル -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h3 class="settings-title">⚙️ ガジェット設定</h3>
+            <div class="settings-header-actions">
+                <button class="reload-source-btn" id="reload-source-btn" title="表示ソースへ再読み込み指示を送る">表示へ反映</button>
+                <button class="close-btn" id="settings-close-btn">&times;</button>
+            </div>
+        </div>
+        <div class="settings-tabs">
+            <button class="tab-btn active" data-tab="tab-general">基本設定</button>
+            <button class="tab-btn" data-tab="tab-ticker">告知テロップ</button>
+            <button class="tab-btn" data-tab="tab-backup">保存・復元</button>
+        </div>
+        <div class="settings-content">
+            <!-- 基本設定タブ -->
+            <div class="tab-panel active" id="tab-general">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="input-use-external" class="checkbox-control">
+                        外部設定を有効にする
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="input-display-mode">表示モード</label>
+                    <select id="input-display-mode" class="input-control">
+                        <option value="uptime">uptime (配信経過時間)</option>
+                        <option value="custom">custom (固定テキスト)</option>
+                        <option value="sync">sync (マルチカウンター同期)</option>
+                        <option value="onec">onec (わんコメ連携)</option>
+                        <option value="none">none (非表示)</option>
+                    </select>
+                </div>
+
+                <!-- モード別設定: Custom -->
+                <div id="panel-mode-custom" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="input-custom-label">ラベル</label>
+                        <input type="text" id="input-custom-label" class="input-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-custom-text">テキスト</label>
+                        <input type="text" id="input-custom-text" class="input-control">
+                    </div>
+                </div>
+
+                <!-- モード別設定: Sync -->
+                <div id="panel-mode-sync" class="form-group" style="display: none;">
+                    <label for="input-sync-id">同期カウンターID</label>
+                    <input type="text" id="input-sync-id" class="input-control">
+                </div>
+
+                <!-- モード別設定: Onec -->
+                <div id="panel-mode-onec" style="display: none; flex-direction: column; gap: 12px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="input-onec-label-size">ラベルサイズ</label>
+                            <input type="text" id="input-onec-label-size" class="input-control" placeholder="0.7rem">
+                        </div>
+                        <div class="form-group">
+                            <label for="input-onec-value-size">数値サイズ</label>
+                            <input type="text" id="input-onec-value-size" class="input-control" placeholder="1.3rem">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="input-onec-bold" class="checkbox-control">
+                            太文字にする
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section-title">SNS情報</div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="input-show-sns-info" class="checkbox-control">
+                        SNS情報を表示
+                    </label>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-sns-x">X (旧Twitter) ID</label>
+                        <input type="text" id="input-sns-x" class="input-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-sns-yt">YouTube チャンネル名</label>
+                        <input type="text" id="input-sns-yt" class="input-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 告知テロップタブ -->
+            <div class="tab-panel" id="tab-ticker">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="input-show-ticker" class="checkbox-control">
+                        告知テロップを表示
+                    </label>
+                </div>
+                <div class="message-list" id="message-list-container">
+                    <!-- 動的に生成 -->
+                </div>
+                <button class="add-msg-btn" id="btn-add-message">+ 新しいテロップを追加</button>
+            </div>
+
+            <!-- 保存・復元タブ -->
+            <div class="tab-panel" id="tab-backup">
+                <div class="form-group">
+                    <label for="backup-data">設定データ (JSON)</label>
+                    <textarea id="backup-data" class="backup-textarea"></textarea>
+                </div>
+                <div class="form-row">
+                    <button class="btn btn-secondary" id="btn-copy-backup">コピー</button>
+                    <button class="btn btn-primary" id="btn-import-backup">インポート</button>
+                </div>
+                <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+                    <button class="btn btn-danger" id="btn-reset-settings" style="width: 100%;">設定をデフォルトに戻す</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>    // --- デフォルトの初期設定 ---
+        const DEFAULT_SETTINGS = {
+            useExternalSettings: true,
+            showSnsInfo: true,
+            showTicker: true,
+            displayMode: "onec",
+            onecLabelSize: "0.7rem",
+            onecValueSize: "1.3rem",
+            onecIsBold: true,
+            bridgeEventsUrl: "auto",
+            syncCounterId: "counter2",
+            customLabel: "GOAL",
+            customText: "1,234 / 2,000",
+            snsConfig: {
+                x_id: "@umetana_elf",
+                yt_name: "Elke ch.うめたなエルケ"
+            },
+            overlayConfig: [
+                {
+                    label: "Now Playing",
+                    text: "Sunset Beats - Lo-fi Chill ☕",
+                    color: "linear-gradient(90deg, #00ffcc, #0099ff)"
+                },
+                {
+                    label: "Notice",
+                    text: "GP Multi Counter V2からカウンターを受信します。",
+                    color: "#00ffcc"
+                }
+            ]
+        };
+
+        // --- 設定の読み込み (優先度: localStorage > settings.js > DEFAULT_SETTINGS) ---
+        let currentSettings = {};
+        const localSaved = localStorage.getItem('obs_gadget_settings');
+
+        if (localSaved) {
+            try {
+                currentSettings = JSON.parse(localSaved);
+            } catch (e) {
+                console.error("Failed to parse saved settings", e);
+            }
+        }
+
+        if (!localSaved || !currentSettings.displayMode) {
+            // settings.js からの読み込みを試みる
+            currentSettings = {
+                useExternalSettings: typeof window.useExternalSettings !== 'undefined' ? window.useExternalSettings : DEFAULT_SETTINGS.useExternalSettings,
+                showSnsInfo: typeof window.showSnsInfo !== 'undefined' ? window.showSnsInfo : DEFAULT_SETTINGS.showSnsInfo,
+                showTicker: typeof window.showTicker !== 'undefined' ? window.showTicker : DEFAULT_SETTINGS.showTicker,
+                displayMode: typeof window.displayMode !== 'undefined' ? window.displayMode : DEFAULT_SETTINGS.displayMode,
+                onecLabelSize: typeof window.onecLabelSize !== 'undefined' ? window.onecLabelSize : DEFAULT_SETTINGS.onecLabelSize,
+                onecValueSize: typeof window.onecValueSize !== 'undefined' ? window.onecValueSize : DEFAULT_SETTINGS.onecValueSize,
+                onecIsBold: typeof window.onecIsBold !== 'undefined' ? window.onecIsBold : DEFAULT_SETTINGS.onecIsBold,
+                bridgeEventsUrl: typeof window.bridgeEventsUrl !== 'undefined' ? window.bridgeEventsUrl : DEFAULT_SETTINGS.bridgeEventsUrl,
+                syncCounterId: typeof window.syncCounterId !== 'undefined' ? window.syncCounterId : DEFAULT_SETTINGS.syncCounterId,
+                customLabel: typeof window.customLabel !== 'undefined' ? window.customLabel : DEFAULT_SETTINGS.customLabel,
+                customText: typeof window.customText !== 'undefined' ? window.customText : DEFAULT_SETTINGS.customText,
+                snsConfig: {
+                    x_id: (window.snsConfig && typeof window.snsConfig.x_id !== 'undefined') ? window.snsConfig.x_id : DEFAULT_SETTINGS.snsConfig.x_id,
+                    yt_name: (window.snsConfig && typeof window.snsConfig.yt_name !== 'undefined') ? window.snsConfig.yt_name : DEFAULT_SETTINGS.snsConfig.yt_name
+                },
+                overlayConfig: typeof window.overlayConfig !== 'undefined' ? window.overlayConfig : DEFAULT_SETTINGS.overlayConfig
+            };
+        }
+
+        // 欠損プロパティの補完
+        currentSettings = { ...DEFAULT_SETTINGS, ...currentSettings };
+        if (currentSettings.snsConfig) {
+            currentSettings.snsConfig = { ...DEFAULT_SETTINGS.snsConfig, ...currentSettings.snsConfig };
+        }
+
+        function normalizeOverlayConfig(config) {
+            const source = Array.isArray(config) ? config : DEFAULT_SETTINGS.overlayConfig;
+
+            return source.map(rawItem => {
+                const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
+
+                return {
+                    enabled: item.enabled !== false,
+                    label: item.label || '',
+                    text: item.text === 'マルチカウンター同期モードが有効です。BroadcastChannel経由でデータを受信します。'
+                        ? 'GP Multi Counter V2からカウンターを受信します。'
+                        : item.text || '',
+                    color: item.color || ''
+                };
+            });
+        }
+
+        currentSettings.overlayConfig = normalizeOverlayConfig(currentSettings.overlayConfig);
+
+        // --- DOM要素の参照 ---
+        const subSectionEl = document.getElementById('sub-section');
+        const subLabelEl = document.getElementById('sub-label');
+        const subValueEl = document.getElementById('sub-value');
+
+        const subSection2El = document.getElementById('sub-section-2');
+        const subLabel2El = document.getElementById('sub-label-2');
+        const subValue2El = document.getElementById('sub-value-2');
+        const tickerCardEl = document.getElementById('ticker-card');
+        const socialCardEl = document.getElementById('social-card');
+
+        // --- 設定の適用ロジック ---
+        function applyAllSettings() {
+            tickerCardEl.style.display = currentSettings.showTicker ? "flex" : "none";
+            socialCardEl.style.display = currentSettings.showSnsInfo ? "flex" : "none";
+
+            // SNS反映
+            document.getElementById('sns-x').textContent = currentSettings.snsConfig.x_id;
+            document.getElementById('sns-yt').textContent = currentSettings.snsConfig.yt_name;
+
+            // 基本スタイルリセット
+            subSectionEl.style.display = "flex";
+            subSection2El.style.display = "none";
+            subLabelEl.style.fontSize = "0.65rem";
+            subLabelEl.style.fontWeight = "700";
+            subValueEl.style.fontSize = "1.2rem";
+            subValueEl.style.fontWeight = "700";
+            subLabelEl.style.textShadow = "none";
+            subValueEl.style.textShadow = "none";
+
+            const mode = currentSettings.displayMode;
+            if (mode === "none") {
+                subSectionEl.style.display = "none";
+            } else if (mode === "custom") {
+                subLabelEl.textContent = currentSettings.customLabel || "INFO";
+                subValueEl.textContent = currentSettings.customText || "";
+            } else if (mode === "sync") {
+                subLabelEl.textContent = "SYNCING...";
+                subValueEl.textContent = "---";
+            } else if (mode === "onec") {
+                subLabelEl.textContent = "VIEWERS";
+                subValueEl.textContent = "---";
+                subSection2El.style.display = "flex";
+                subLabel2El.textContent = "LIKES";
+                subValue2El.textContent = "---";
+
+                const lSize = currentSettings.onecLabelSize || "0.7rem";
+                const vSize = currentSettings.onecValueSize || "1.3rem";
+                const isBold = currentSettings.onecIsBold !== false;
+
+                [subLabelEl, subLabel2El].forEach(el => {
+                    el.style.fontSize = lSize;
+                    el.style.fontWeight = isBold ? "700" : "400";
+                });
+                [subValueEl, subValue2El].forEach(el => {
+                    el.style.fontSize = vSize;
+                    el.style.fontWeight = isBold ? "700" : "400";
+                });
+            } else if (mode === "uptime") {
+                subLabelEl.textContent = "Uptime";
+                // 時間はインターバル内で更新される
+            }
+        }
+
+        // --- GP MULTI COUNTER V2 連携 ---
+        function applyCounterV2(counter) {
+            if (currentSettings.displayMode !== "sync" || !counter) return;
+
+            subLabelEl.textContent = counter.label || "COUNTER";
+            let value = Number(counter.count).toLocaleString();
+            if (counter.showGoal && counter.goalCount) {
+                value += ` / ${Number(counter.goalCount).toLocaleString()}`;
+            }
+            if (counter.unit) value += ` ${counter.unit}`;
+            subValueEl.textContent = value;
+
+            if (counter.labelSize) subLabelEl.style.fontSize = counter.labelSize;
+            if (counter.countSize) subValueEl.style.fontSize = counter.countSize;
+            subLabelEl.style.fontWeight = counter.isBold ? "700" : "400";
+            subValueEl.style.fontWeight = counter.isBold ? "700" : "400";
+            const shadow = counter.isShadow ? "2px 2px 4px rgba(0,0,0,0.5)" : "none";
+            subLabelEl.style.textShadow = shadow;
+            subValueEl.style.textShadow = shadow;
+        }
+
+        function applyCounterV2State(state) {
+            const target = state?.counters?.find(counter => counter.id === currentSettings.syncCounterId);
+            if (target) applyCounterV2(target);
+        }
+
+        function initializeCounterV2() {
+            const dependenciesReady = window.VCTRuntime
+                && window.GPMultiCounter
+                && window.GPMultiCounterSchema
+                && window.CounterMessageProtocol
+                && window.CounterStateRepository
+                && window.CounterClient
+                && window.GPCounterServer;
+            if (!dependenciesReady) {
+                console.info("[OBS gadget] GP MULTI COUNTER V2 is unavailable in this environment.");
+                return;
+            }
+
+            const repository = new CounterStateRepository({
+                storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode)
+            });
+            const initialState = repository.load([]);
+            applyCounterV2State(initialState);
+
+            const serverClient = GPCounterServer.createClient({
+                role: "display",
+                onState: applyCounterV2State
+            });
+
+            if (serverClient.enabled) {
+                serverClient.initialize([]).catch(error => {
+                    console.warn("[OBS gadget] GP MULTI COUNTER V2 Server connection failed.", error);
+                });
+                return;
+            }
+
+            const counterClient = new CounterClient({
+                role: "display",
+                repository,
+                canRespond: false
+            });
+            counterClient.subscribe(event => applyCounterV2State(event.state));
+            counterClient.start({ knownRevision: initialState.revision });
+        }
+
+        initializeCounterV2();
+
+        // --- OneComme (わんコメ) / Ms.Bridge 連携ロジック ---
+        function applyOneCommeMeta(data) {
+            if (currentSettings.displayMode !== "onec") return;
+            const d = data?.data;
+            if (!d) return;
+
+            if (d.viewer !== undefined) {
+                subValueEl.textContent = Number(d.viewer).toLocaleString();
+            }
+            if (d.upVote !== undefined) {
+                subValue2El.textContent = Number(d.upVote).toLocaleString();
+            }
+        }
+
+        function getBridgeEventsUrl() {
+            const configured = String(currentSettings.bridgeEventsUrl || "auto").trim();
+            if (configured && configured !== "auto") return configured;
+            if (location.protocol !== "http:" && location.protocol !== "https:") {
+                return "ws://127.0.0.1:3000/events";
+            }
+            const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+            return `${protocol}//${location.host}/events`;
+        }
+
+        function connectBridgeMeta() {
+            let socket;
+            let reconnectTimer;
+
+            const connect = () => {
+                try {
+                    socket = new WebSocket(getBridgeEventsUrl());
+                    socket.addEventListener("message", (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            if (message?.schema !== "msbridge.event.v1" || message?.eventType !== "meta") return;
+                            applyOneCommeMeta(message.payload?.raw);
+                        } catch (error) {
+                            console.warn("[OBS gadget] Bridge meta parse failed", error);
+                        }
+                    });
+                    socket.addEventListener("close", () => {
+                        clearTimeout(reconnectTimer);
+                        reconnectTimer = setTimeout(connect, 5000);
+                    });
+                    socket.addEventListener("error", () => socket.close());
+                } catch (error) {
+                    console.warn("[OBS gadget] Bridge connection failed", error);
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = setTimeout(connect, 5000);
+                }
+            };
+
+            connect();
+        }
+
+        if (typeof OneSDK !== 'undefined') {
+            OneSDK.setup({
+                permissions: OneSDK.usePermission([OneSDK.PERM.META])
+            });
+
+            OneSDK.subscribe({
+                action: 'meta',
+                callback: applyOneCommeMeta
+            });
+
+            OneSDK.connect();
+        } else {
+            connectBridgeMeta();
+        }
+
+        // --- 時計 & Uptime 表示 ---
+        const startTime = Date.now();
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString('ja-JP', { hour12: false });
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            document.getElementById('date').textContent = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} (${days[now.getDay()]})`;
+
+            if (currentSettings.displayMode === "uptime") {
+                const diff = Math.floor((Date.now() - startTime) / 1000);
+                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+                subValueEl.textContent = `${h}:${m}:${s}`;
+            }
+        }
+
+        // --- 告知テロップローテーション制御 ---
+        let configIndex = 0;
+        let tickerTimeout;
+        function stopTicker() {
+            const textEl = document.getElementById('ticker-text');
+
+            clearTimeout(tickerTimeout);
+            textEl.style.animation = 'none';
+            textEl.style.opacity = 0;
+        }
+
+        function rotateInfo() {
+            const labelEl = document.getElementById('ticker-label');
+            const labelBox = document.getElementById('label-box');
+            const textEl = document.getElementById('ticker-text');
+            const containerEl = document.getElementById('ticker-container');
+
+            if (!currentSettings.showTicker) {
+                stopTicker();
+                return;
+            }
+
+            textEl.style.animation = 'none';
+            textEl.style.opacity = 0;
+            textEl.style.transform = "translateY(10px)";
+            clearTimeout(tickerTimeout);
+
+            tickerTimeout = setTimeout(() => {
+                const messages = currentSettings.overlayConfig.filter(item => item.enabled !== false);
+                if (!messages || messages.length === 0) {
+                    labelEl.textContent = "INFO";
+                    textEl.textContent = "有効なテロップがありません";
+                    textEl.style.opacity = 1;
+                    textEl.style.transform = "translateY(0)";
+                    tickerTimeout = setTimeout(rotateInfo, 5000);
+                    return;
+                }
+
+                if (configIndex >= messages.length) {
+                    configIndex = 0;
+                }
+
+                const item = messages[configIndex];
+                labelEl.textContent = item.label;
+                textEl.textContent = item.text;
+                labelBox.style.background = item.color || "var(--accent-gradient)";
+                labelBox.style.color = (item.label.match(/X|Update|Notice|Announce|Notice/i)) ? "white" : "black";
+
+                textEl.style.opacity = 1;
+                textEl.style.transform = "translateY(0)";
+
+                const textWidth = textEl.offsetWidth;
+                const containerWidth = containerEl.offsetWidth;
+                let nextInterval = 7000;
+
+                if (textWidth > containerWidth) {
+                    const scrollDistance = containerWidth - textWidth - 10;
+                    textEl.style.setProperty('--scroll-distance', `${scrollDistance}px`);
+                    const scrollDuration = Math.abs(scrollDistance) / 40;
+                    const totalAnim = scrollDuration + 4;
+                    textEl.style.animation = `scrollText ${totalAnim}s linear infinite`;
+                    nextInterval = (totalAnim * 1000) + 2000;
+                }
+
+                configIndex = (configIndex + 1) % messages.length;
+                tickerTimeout = setTimeout(rotateInfo, nextInterval);
+            }, 500);
+        }
+
+        function restartTicker() {
+            configIndex = 0;
+            rotateInfo();
+        }
+
+        // --- 設定パネル UI バインディング & 制御 ---
+        const panelEl = document.getElementById('settings-panel');
+        const triggerBtn = document.getElementById('settings-trigger-btn');
+        const closeBtn = document.getElementById('settings-close-btn');
+        const reloadSourceBtn = document.getElementById('reload-source-btn');
+        const settingsChannel = ('BroadcastChannel' in window)
+            ? new BroadcastChannel('obs_gadget_v2_settings')
+            : null;
+
+        function isSettingsModeUrl() {
+            return new URLSearchParams(window.location.search).get('mode') === 'settings';
+        }
+
+        function openSettingsPanel() {
+            panelEl.classList.add('open');
+            updateBackupTextArea();
+        }
+
+        function requestSourceReload() {
+            if (!settingsChannel) {
+                alert('この環境では自動再読み込み指示を送れません。OBSのブラウザソースを手動で再読み込みしてください。');
+                return;
+            }
+
+            settingsChannel.postMessage({
+                type: 'reload-source',
+                at: Date.now()
+            });
+        }
+
+        if (settingsChannel) {
+            settingsChannel.addEventListener('message', (event) => {
+                if (event.data?.type !== 'reload-source') return;
+                if (isSettingsModeUrl()) return;
+
+                location.reload();
+            });
+        }
+
+        // パネル開閉
+        triggerBtn.addEventListener('click', () => {
+            openSettingsPanel();
+        });
+        closeBtn.addEventListener('click', () => {
+            panelEl.classList.remove('open');
+        });
+        reloadSourceBtn.addEventListener('click', requestSourceReload);
+
+        // タブ切り替え
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabPanels.forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // UIコントロールに現在の値を同期
+        function initUIFromSettings() {
+            document.getElementById('input-use-external').checked = currentSettings.useExternalSettings;
+            document.getElementById('input-show-sns-info').checked = currentSettings.showSnsInfo;
+            document.getElementById('input-show-ticker').checked = currentSettings.showTicker;
+            document.getElementById('input-display-mode').value = currentSettings.displayMode;
+            
+            document.getElementById('input-custom-label').value = currentSettings.customLabel || '';
+            document.getElementById('input-custom-text').value = currentSettings.customText || '';
+            
+            document.getElementById('input-sync-id').value = currentSettings.syncCounterId || '';
+            
+            document.getElementById('input-onec-label-size').value = currentSettings.onecLabelSize || '0.7rem';
+            document.getElementById('input-onec-value-size').value = currentSettings.onecValueSize || '1.3rem';
+            document.getElementById('input-onec-bold').checked = currentSettings.onecIsBold !== false;
+            
+            document.getElementById('input-sns-x').value = currentSettings.snsConfig.x_id || '';
+            document.getElementById('input-sns-yt').value = currentSettings.snsConfig.yt_name || '';
+
+            updateModePanelsVisibility();
+            renderTickerList();
+        }
+
+        function updateModePanelsVisibility() {
+            const mode = currentSettings.displayMode;
+            document.getElementById('panel-mode-custom').style.display = (mode === 'custom') ? 'grid' : 'none';
+            document.getElementById('panel-mode-sync').style.display = (mode === 'sync') ? 'block' : 'none';
+            document.getElementById('panel-mode-onec').style.display = (mode === 'onec') ? 'flex' : 'none';
+        }
+
+        function saveAndApply() {
+            localStorage.setItem('obs_gadget_settings', JSON.stringify(currentSettings));
+            applyAllSettings();
+            updateBackupTextArea();
+        }
+
+        // イベントリスナー設定
+        document.getElementById('input-use-external').addEventListener('change', (e) => {
+            currentSettings.useExternalSettings = e.target.checked;
+            saveAndApply();
+        });
+        document.getElementById('input-show-sns-info').addEventListener('change', (e) => {
+            currentSettings.showSnsInfo = e.target.checked;
+            saveAndApply();
+        });
+        document.getElementById('input-show-ticker').addEventListener('change', (e) => {
+            currentSettings.showTicker = e.target.checked;
+            saveAndApply();
+
+            if (currentSettings.showTicker) {
+                restartTicker();
+            } else {
+                stopTicker();
+            }
+        });
+        document.getElementById('input-display-mode').addEventListener('change', (e) => {
+            currentSettings.displayMode = e.target.value;
+            updateModePanelsVisibility();
+            saveAndApply();
+        });
+        document.getElementById('input-custom-label').addEventListener('input', (e) => {
+            currentSettings.customLabel = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-custom-text').addEventListener('input', (e) => {
+            currentSettings.customText = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-sync-id').addEventListener('input', (e) => {
+            currentSettings.syncCounterId = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-onec-label-size').addEventListener('input', (e) => {
+            currentSettings.onecLabelSize = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-onec-value-size').addEventListener('input', (e) => {
+            currentSettings.onecValueSize = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-onec-bold').addEventListener('change', (e) => {
+            currentSettings.onecIsBold = e.target.checked;
+            saveAndApply();
+        });
+        document.getElementById('input-sns-x').addEventListener('input', (e) => {
+            currentSettings.snsConfig.x_id = e.target.value;
+            saveAndApply();
+        });
+        document.getElementById('input-sns-yt').addEventListener('input', (e) => {
+            currentSettings.snsConfig.yt_name = e.target.value;
+            saveAndApply();
+        });
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value)
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function moveTickerMessage(fromIndex, toIndex) {
+            if (toIndex < 0 || toIndex >= currentSettings.overlayConfig.length) return;
+
+            const [item] = currentSettings.overlayConfig.splice(fromIndex, 1);
+            currentSettings.overlayConfig.splice(toIndex, 0, item);
+            saveAndApply();
+            renderTickerList();
+            restartTicker();
+        }
+
+        // 告知テロップ設定リストの描画
+        function renderTickerList() {
+            const container = document.getElementById('message-list-container');
+            container.innerHTML = '';
+            
+            currentSettings.overlayConfig.forEach((msg, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `message-item ${msg.enabled === false ? 'disabled' : ''}`;
+                itemDiv.innerHTML = `
+                    <button class="remove-msg-btn" data-index="${idx}">&times;</button>
+                    <div class="message-actions">
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="checkbox-control ticker-enabled-input" data-index="${idx}" ${msg.enabled !== false ? 'checked' : ''}>
+                            このテロップを表示
+                        </label>
+                        <div class="message-order-actions">
+                            <button class="move-msg-btn move-msg-up-btn" data-index="${idx}" ${idx === 0 ? 'disabled' : ''}>上</button>
+                            <button class="move-msg-btn move-msg-down-btn" data-index="${idx}" ${idx === currentSettings.overlayConfig.length - 1 ? 'disabled' : ''}>下</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ラベル</label>
+                            <input type="text" class="input-control ticker-label-input" data-index="${idx}" value="${escapeAttribute(msg.label)}">
+                        </div>
+                        <div class="form-group">
+                            <label>色・グラデーション</label>
+                            <input type="text" class="input-control ticker-color-input" data-index="${idx}" value="${escapeAttribute(msg.color || '')}" placeholder="#00ffcc や gradient">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>メッセージ内容</label>
+                        <textarea class="input-control ticker-text-input" data-index="${idx}" style="height: 50px; resize: vertical;">${escapeHtml(msg.text)}</textarea>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+
+            container.querySelectorAll('.ticker-enabled-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentSettings.overlayConfig[idx].enabled = e.target.checked;
+                    saveAndApply();
+                    renderTickerList();
+                    restartTicker();
+                });
+            });
+
+            container.querySelectorAll('.move-msg-up-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    moveTickerMessage(idx, idx - 1);
+                });
+            });
+
+            container.querySelectorAll('.move-msg-down-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    moveTickerMessage(idx, idx + 1);
+                });
+            });
+
+            // 削除イベントの紐付け
+            container.querySelectorAll('.remove-msg-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentSettings.overlayConfig.splice(idx, 1);
+                    saveAndApply();
+                    renderTickerList();
+                    restartTicker();
+                });
+            });
+
+            // テキスト入力同期
+            container.querySelectorAll('.ticker-label-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentSettings.overlayConfig[idx].label = e.target.value;
+                    saveAndApply();
+                });
+            });
+            container.querySelectorAll('.ticker-color-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentSettings.overlayConfig[idx].color = e.target.value;
+                    saveAndApply();
+                });
+            });
+            container.querySelectorAll('.ticker-text-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentSettings.overlayConfig[idx].text = e.target.value;
+                    saveAndApply();
+                });
+            });
+        }
+
+        // 新規テロップ追加
+        document.getElementById('btn-add-message').addEventListener('click', () => {
+            currentSettings.overlayConfig.push({
+                enabled: true,
+                label: 'NEW',
+                text: '新しい告知メッセージ',
+                color: '#00ffcc'
+            });
+            saveAndApply();
+            renderTickerList();
+            restartTicker();
+        });
+
+        // 保存・復元 (JSON) のハンドリング
+        function updateBackupTextArea() {
+            document.getElementById('backup-data').value = JSON.stringify(currentSettings, null, 2);
+        }
+
+        document.getElementById('btn-copy-backup').addEventListener('click', () => {
+            const textarea = document.getElementById('backup-data');
+            textarea.select();
+            document.execCommand('copy');
+            alert('設定データをクリップボードにコピーしました！');
+        });
+
+        document.getElementById('btn-import-backup').addEventListener('click', () => {
+            const rawVal = document.getElementById('backup-data').value;
+            try {
+                const parsed = JSON.parse(rawVal);
+                if (typeof parsed === 'object' && parsed !== null) {
+                    currentSettings = { ...DEFAULT_SETTINGS, ...parsed };
+                    if (parsed.snsConfig) {
+                        currentSettings.snsConfig = { ...DEFAULT_SETTINGS.snsConfig, ...parsed.snsConfig };
+                    }
+                    currentSettings.overlayConfig = normalizeOverlayConfig(currentSettings.overlayConfig);
+                    saveAndApply();
+                    initUIFromSettings();
+                    alert('設定データをインポートしました！');
+                    restartTicker();
+                } else {
+                    alert('エラー: 無効なJSONオブジェクトです。');
+                }
+            } catch (e) {
+                alert('JSONの解析に失敗しました。書式を確認してください：' + e.message);
+            }
+        });
+
+        document.getElementById('btn-reset-settings').addEventListener('click', () => {
+            if (confirm('すべての設定をデフォルト状態に戻しますか？（保存した設定は消去され再ロードされます）')) {
+                localStorage.removeItem('obs_gadget_settings');
+                location.reload();
+            }
+        });
+
+        // --- 初期起動プロセスの開始 ---
+        setInterval(updateClock, 1000);
+        updateClock();
+        applyAllSettings();
+        rotateInfo();
+        initUIFromSettings();
+        if (isSettingsModeUrl()) {
+            openSettingsPanel();
+        }
+    </script>
+</body>
+</html>

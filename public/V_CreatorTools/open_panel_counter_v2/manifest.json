@@ -1,0 +1,12 @@
+{
+  "id": "open_panel_counter_v2",
+  "schemaVersion": 1,
+  "version": "2.0.0-beta.1",
+  "name": "OPEN PANEL COUNTER V2",
+  "status": "beta",
+  "modes": ["sync", "server"],
+  "pages": [
+    { "name": "Open Panel Counter", "file": "open_panel_counter.html", "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"] },
+    { "name": "Settings", "file": "settings_ui.html", "type": "control", "role": "settings", "obs": false, "modes": ["sync", "server"] }
+  ]
+}

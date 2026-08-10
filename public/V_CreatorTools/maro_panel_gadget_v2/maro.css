@@ -1,0 +1,18 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #10131a; color: #f5f7fb; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; border: 0; border-radius: 8px; padding: 9px 14px; background: #ff4d79; color: #fff; font-weight: 700; }
+button.secondary { background: #343b4a; }
+button.danger { background: #b9384f; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 22px; background: #181d27; border-bottom: 1px solid #303746; }
+header h1 { margin: 0; font-size: 22px; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a { color: #fff; text-decoration: none; padding: 8px 11px; border-radius: 7px; background: #2a3140; }
+main.app { max-width: 1200px; margin: auto; padding: 22px; }
+.card { background: #181d27; border: 1px solid #303746; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.field { display: grid; gap: 5px; margin-bottom: 12px; }
+.field input, .field textarea, .field select { width: 100%; border: 1px solid #465064; border-radius: 7px; background: #0f131b; color: #fff; padding: 9px; }
+.muted { color: #aab2c2; }
+.status { padding: 5px 9px; border-radius: 999px; background: #293246; font-size: 12px; }

@@ -1,0 +1,14 @@
+{
+  "id": "maro_panel_gadget_v2",
+  "schemaVersion": 1,
+  "version": "2.0.0-beta.1",
+  "name": "MARO PANEL GADGET V2",
+  "status": "beta",
+  "modes": ["sync", "server"],
+  "pages": [
+    { "name": "Maro Hub", "file": "index.html", "type": "control", "role": "hub", "obs": false, "modes": ["sync", "server"] },
+    { "name": "Maro Editor", "file": "index.html?screen=editor", "type": "control", "role": "editor", "obs": false, "modes": ["sync", "server"] },
+    { "name": "Maro Control", "file": "maro_control.html", "type": "control", "role": "control", "obs": true, "modes": ["sync", "server"] },
+    { "name": "Maro View", "file": "maro_view.html", "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"] }
+  ]
+}

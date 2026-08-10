@@ -1,0 +1,15 @@
+{
+  "id": "VCT_clock_V2",
+  "schemaVersion": 1,
+  "version": "2.0.0",
+  "name": "VCT Clock V2",
+  "status": "release",
+  "modes": ["standalone"],
+  "pages": [
+    {
+      "name": "index.html",
+      "file": "index.html",
+      "type": "view", "role": "display", "obs": true, "modes": ["standalone"]
+    }
+  ]
+}

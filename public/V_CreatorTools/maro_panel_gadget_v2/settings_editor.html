@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Maro Settings Editor V2</title>
+  <style>
+    body { font-family: sans-serif; background:#f0f2f5; padding:20px; color:#333; }
+    .container { max-width: 980px; margin:0 auto; background:#fff; padding:20px; border-radius:15px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+    .ver-tag { float:right; font-size:0.8rem; color:#999; }
+    h1 { font-size:1.5rem; color:#ff4d79; margin-bottom:20px; border-bottom:2px solid #ff4d79; padding-bottom:10px; }
+
+    .toolbar { display:flex; gap:10px; margin-bottom:20px; background:#fff0f3; padding:15px; border-radius:10px; align-items:center; flex-wrap:wrap; }
+    .btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; transition:opacity .2s; }
+    .btn:hover { opacity:.85; }
+    .btn-import { background:#6c757d; color:#fff; }
+    .btn-export { background:#ff4d79; color:#fff; flex-grow:1; }
+    .btn-clear  { background:#fff; color:#cc0000; border:1px solid #cc0000; }
+
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card { border:1px solid #ddd; border-radius:12px; padding:14px; background:#fafafa; }
+    .card h2 { margin:0 0 10px 0; font-size:1rem; color:#ff4d79; }
+    label { display:block; font-size:.8rem; color:#666; margin-bottom:4px; }
+    input[type="number"], input[type="text"] { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; }
+    input[type="color"] { width:56px; height:34px; padding:0; border:none; background:none; cursor:pointer; }
+    .row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .row .grow { flex:1; min-width: 220px; }
+
+    details { margin-top:18px; border-top:2px dashed #ddd; padding-top:14px; }
+    summary { cursor:pointer; color:#888; font-size:.95rem; outline:none; }
+    .info { font-size:.85rem; color:#666; margin:10px 0; }
+    .copy-box { width:100%; height:220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:.8rem; background:#f9f9f9; color:#555; margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:8px; box-sizing:border-box; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="ver-tag">Editor V2</div>
+  <h1>settings.js 設定エディター</h1>
+
+  <div class="toolbar">
+    <button class="btn btn-import" onclick="document.getElementById('file-input').click()">settings.js を読み込む</button>
+    <input type="file" id="file-input" style="display:none" accept=".js" onchange="importFile(this)">
+    <button class="btn btn-export" onclick="downloadSettings()">settings.js を書き出す (ダウンロード)</button>
+    <button class="btn btn-clear" onclick="resetToDefault()">初期値に戻す</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>グリッド / 保存</h2>
+
+      <div class="row">
+        <div class="grow">
+          <label>横(cols)</label>
+          <input type="number" id="cols" min="1" max="30" value="5">
+        </div>
+        <div class="grow">
+          <label>縦(rows)</label>
+          <input type="number" id="rows" min="1" max="30" value="4">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>状態保存 (saveState.enabled)</label>
+          <div class="row" style="margin:0">
+            <input type="checkbox" id="saveEnabled" checked>
+            <span style="font-size:.9rem;color:#444">ON</span>
+          </div>
+        </div>
+        <div class="grow">
+          <label>保存キー (saveState.key)</label>
+          <input type="text" id="saveKey" value="vct:maro-panel-gadget:v2:panel-states">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>フォントサイズ</h2>
+
+      <div class="row">
+        <div class="grow">
+          <label>パネルタイトル (fonts.panelTitleSize)</label>
+          <input type="text" id="panelTitleSize" value="1.1rem">
+        </div>
+        <div class="grow">
+          <label>フレーズ (fonts.phraseSize)</label>
+          <input type="text" id="phraseSize" value="1.1rem">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>モーダル本文 (fonts.modalTextSize)</label>
+          <input type="text" id="modalTextSize" value="1.6rem">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>色（未開封 / 開封 / アクセント）</h2>
+
+      <div class="row">
+        <div class="grow">
+          <label>未開封 背景 (colors.panelDefault)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="panelDefault" value="#ffffff">
+            <input type="text" id="panelDefaultTxt" value="#ffffff" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>未開封 文字 (colors.textDefault)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="textDefault" value="#333333">
+            <input type="text" id="textDefaultTxt" value="#333333" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>開封 背景 (colors.panelActive)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="panelActive" value="#ff85a2">
+            <input type="text" id="panelActiveTxt" value="#ff85a2" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>開封 文字 (colors.textActive)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="textActive" value="#ffffff">
+            <input type="text" id="textActiveTxt" value="#ffffff" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>アクセント (colors.accent)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="accent" value="#ff4d79">
+            <input type="text" id="accentTxt" value="#ff4d79" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label>モーダル背景 (colors.modalBg)</label>
+          <div class="row" style="margin:0">
+            <input type="color" id="modalBg" value="#fffcf9">
+            <input type="text" id="modalBgTxt" value="#fffcf9" class="grow">
+          </div>
+        </div>
+      </div>
+
+      <div class="info">※ 枠線は「accent」で統一（現行CSSは active時に border-color が accent を参照）。</div>
+    </div>
+
+    <div class="card">
+      <h2>いまの settings.js を生成</h2>
+      <button class="btn btn-export" style="width:100%" onclick="showGenerated()">テキストを生成 (表示する)</button>
+      <div class="info">OBSやブラウザの都合でダウンロードが動かない場合、下の救済策でコピペ運用できます。</div>
+    </div>
+  </div>
+
+  <details>
+    <summary>【救済策】ダウンロード・自動読み込みが動かない場合はこちら</summary>
+    <div class="info">
+      下のテキストエリアに <code>settings.js</code> の中身を貼り付けて「手動読み込み」を押すか、<br>
+      「テキストを生成」を押して出力された内容をコピーして自分の <code>settings.js</code> に貼り付けてください。
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" style="background:#eee;color:#333;border:1px solid #ccc" onclick="manualImport()">手動読み込み (テキストから反映)</button>
+      <button class="btn" style="background:#eee;color:#333;border:1px solid #ccc" onclick="manualExport()">テキストを生成 (表示する)</button>
+      <button class="btn btn-clear" onclick="clearManual()">クリア</button>
+    </div>
+    <textarea id="manualText" class="copy-box" placeholder="ここに settings.js のコードを貼り付け"></textarea>
+  </details>
+
+</div>
+
+<script>
+  // --- V2 defaults ---
+  const DEFAULT_CONFIG = {
+    grid: { cols: 5, rows: 4 },
+    saveState: { enabled: true, key: "vct:maro-panel-gadget:v2:panel-states" },
+    colors: {
+      panelDefault: "#ffffff",
+      textDefault: "#333333",
+      panelActive: "#ff85a2",
+      textActive: "#ffffff",
+      accent: "#ff4d79",
+      modalBg: "#fffcf9"
+    },
+    fonts: { panelTitleSize: "1.1rem", phraseSize: "1.1rem", modalTextSize: "1.6rem" }
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function bindColorPair(colorId, textId){
+    const c = $(colorId), t = $(textId);
+    c.addEventListener("input", ()=> t.value = c.value);
+    t.addEventListener("input", ()=> {
+      const v = t.value.trim();
+      if(/^#([0-9a-fA-F]{6})$/.test(v)) c.value = v;
+    });
+  }
+  ["panelDefault","textDefault","panelActive","textActive","accent","modalBg"].forEach(k=>{
+    bindColorPair(k, k+"Txt");
+  });
+
+  function readFormToConfig(){
+    return {
+      grid: {
+        cols: Number($("cols").value) || DEFAULT_CONFIG.grid.cols,
+        rows: Number($("rows").value) || DEFAULT_CONFIG.grid.rows
+      },
+      saveState: {
+        enabled: $("saveEnabled").checked,
+        key: $("saveKey").value || DEFAULT_CONFIG.saveState.key
+      },
+      colors: {
+        panelDefault: $("panelDefaultTxt").value.trim(),
+        textDefault: $("textDefaultTxt").value.trim(),
+        panelActive: $("panelActiveTxt").value.trim(),
+        textActive: $("textActiveTxt").value.trim(),
+        accent: $("accentTxt").value.trim(),
+        modalBg: $("modalBgTxt").value.trim()
+      },
+      fonts: {
+        panelTitleSize: $("panelTitleSize").value.trim(),
+        phraseSize: $("phraseSize").value.trim(),
+        modalTextSize: $("modalTextSize").value.trim()
+      }
+    };
+  }
+
+  function applyConfigToForm(cfg){
+    $("cols").value = cfg.grid?.cols ?? DEFAULT_CONFIG.grid.cols;
+    $("rows").value = cfg.grid?.rows ?? DEFAULT_CONFIG.grid.rows;
+
+    $("saveEnabled").checked = !!(cfg.saveState?.enabled ?? DEFAULT_CONFIG.saveState.enabled);
+    $("saveKey").value = cfg.saveState?.key ?? DEFAULT_CONFIG.saveState.key;
+
+    const colors = cfg.colors || {};
+    function setColor(key){
+      const v = colors[key] ?? DEFAULT_CONFIG.colors[key];
+      $(key).value = v;
+      $(key+"Txt").value = v;
+    }
+    ["panelDefault","textDefault","panelActive","textActive","accent","modalBg"].forEach(setColor);
+
+    const fonts = cfg.fonts || {};
+    $("panelTitleSize").value = fonts.panelTitleSize ?? DEFAULT_CONFIG.fonts.panelTitleSize;
+    $("phraseSize").value = fonts.phraseSize ?? DEFAULT_CONFIG.fonts.phraseSize;
+    $("modalTextSize").value = fonts.modalTextSize ?? DEFAULT_CONFIG.fonts.modalTextSize;
+  }
+
+  function generateSettingsJS(cfg){
+    const esc = (s)=> String(s).replaceAll("\\", "\\\\").replaceAll('"','\\"');
+    return `/**
+ * マロ読み配信演出ガジェット V2
+ * 基本設定ファイル
+ */
+const CONFIG = {
+    // グリッドの数
+    grid: {
+        cols: ${cfg.grid.cols},
+        rows: ${cfg.grid.rows}
+    },
+    
+    // 状態の保存設定
+    saveState: {
+        enabled: ${cfg.saveState.enabled},
+        key: "${esc(cfg.saveState.key)}"
+    },
+
+    // デザイン設定 (デフォルト色)
+    colors: {
+        panelDefault: "${esc(cfg.colors.panelDefault)}", // 未開封パネルの背景
+        textDefault: "${esc(cfg.colors.textDefault)}",  // 未開封パネルの文字
+        panelActive: "${esc(cfg.colors.panelActive)}",  // 開封済みパネルの背景
+        textActive: "${esc(cfg.colors.textActive)}",   // 開封済みパネルの文字
+        accent: "${esc(cfg.colors.accent)}",       // 番号やアクセントの色
+        modalBg: "${esc(cfg.colors.modalBg)}"       // モーダルの背景色
+    },
+
+    // フォントサイズ設定
+    fonts: {
+        panelTitleSize: "${esc(cfg.fonts.panelTitleSize)}",
+        phraseSize: "${esc(cfg.fonts.phraseSize)}",
+        modalTextSize: "${esc(cfg.fonts.modalTextSize)}"
+    }
+};
+`;
+  }
+
+  function showGenerated(){
+    const cfg = readFormToConfig();
+    $("manualText").value = generateSettingsJS(cfg);
+    $("manualText").focus();
+  }
+
+  function downloadSettings(){
+    const cfg = readFormToConfig();
+    const text = generateSettingsJS(cfg);
+    const blob = new Blob([text], {type:"text/javascript;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "settings.js";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function resetToDefault(){
+    applyConfigToForm(structuredClone(DEFAULT_CONFIG));
+  }
+
+  // --- import file / manual import ---
+  function parseSettingsTextToConfig(text){
+    // settings.js の "const CONFIG = { ... };" 部分を取り出して評価
+    // ※自分のファイルだけを読ませる前提
+    const m = text.match(/const\s+CONFIG\s*=\s*({[\s\S]*?})\s*;?\s*$/m);
+    if(!m) throw new Error("CONFIG 定義が見つからない");
+    const objLiteral = m[1];
+
+    // Functionで評価（グローバル汚染を避ける）
+    // eslint-disable-next-line no-new-func
+    const cfg = (new Function(`"use strict"; return (${objLiteral});`))();
+
+    // 既定値で補完
+    return {
+      grid: { ...DEFAULT_CONFIG.grid, ...(cfg.grid||{}) },
+      saveState: { ...DEFAULT_CONFIG.saveState, ...(cfg.saveState||{}) },
+      colors: { ...DEFAULT_CONFIG.colors, ...(cfg.colors||{}) },
+      fonts: { ...DEFAULT_CONFIG.fonts, ...(cfg.fonts||{}) }
+    };
+  }
+
+  function importFile(input){
+    const file = input.files?.[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const cfg = parseSettingsTextToConfig(String(reader.result||""));
+        applyConfigToForm(cfg);
+        $("manualText").value = String(reader.result||"");
+      }catch(e){
+        alert("読み込みに失敗: " + (e?.message || e));
+      }finally{
+        input.value = "";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function manualImport(){
+    const text = $("manualText").value;
+    try{
+      const cfg = parseSettingsTextToConfig(text);
+      applyConfigToForm(cfg);
+      alert("手動読み込みOK");
+    }catch(e){
+      alert("手動読み込みに失敗: " + (e?.message || e));
+    }
+  }
+
+  function manualExport(){
+    showGenerated();
+  }
+
+  function clearManual(){
+    $("manualText").value = "";
+  }
+
+  // 初期反映
+  resetToDefault();
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Total Operations Console V2</title>
+<link rel="stylesheet" href="toc.css">
+</head>
+<body>
+<header>
+  <div><h1>Total Operations Console V2</h1><div id="summary" class="muted">初期化中...</div></div>
+  <span id="bridge-badge" class="badge offline">Bridge 未接続</span>
+</header>
+<nav aria-label="機能">
+  <button class="tab active" data-tab="counter">🔢 Counter</button>
+  <button class="tab" data-tab="effect">✨ Effect</button>
+  <button class="tab" data-tab="bridge">📡 Bridge</button>
+  <button class="tab" data-tab="system">⚙ System</button>
+</nav>
+
+<main>
+  <section id="tab-counter" class="panel active">
+    <div class="section-head"><h2>GP Multi Counter V2</h2><span id="counter-status" class="muted"></span></div>
+    <div class="counter-tools">
+      <div class="segmented" aria-label="Counter表示">
+        <button class="counter-filter active" data-counter-filter="favorites">★ お気に入り</button>
+        <button class="counter-filter" data-counter-filter="all">すべて</button>
+      </div>
+      <span id="counter-filter-status" class="muted"></span>
+    </div>
+    <div id="counter-list"></div>
+    <div id="counter-pagination" class="pagination" hidden>
+      <button id="counter-prev">前へ</button><span id="counter-page"></span><button id="counter-next">次へ</button>
+    </div>
+  </section>
+
+  <section id="tab-effect" class="panel">
+    <div class="section-head"><h2>Screen Effect V2</h2><span id="effect-status" class="muted"></span><a id="effect-settings-link" href="../OBS_screen_effect_v2/config.html?from=toc-v2">設定を開く</a></div>
+    <div id="remote-effect-tools" class="effect-remote-tools" hidden>
+      <span id="remote-effect-status" class="muted">Remote Catalogを確認中...</span>
+      <button id="save-remote-effects">Remote公開を保存</button>
+    </div>
+    <div id="effect-grid" class="effect-grid"></div>
+  </section>
+
+  <section id="tab-bridge" class="panel">
+    <div class="section-head"><h2>Bridge Monitor</h2><span class="muted">観測専用・自動アクションなし</span></div>
+    <div class="meta-grid">
+      <article><span>Platform</span><strong id="meta-platform">---</strong></article>
+      <article><span>Viewers</span><strong id="meta-viewers">---</strong></article>
+      <article><span>Likes</span><strong id="meta-likes">---</strong></article>
+      <article><span>Subscribers</span><strong id="meta-subscribers">---</strong></article>
+    </div>
+    <div id="meta-updated" class="muted meta-updated">まだmetaを受信していません</div>
+    <label class="field">監視ワード（空白・カンマ区切り）
+      <input id="word-rules" type="text" placeholder="例: おめでとう, ナイス GG">
+    </label>
+    <div class="columns">
+      <div><h3>Word Hits</h3><div id="word-hits" class="event-list empty">一致履歴はありません</div></div>
+      <div><h3>Recent Comments</h3><div id="comments" class="event-list empty">コメントを待っています</div></div>
+    </div>
+  </section>
+
+  <section id="tab-system" class="panel">
+    <h2>System</h2>
+    <dl id="diagnostics" class="diagnostics"></dl>
+    <label class="field">Bridge Server URL
+      <input id="bridge-url" type="url" placeholder="http://127.0.0.1:3000">
+    </label>
+    <div class="actions"><button id="bridge-reconnect">再接続</button><button id="clear-log">ログを消去</button></div>
+    <h3>Event Log</h3><pre id="event-log"></pre>
+  </section>
+</main>
+
+<script src="../../__shared/js/vct-runtime.js"></script>
+<script src="../GP_multi_counter_v2/counter-core.js"></script>
+<script src="../GP_multi_counter_v2/counter-schema.js"></script>
+<script src="../GP_multi_counter_v2/counter-protocol.js"></script>
+<script src="../GP_multi_counter_v2/counter-store.js"></script>
+<script src="../GP_multi_counter_v2/counter-client.js"></script>
+<script src="../GP_multi_counter_v2/gp-counter-server.js"></script>
+<script src="../OBS_screen_effect_v2/js/settings.js"></script>
+<script src="../OBS_screen_effect_v2/js/effect-message-protocol.js"></script>
+<script src="../OBS_screen_effect_v2/js/settings-schema.js"></script>
+<script src="../OBS_screen_effect_v2/js/settings-repository.js"></script>
+<script src="../OBS_screen_effect_v2/js/broadcast-transport.js"></script>
+<script src="../OBS_screen_effect_v2/js/server-effect-transport.js"></script>
+<script src="../OBS_screen_effect_v2/js/effect-transport-router.js"></script>
+<script src="toc.js"></script>
+</body>
+</html>

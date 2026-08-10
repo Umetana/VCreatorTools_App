@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ガジェット管理ポータル</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; margin: 12px 0 18px; }
+    .controls input, .controls select {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff;
+    }
+
+    .gadget-card {
+      background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    h2 { margin: 0; color: #333; display:flex; align-items:center; gap:10px; }
+    .subtitle { margin-top: 6px; color:#666; font-size: 0.9em; }
+
+    .tag {
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.85em;
+      line-height: 1.6;
+      border: 1px solid rgba(0,0,0,0.06);
+      user-select: none;
+    }
+    .tag-vct { color: #19a974; background: rgba(25,169,116,0.10); }
+    .tag-custom { color: #2f80ed; background: rgba(47,128,237,0.10); }
+    .tag-unknown { color: #8a8a8a; background: rgba(138,138,138,0.10); }
+
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .page-entry { min-width: 320px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .page-name { font-weight: 700; color: #374151; margin-bottom: 8px; }
+    .mode-row + .mode-row { margin-top: 10px; }
+    .mode-label { display: inline-block; min-width: 52px; margin-right: 6px; font-size: 0.78em; font-weight: 800; text-transform: uppercase; color: #596579; }
+    .mode-server { background: #7c3aed; }
+    .mode-server:hover { background: #5b21b6; }
+    button {
+      padding: 8px 15px; cursor: pointer; background: #007bff; color: white;
+      border: none; border-radius: 8px;
+    }
+    button:hover { background: #0056b3; }
+
+    .url-text { font-size: 0.8em; color: #666; display: block; margin-top: 6px; word-break: break-all; }
+
+    .muted { color:#777; }
+    .error { color:#b00020; background: #fff; padding: 10px 12px; border-radius: 10px; border: 1px solid #ffd0d0; }
+  </style>
+</head>
+
+<body>
+  <h1>配信ガジェット・ランチャー</h1>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="検索（名前 / ページ名）" />
+    <select id="filter">
+      <option value="all">すべて</option>
+      <option value="V_CreatorTools">[VCT] だけ</option>
+      <option value="Custom">[Custom] だけ</option>
+    </select>
+  </div>
+
+  <div id="gadget-list">読み込み中...</div>
+
+  <script>
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function getTagInfo(g) {
+      // server.jsが tag/class/root を返す想定だが、無くても最低限動くようにフォールバック
+      const root = g.root || "";
+      if (root === "V_CreatorTools") return { text: "[VCT]", cls: "tag-vct" };
+      if (root === "Custom") return { text: "[Custom]", cls: "tag-custom" };
+
+      // 返ってこない場合、nameの先頭を見て推測（最後の保険）
+      const nm = (g.name || "").trim();
+      if (nm.startsWith("[VCT]")) return { text: "[VCT]", cls: "tag-vct" };
+      if (nm.startsWith("[Custom]")) return { text: "[Custom]", cls: "tag-custom" };
+
+      return { text: "[?]", cls: "tag-unknown" };
+    }
+
+    function normalizeForSearch(g) {
+      const name = (g.rawName || g.name || "");
+      const pages = Array.isArray(g.pages) ? g.pages : [];
+      const pageNames = pages.map(p => p?.name || "").join(" ");
+      return (name + " " + pageNames).toLowerCase();
+    }
+
+    let ALL = [];
+
+    function render() {
+      const list = document.getElementById("gadget-list");
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      const f = document.getElementById("filter").value;
+
+      const filtered = ALL.filter(g => {
+        const okFilter = (f === "all") || (g.root === f) || ((f === "V_CreatorTools") && (g.name || "").startsWith("[VCT]")) || ((f === "Custom") && (g.name || "").startsWith("[Custom]"));
+        if (!okFilter) return false;
+        if (!q) return true;
+        return normalizeForSearch(g).includes(q);
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="muted">該当するガジェットがありません。</div>`;
+        return;
+      }
+
+      list.innerHTML = "";
+      filtered.forEach(g => {
+        const tag = getTagInfo(g);
+        const titleText = escapeHtml(g.rawName || g.name || "(no name)");
+        const pages = Array.isArray(g.pages) ? g.pages : [];
+
+        const card = document.createElement("div");
+        card.className = "gadget-card";
+
+        // ここが「色分け」本体：tagバッジを付けて h2 を構成
+        card.innerHTML = `
+          <h2>
+            <span class="tag ${tag.cls}">${tag.text}</span>
+            <span>${titleText}</span>
+          </h2>
+          <div class="subtitle">${pages.length} page(s)</div>
+        `;
+
+        const group = document.createElement("div");
+        group.className = "btn-group";
+
+        pages.forEach(p => {
+          const pageName = p?.name || "page";
+          const modes = Array.isArray(p?.modes) && p.modes.length ? p.modes : ["sync"];
+          const urls = p?.urls || { sync: p?.url || "" };
+          const entry = document.createElement("div");
+          entry.className = "page-entry";
+          const heading = document.createElement("div");
+          heading.className = "page-name";
+          heading.textContent = pageName;
+          entry.appendChild(heading);
+
+          modes.forEach(mode => {
+            const pageUrl = urls[mode];
+            if (!pageUrl) return;
+            const row = document.createElement("div");
+            row.className = "mode-row";
+            const label = document.createElement("span");
+            label.className = "mode-label";
+            label.textContent = mode;
+            const btn = document.createElement("button");
+            if (mode === "server") btn.classList.add("mode-server");
+            const modeName = mode === "server" ? "Server" : mode === "sync" ? "Sync" : "Local Server";
+            btn.innerText = `${modeName} URLをコピー`;
+            btn.onclick = async () => {
+              try {
+                await navigator.clipboard.writeText(pageUrl);
+                alert(`コピー成功: ${pageName} (${mode})`);
+              } catch (e) {
+                alert("コピー失敗（クリップボード権限/HTTPS等の要因）: " + pageName);
+              }
+            };
+            const urlText = document.createElement("span");
+            urlText.className = "url-text";
+            urlText.textContent = pageUrl;
+            row.appendChild(label);
+            row.appendChild(btn);
+            row.appendChild(urlText);
+            entry.appendChild(row);
+          });
+
+          group.appendChild(entry);
+        });
+
+        card.appendChild(group);
+        list.appendChild(card);
+      });
+    }
+
+    async function loadGadgets() {
+      const list = document.getElementById("gadget-list");
+      try {
+        const res = await fetch("/api/get-gadgets");
+        const gadgets = await res.json();
+        ALL = Array.isArray(gadgets) ? gadgets : [];
+        render();
+      } catch (e) {
+        list.innerHTML = `<div class="error">サーバーが起動していないか、エラーが発生しました。</div>`;
+      }
+    }
+
+    document.getElementById("search").addEventListener("input", render);
+    document.getElementById("filter").addEventListener("change", render);
+
+    loadGadgets();
+  </script>
+</body>
+</html>

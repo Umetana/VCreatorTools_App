@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Material Editor</title>
+  <style>
+    :root { font-family: "Yu Gothic UI", system-ui, sans-serif; color: #1e293b; background: #eef2f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { width: min(1440px, calc(100% - 32px)); margin: 24px auto 48px; }
+    .header, .panel { background: #fff; border: 1px solid #dbe3ee; border-radius: 22px; box-shadow: 0 12px 36px rgba(15,23,42,.07); }
+    .header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 22px 26px; margin-bottom: 18px; }
+    .eyebrow { margin: 0 0 5px; color: #6366f1; font-size: 11px; font-weight: 900; letter-spacing: .18em; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 0; font-size: 30px; }
+    h2 { font-size: 18px; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+    .button { border: 0; border-radius: 11px; padding: 10px 14px; background: #eef2ff; color: #4f46e5; font-weight: 800; }
+    .button.primary { background: #4f46e5; color: #fff; }
+    .button.danger { background: #fff1f2; color: #e11d48; }
+    .layout { display: grid; grid-template-columns: minmax(340px, 42%) minmax(0, 1fr); gap: 18px; }
+    .panel { padding: 24px; min-width: 0; }
+    .field { display: grid; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 12px; font-weight: 800; color: #64748b; }
+    .field input, .field textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 12px; background: #fff; color: #1e293b; }
+    .field textarea { min-height: 92px; resize: vertical; line-height: 1.6; }
+    .form-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+    .list-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; }
+    .count { padding: 5px 10px; border-radius: 999px; background: #eef2ff; color: #4f46e5; font-size: 12px; font-weight: 900; }
+    .items { display: grid; gap: 10px; max-height: calc(100vh - 180px); overflow-y: auto; padding-right: 5px; }
+    .item { border: 1px solid #e2e8f0; border-left: 6px solid #6366f1; border-radius: 14px; padding: 14px; background: #f8fafc; }
+    .item-top { display: flex; justify-content: space-between; gap: 14px; }
+    .category { color: #6366f1; font-size: 11px; font-weight: 900; }
+    .item h3 { margin: 5px 0 8px; font-size: 16px; }
+    .item p { margin-bottom: 0; color: #64748b; font-size: 12px; line-height: 1.55; }
+    .item-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+    .mini { border: 0; border-radius: 8px; padding: 6px 9px; background: #fff; color: #475569; font-size: 11px; font-weight: 800; }
+    .mini:disabled { cursor: default; opacity: .3; }
+    .empty { padding: 72px 20px; border: 2px dashed #dbe3ee; border-radius: 16px; text-align: center; color: #94a3b8; }
+    .status { margin: 10px 0 0; color: #64748b; font-size: 12px; text-align: right; }
+    @media (max-width: 900px) { .header { align-items: flex-start; flex-direction: column; } .actions { justify-content: flex-start; } .layout { grid-template-columns: 1fr; } .items { max-height: none; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div><p class="eyebrow">MATERIAL VIEW · v1.0.0</p><h1>Material Editor</h1></div>
+      <div>
+        <div class="actions">
+          <button id="chooseDirectoryButton" class="button" type="button">保存先フォルダ</button>
+          <button id="downloadButton" class="button" type="button">JSをダウンロード</button>
+          <button id="directSaveButton" class="button primary" type="button">Viewerへ保存</button>
+          <button id="backupButton" class="button" type="button">下書きバックアップ</button>
+          <button id="restoreButton" class="button" type="button">下書きを復元</button>
+          <button id="clearDraftsButton" class="button" type="button">下書きを初期化</button>
+          <input id="restoreInput" type="file" accept="application/json,.json" hidden>
+        </div>
+        <p id="saveStatus" class="status">保存先未設定</p>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <h2 id="formTitle">案内記事を追加</h2>
+        <form id="editorForm">
+          <div class="field"><label for="title">タイトル *</label><input id="title" required></div>
+          <div class="field"><label for="category">カテゴリ</label><input id="category" placeholder="活動案内、作品紹介、告知など"></div>
+          <div class="field"><label for="fact">本文 *</label><textarea id="fact" required></textarea></div>
+          <div class="field"><label for="reaction">想定反応</label><textarea id="reaction"></textarea></div>
+          <div class="field"><label for="tips">活用ヒント／ワンポイント</label><textarea id="tips"></textarea></div>
+          <div class="form-actions">
+            <button id="cancelEditButton" class="button" type="button" hidden>編集をやめる</button>
+            <button class="button primary" type="submit">下書きへ保存</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="list-header"><h2>案内カタログ</h2><span id="itemCount" class="count">0件</span></div>
+        <div id="itemList" class="items"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../../__shared/js/vct-runtime.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const STORAGE_KEY = 'material_editor_items_v1';
+      const DB_NAME = 'material_hub_file_handles';
+      const STORE_NAME = 'handles';
+      const DIRECTORY_KEY = 'material_extra_directory';
+      const VIEWER_EXTRA_STORAGE_KEY = 'material_view_extra_catalog_v1';
+      const SYNC_CHANNEL_NAME = 'material_view_sync_v1';
+      let items = loadItems();
+      let editingId = null;
+      const elements = Object.fromEntries(['editorForm','formTitle','title','category','fact','reaction','tips','cancelEditButton','itemList','itemCount','chooseDirectoryButton','downloadButton','directSaveButton','backupButton','restoreButton','restoreInput','clearDraftsButton','saveStatus'].map(id => [id, document.getElementById(id)]));
+
+      elements.editorForm.addEventListener('submit', saveItem);
+      elements.cancelEditButton.addEventListener('click', resetForm);
+      elements.chooseDirectoryButton.addEventListener('click', chooseDirectory);
+      elements.downloadButton.addEventListener('click', downloadExtraMaterial);
+      elements.directSaveButton.addEventListener('click', saveExtraMaterialDirectly);
+      elements.backupButton.addEventListener('click', exportDraftBackup);
+      elements.restoreButton.addEventListener('click', () => elements.restoreInput.click());
+      elements.restoreInput.addEventListener('change', importDraftBackup);
+      elements.clearDraftsButton.addEventListener('click', clearDrafts);
+      render();
+      refreshDirectoryStatus();
+
+      function loadItems() {
+        try { const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
+        catch (error) { console.warn('Material Editor data could not be loaded.', error); return []; }
+      }
+      function persistItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+      function createId() { return `extra-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
+      function readForm() { return { id: editingId || createId(), title: elements.title.value.trim(), category: elements.category.value.trim(), fact: elements.fact.value.trim(), reaction: elements.reaction.value.trim(), tips: elements.tips.value.trim() }; }
+      function saveItem(event) {
+        event.preventDefault();
+        const item = readForm();
+        if (!item.title || !item.fact) return;
+        const index = items.findIndex(candidate => candidate.id === item.id);
+        if (index >= 0) items[index] = item; else items.unshift(item);
+        persistItems(); resetForm(); render();
+      }
+      function editItem(id) {
+        const item = items.find(candidate => candidate.id === id); if (!item) return;
+        editingId = id; ['title','category','fact','reaction','tips'].forEach(key => { elements[key].value = item[key] || ''; });
+        elements.formTitle.textContent = '案内記事を編集'; elements.cancelEditButton.hidden = false; elements.title.focus();
+      }
+      function removeItem(id) { items = items.filter(item => item.id !== id); persistItems(); if (editingId === id) resetForm(); render(); }
+      function moveItem(id, direction) { const index = items.findIndex(item => item.id === id); const target = index + direction; if (index < 0 || target < 0 || target >= items.length) return; [items[index], items[target]] = [items[target], items[index]]; persistItems(); render(); }
+      function resetForm() { editingId = null; elements.editorForm.reset(); elements.formTitle.textContent = '案内記事を追加'; elements.cancelEditButton.hidden = true; }
+      function escapeHtml(value) { const node = document.createElement('div'); node.textContent = String(value || ''); return node.innerHTML; }
+      function render() {
+        elements.itemCount.textContent = `${items.length}件`;
+        if (!items.length) { elements.itemList.innerHTML = '<div class="empty">案内記事はまだありません</div>'; return; }
+        elements.itemList.innerHTML = items.map((item, index) => `<article class="item"><div class="item-top"><div><span class="category">${escapeHtml(item.category || 'INFO')}</span><h3>${escapeHtml(item.title)}</h3></div><div class="item-actions"><button class="mini" type="button" data-move-up="${item.id}" ${index === 0 ? 'disabled' : ''} aria-label="上へ移動">↑</button><button class="mini" type="button" data-move-down="${item.id}" ${index === items.length - 1 ? 'disabled' : ''} aria-label="下へ移動">↓</button><button class="mini" type="button" data-edit="${item.id}">編集</button><button class="mini" type="button" data-remove="${item.id}">削除</button></div></div><p>${escapeHtml(item.fact)}</p></article>`).join('');
+        elements.itemList.querySelectorAll('[data-move-up]').forEach(button => button.addEventListener('click', () => moveItem(button.dataset.moveUp, -1)));
+        elements.itemList.querySelectorAll('[data-move-down]').forEach(button => button.addEventListener('click', () => moveItem(button.dataset.moveDown, 1)));
+        elements.itemList.querySelectorAll('[data-edit]').forEach(button => button.addEventListener('click', () => editItem(button.dataset.edit)));
+        elements.itemList.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => removeItem(button.dataset.remove)));
+      }
+      function buildData() { return { schemaVersion: '1.0', collectionId: 'default', updatedAt: new Date().toISOString(), source: 'material-editor', deliveryMode: 'replace', items: items.map(item => ({ ...item })) }; }
+      function buildScript(data = buildData()) { return `window.MATERIAL_EXTRA_DATA = ${JSON.stringify(data, null, 2)};\n`; }
+      function downloadExtraMaterial() { const blob = new Blob([buildScript()], { type: 'text/javascript;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'extra_material.js'; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      function downloadJson(filename, value) { const blob = new Blob([`${JSON.stringify(value, null, 2)}\n`], { type: 'application/json;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      function exportDraftBackup() { downloadJson(`material_editor_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`, { format: 'material-editor-backup', version: 1, exportedAt: new Date().toISOString(), items }); setStatus(`下書き ${items.length}件をバックアップしました`); }
+      async function importDraftBackup(event) { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; try { const backup = JSON.parse(await file.text()); if (backup?.format !== 'material-editor-backup' || backup.version !== 1 || !Array.isArray(backup.items)) throw new Error('unsupported'); if (!window.confirm(`現在の下書きをバックアップ ${backup.items.length}件で置き換えます。よろしいですか？`)) return; items = backup.items.filter(item => item?.id && item?.title && item?.fact); persistItems(); resetForm(); render(); setStatus(`下書き ${items.length}件を復元しました`); } catch (error) { setStatus('対応する下書きバックアップを読み込めませんでした'); } }
+      function clearDrafts() { if (!window.confirm(`案内記事の下書き ${items.length}件をすべて削除します。書き出し済みのextra_material.jsは変更しません。`)) return; items = []; persistItems(); resetForm(); render(); setStatus('下書きを初期化しました'); }
+      function publishToViewer(data) { try { localStorage.setItem(VIEWER_EXTRA_STORAGE_KEY, JSON.stringify(data.items)); if ('BroadcastChannel' in window) { const channel = new BroadcastChannel(SYNC_CHANNEL_NAME); channel.postMessage({ type: 'extra-updated', senderId: 'material-editor', revision: Date.now() }); channel.close(); } } catch (error) { console.warn('Viewer catalog could not be updated.', error); } }
+      function openDatabase() { return new Promise((resolve, reject) => { const request = indexedDB.open(DB_NAME, 1); request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
+      async function storeHandle(handle) { const db = await openDatabase(); await new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).put(handle, DIRECTORY_KEY); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); }); db.close(); }
+      async function getHandle() { const db = await openDatabase(); const handle = await new Promise((resolve, reject) => { const request = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(DIRECTORY_KEY); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); db.close(); return handle; }
+      async function chooseDirectory() { if (!window.showDirectoryPicker) return setStatus('直接保存非対応。ダウンロードを利用してください。'); try { const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'material-extra-output' }); await storeHandle(handle); await refreshDirectoryStatus(); } catch (error) { if (error.name !== 'AbortError') setStatus('保存先を設定できませんでした'); } }
+      async function ensurePermission(handle) { const options = { mode: 'readwrite' }; if (await handle.queryPermission(options) === 'granted') return true; return await handle.requestPermission(options) === 'granted'; }
+      async function refreshDirectoryStatus() { if (!window.showDirectoryPicker) { elements.directSaveButton.disabled = true; return setStatus('直接保存非対応（ダウンロードは利用可能）'); } try { const handle = await getHandle(); elements.directSaveButton.disabled = !handle; setStatus(handle ? `保存先: ${handle.name}` : '保存先未設定'); } catch (error) { elements.directSaveButton.disabled = true; setStatus('保存先を確認できませんでした'); } }
+      async function saveExtraMaterialDirectly() { try { const handle = await getHandle(); if (!handle) return setStatus('先に保存先フォルダを選択してください'); if (!await ensurePermission(handle)) return setStatus('保存先への書き込みが許可されませんでした'); const data = buildData(); const file = await handle.getFileHandle('extra_material.js', { create: true }); const writable = await file.createWritable(); await writable.write(buildScript(data)); await writable.close(); publishToViewer(data); setStatus(`extra_material.js を保存しました（${items.length}件）`); } catch (error) { console.error(error); setStatus('extra_material.js を保存できませんでした'); } }
+      function setStatus(message) { elements.saveStatus.textContent = message; }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "id": "OBS_screen_effect_v2",
+  "schemaVersion": 1,
+  "version": "2.0.0",
+  "name": "OBS_SCREEN_EFFECT_V2",
+  "status": "release",
+  "modes": ["sync", "server"],
+  "pages": [
+    {
+      "name": "config.html",
+      "file": "config.html",
+      "type": "view", "role": "settings", "obs": false, "modes": ["sync", "server"]
+    },
+    {
+      "name": "config.html (OBS Dock)",
+      "file": "config_obs.html",
+      "type": "view", "role": "settings", "obs": true, "modes": ["sync", "server"]
+    },
+    {
+      "name": "controller.html",
+      "file": "controller.html",
+      "type": "view", "role": "control", "obs": false, "modes": ["sync", "server"]
+    },
+    {
+      "name": "index.html",
+      "file": "index.html",
+      "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"]
+    }
+  ]
+}

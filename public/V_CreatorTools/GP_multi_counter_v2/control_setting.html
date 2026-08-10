@@ -1,0 +1,627 @@
+<!-- GP MULTI COUNTER V2 統合設定パネル -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>GP MULTI COUNTER - Settings</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg-dark: #2b2e3b;
+            --bg-panel: #383c4a;
+            --text-main: #efefef;
+            --border: #555;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fixed-header {
+            flex-shrink: 0;
+            background: var(--bg-dark);
+            padding: 8px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .app-title {
+            margin: 0 0 5px 0;
+            font-size: 15px;
+            color: var(--primary);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .tab-wrapper {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
+        .tab-btn {
+            background: #444;
+            color: #ccc;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .btn-apply-global {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 10px;
+            flex: 2;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-tool-mini {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 5px;
+            flex: 1;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .scroll-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .accordion {
+            background: var(--bg-panel);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .acc-header {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 1px solid transparent;
+        }
+        .acc-header.active {
+            border-bottom-color: var(--border);
+            color: var(--primary);
+        }
+        .acc-body {
+            display: none;
+            padding: 12px;
+        }
+        .acc-body.open {
+            display: block;
+        }
+
+        .row { display: flex; align-items: center; margin-bottom: 12px; gap: 10px; }
+        .row label { width: 90px; flex-shrink: 0; font-size: 12px; color: #bbb; }
+        
+        input[type="text"], input[type="number"], select {
+            background: #1e2129;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        
+        input[type="color"] { height: 36px; width: 40px; border: none; background: none; cursor: pointer; padding: 0; }
+        .num-input { width: 60px; flex-grow: 0; text-align: center; }
+        .hex-input { width: 140px; flex-grow: 0; font-family: monospace; }
+
+        .checkbox-group { display: flex; gap: 15px; margin-left: 10px; }
+        .checkbox-group label { width: auto; color: white; cursor: pointer; }
+
+        .manage-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; grid-column: span 2; }
+        .btn-reset-settings { background: var(--warning); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        .footer-area {
+            flex-shrink: 0;
+            background: var(--bg-dark);
+            padding: 4px;
+            border-top: 1px solid var(--border);
+        }
+        .app-version-bottom {
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-content { background: #333; padding: 20px; border-radius: 8px; width: 90%; }
+        .confirm-content { max-width: 420px; }
+        .confirm-message { margin: 0 0 16px; white-space: pre-wrap; }
+        .confirm-actions { display: flex; gap: 10px; }
+        .confirm-actions button { flex: 1; padding: 11px; }
+        textarea { width: 100%; height: 150px; background: #000; color: #0f0; padding: 10px; box-sizing: border-box; }
+        @media (max-width: 520px) {
+            body { font-size: 13px; }
+            .fixed-header { padding: 6px; }
+            .row { align-items: stretch; flex-wrap: wrap; gap: 6px; }
+            .row > label:first-child { width: 100%; }
+            .row input[type="text"], .row select { min-width: 0; width: 100%; box-sizing: border-box; }
+            .hex-input { width: min(170px, 65vw); }
+            .acc-body { padding: 9px; }
+            .modal-content { width: calc(100% - 24px); padding: 12px; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="app-title">GP MULTI COUNTER</div>
+        <div id="tab-list" class="tab-wrapper"></div>
+        <div class="action-bar">
+            <button onclick="applyCurrentTab()" class="btn-apply-global">今の設定を保存適用</button>
+            <button onclick="exportSettings()" class="btn-tool-mini">書出</button>
+            <button onclick="importSettings()" class="btn-tool-mini">読込</button>
+        </div>
+    </div>
+
+    <div id="content-root" class="scroll-content"></div>
+
+    <div class="footer-area">
+        <div class="app-version-bottom">GP MULTI COUNTER V2</div>
+    </div>
+
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle" style="margin:0 0 10px 0;">移行</h3>
+            <textarea id="transferArea"></textarea>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="closeModal()" style="flex:1; padding:10px;">閉じる</button>
+                <button id="modalActionBtn" style="flex:1; padding:10px; background:var(--primary); color:white; display:none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+        <div class="modal-content confirm-content">
+            <h3 id="confirmTitle" style="margin:0 0 10px;">確認</h3>
+            <p id="confirmMessage" class="confirm-message"></p>
+            <div class="confirm-actions">
+                <button id="confirmCancelBtn" type="button">キャンセル</button>
+                <button id="confirmAcceptBtn" type="button" class="btn-danger">実行する</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../__shared/js/vct-runtime.js"></script>
+    <script src="counter-core.js"></script>
+    <script src="counter-schema.js"></script>
+    <script src="counter-protocol.js"></script>
+    <script src="counter-store.js"></script>
+    <script src="counter-client.js"></script>
+    <script src="gp-counter-server.js"></script>
+    <script>
+        const Core = window.GPMultiCounter;
+        const esc = Core.escapeHtml;
+        const repository = new CounterStateRepository({ storageKey: CounterMessageProtocol.storageKeyForMode(VCTRuntime.mode) });
+        const counterClient = new CounterClient({ role: 'settings', repository });
+        let allData = [];
+        let activeId = 'counter1';
+        let formDirty = false;
+        const dirtyFields = new Set();
+        let resolveConfirmation = null;
+
+        function askConfirmation(message, options = {}) {
+            if (resolveConfirmation) resolveConfirmation(false);
+            const modal = document.getElementById('confirmModal');
+            const accept = document.getElementById('confirmAcceptBtn');
+            document.getElementById('confirmTitle').textContent = options.title || '確認';
+            document.getElementById('confirmMessage').textContent = message;
+            accept.textContent = options.acceptLabel || '実行する';
+            modal.style.display = 'flex';
+            accept.focus();
+            return new Promise(resolve => { resolveConfirmation = resolve; });
+        }
+
+        function closeConfirmation(accepted) {
+            document.getElementById('confirmModal').style.display = 'none';
+            const resolve = resolveConfirmation;
+            resolveConfirmation = null;
+            resolve?.(accepted);
+        }
+
+        document.getElementById('confirmCancelBtn').addEventListener('click', () => closeConfirmation(false));
+        document.getElementById('confirmAcceptBtn').addEventListener('click', () => closeConfirmation(true));
+        document.getElementById('confirmModal').addEventListener('click', event => {
+            if (event.target.id === 'confirmModal') closeConfirmation(false);
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && resolveConfirmation) closeConfirmation(false);
+        });
+
+        const counterServer = window.GPCounterServer.createClient({
+            role: 'settings',
+            onState(serverState) {
+                try {
+                    const nextData = Core.normalizeCounters(serverState.counters, { allowEmpty: true });
+                    if (nextData.length === 0) return;
+                const accepted = repository.accept(serverState, { force: true });
+                allData = accepted ? repository.getState().counters : nextData;
+                if (!allData.some(counter => counter.id === activeId)) activeId = allData[0].id;
+                if (formDirty && !dirtyFields.has('f-count')) {
+                    const activeCounter = allData.find(counter => counter.id === activeId);
+                    const countInput = document.getElementById('f-count');
+                    if (activeCounter && countInput) countInput.value = activeCounter.count;
+                }
+                if (!formDirty) render();
+                } catch (error) {
+                    console.warn('Invalid GP Counter Server state was ignored.', error);
+                }
+            }
+        });
+
+        function createDefaultCounter(id) {
+            return Core.createDefaultCounter(id);
+        }
+
+        async function load() {
+            try {
+                const defaults = [createDefaultCounter('counter1'), createDefaultCounter('counter2')];
+                allData = repository.load(defaults).counters;
+                if (!allData.find(c => c.id === activeId)) activeId = allData[0].id;
+            } catch (e) { allData = [createDefaultCounter('counter1')]; }
+            render();
+            if (counterServer.enabled) {
+                try {
+                    await counterServer.initialize(allData);
+                    document.documentElement.dataset.vctServer = 'connected';
+                } catch (error) {
+                    document.documentElement.dataset.vctServer = 'fallback';
+                    console.warn('GP Counter Server unavailable; local settings are active.', error);
+                }
+            }
+        }
+
+        async function saveAndSync() {
+            allData = Core.normalizeCounters(allData);
+            if (!counterServer.enabled) {
+                const result = counterClient.commit(allData, { cause: 'settings', defaultOperation: 'replace' });
+                allData = result.state.counters;
+                formDirty = false;
+                dirtyFields.clear();
+                return true;
+            }
+            try {
+                await counterServer.replaceCounters(allData);
+                formDirty = false;
+                dirtyFields.clear();
+                return true;
+            } catch (error) {
+                console.warn('GP Counter Server settings update failed.', error);
+                alert(error.message === 'revision_conflict'
+                    ? '別画面で更新されたため、サーバーの最新設定を読み直しました。変更内容を確認して再度保存してください。'
+                    : 'サーバーへ設定を保存できませんでした。');
+                return false;
+            }
+        }
+
+        function render() {
+            renderTabs();
+            renderContent();
+        }
+
+        function renderTabs() {
+            const list = document.getElementById('tab-list');
+            list.innerHTML = allData.map(c => `
+                <button class="tab-btn ${c.id === activeId ? 'active' : ''}" onclick="switchTab('${c.id}')">
+                    ${esc(c.label || c.id)}
+                </button>
+            `).join('');
+        }
+
+        function switchTab(id) {
+            activeId = id;
+            formDirty = false;
+            dirtyFields.clear();
+            render();
+        }
+
+        function renderContent() {
+            const root = document.getElementById('content-root');
+            const c = allData.find(item => item.id === activeId);
+            if (!c) return;
+
+            root.innerHTML = `
+                <div class="accordion">
+                    <div class="acc-header active" onclick="toggleAcc(this)">🚩 基本設定</div>
+                    <div class="acc-body open">
+                        <div class="row"><label>表示名</label><input type="text" id="f-label" value="${esc(c.label)}"></div>
+                        <div class="row" style="background:rgba(74, 144, 226, 0.1); padding:5px; border-radius:4px;">
+                            <label style="color:var(--primary); font-weight:bold;">現在の数値</label>
+                            <input type="number" id="f-count" value="${c.count}" class="num-input" style="border-color:var(--primary);">
+                            <span style="font-size:10px; color:#888;">(直接編集可)</span>
+                        </div>
+                        <div class="row"><label>単位</label><input type="text" id="f-unit" value="${esc(c.unit)}"></div>
+                        <div class="row" style="background:rgba(0,0,0,0.2); padding:5px; border-radius:4px;">
+                            <label>目標数値</label>
+                            <input type="number" id="f-goalCount" value="${c.goalCount}" class="num-input">
+                            <label style="width:auto;"><input type="checkbox" id="f-showGoal" ${c.showGoal ? 'checked' : ''}> 表示</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion">
+                    <div class="acc-header" onclick="toggleAcc(this)">🔤 フォント・文字</div>
+                    <div class="acc-body">
+                        <div class="row">
+                            <label>フォント</label>
+                            <select id="f-fontSelect" onchange="document.getElementById('f-fontInput').value = this.value !== 'custom' ? this.value : document.getElementById('f-fontInput').value">
+                                <optgroup label="標準フォント">
+                                    <option value="sans-serif" ${c.fontFamily === 'sans-serif' ? 'selected' : ''}>標準ゴシック (sans-serif)</option>
+                                    <option value="serif" ${c.fontFamily === 'serif' ? 'selected' : ''}>標準明朝 (serif)</option>
+                                </optgroup>
+                                <optgroup label="Windows 推奨">
+                                    <option value="'Meiryo', sans-serif" ${c.fontFamily?.includes('Meiryo') ? 'selected' : ''}>メイリオ</option>
+                                    <option value="'Yu Gothic', 'YuGothic', sans-serif" ${c.fontFamily?.includes('Yu Gothic') ? 'selected' : ''}>游ゴシック</option>
+                                    <option value="'MS PGothic', sans-serif" ${c.fontFamily?.includes('MS PGothic') ? 'selected' : ''}>ＭＳ Ｐゴシック</option>
+                                </optgroup>
+                                <optgroup label="Mac/iOS 推奨">
+                                    <option value="'Hiragino Kaku Gothic ProN', sans-serif" ${c.fontFamily?.includes('Kaku Gothic') ? 'selected' : ''}>ヒラギノ角ゴ</option>
+                                    <option value="'Hiragino Maru Gothic ProN', sans-serif" ${c.fontFamily?.includes('Maru') ? 'selected' : ''}>ヒラギノ丸ゴ</option>
+                                </optgroup>
+                                <option value="custom" ${!['sans-serif','serif'].some(s=>c.fontFamily===s) ? 'selected' : ''}>手入力で指定する...</option>
+                            </select>
+                        </div>
+                        <div class="row"><label></label><input type="text" id="f-fontInput" value="${esc(c.fontFamily)}" placeholder="フォント名（手入力）"></div>
+                        <div class="row">
+                            <label>サイズ</label>
+                            ラベル <input type="number" id="f-lSize" class="num-input" value="${parseInt(c.labelSize)}">
+                            数字 <input type="number" id="f-cSize" class="num-input" value="${parseInt(c.countSize)}">
+                        </div>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" id="f-bold" ${c.isBold ? 'checked' : ''}> 太字</label>
+                            <label><input type="checkbox" id="f-shadow" ${c.isShadow ? 'checked' : ''}> 文字影</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion">
+                    <div class="acc-header" onclick="toggleAcc(this)">🎨 背景・色</div>
+                    <div class="acc-body">
+                        <div class="row">
+                            <label>文字色</label>
+                            <input type="color" id="f-textColorPick" value="${toHex(c.textColor)}" oninput="document.getElementById('f-textColor').value=this.value.toUpperCase()">
+                            <input type="text" id="f-textColor" class="hex-input" value="${esc(c.textColor.toUpperCase())}">
+                        </div>
+                        <div class="row">
+                            <label>背景色</label>
+                            <input type="color" id="f-bgColorPick" value="${toHex(c.bgColor)}" oninput="handlePickerInput(this, 'f-bgColor', 'f-bgA')">
+                            <input type="text" id="f-bgColor" class="hex-input" value="${esc(c.bgColor)}" oninput="handleTextInput(this, 'f-bgA', 'f-bgColorPick')">
+                            不透明 <input type="number" id="f-bgA" class="num-input" step="0.1" min="0" max="1" value="${getAlpha(c.bgColor)}" oninput="handleAlphaInput(this, 'f-bgColor', 'f-bgColorPick')">
+                        </div>
+                        <div class="row">
+                            <label>枠線色</label>
+                            <input type="color" id="f-bdColorPick" value="${toHex(c.borderColor)}" oninput="handlePickerInput(this, 'f-bdColor', 'f-bdA')">
+                            <input type="text" id="f-bdColor" class="hex-input" value="${esc(c.borderColor)}" oninput="handleTextInput(this, 'f-bdA', 'f-bdColorPick')">
+                            不透明 <input type="number" id="f-bdA" class="num-input" step="0.1" min="0" max="1" value="${getAlpha(c.borderColor)}" oninput="handleAlphaInput(this, 'f-bdColor', 'f-bdColorPick')">
+                        </div>
+                        <p style="font-size:10px; color:#888; margin-left:100px;">※不透明度を変えると自動的にrgba()形式になります。</p>
+                    </div>
+                </div>
+
+                <div class="accordion" style="border-color: #666; margin-top: 20px;">
+                    <div class="acc-header" onclick="toggleAcc(this)">⚙ システム管理</div>
+                    <div class="acc-body">
+                        <div class="manage-btns">
+                            <button onclick="addNewCounter()" class="btn-add">＋ 新規カウンターを追加</button>
+                            <button onclick="resetSettingsOnly()" class="btn-reset-settings">このタブの設定を初期化</button>
+                            <button onclick="deleteCurrentCounter()" class="btn-danger">このタブを削除</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- 色同期用関数 ---
+
+        window.handleTextInput = function(inputEl, alphaId, pickerId) {
+            const val = inputEl.value;
+            const alphaEl = document.getElementById(alphaId);
+            const pickerEl = document.getElementById(pickerId);
+
+            if (val.startsWith('#')) {
+                pickerEl.value = toHex(val);
+            } else if (val.includes('rgba')) {
+                alphaEl.value = getAlpha(val);
+                pickerEl.value = toHex(val);
+            }
+        };
+
+        window.handleAlphaInput = function(alphaEl, textInputId, pickerId) {
+            const textInput = document.getElementById(textInputId);
+            const alpha = alphaEl.value;
+            textInput.value = applyAlpha(textInput.value, alpha);
+        };
+
+        window.handlePickerInput = function(pickerEl, textInputId, alphaId) {
+            const alpha = document.getElementById(alphaId).value;
+            document.getElementById(textInputId).value = applyAlpha(pickerEl.value, alpha);
+        };
+
+        function applyAlpha(color, alpha) {
+            const hex = toHex(color);
+            return `rgba(${parseInt(hex.slice(1,3), 16)}, ${parseInt(hex.slice(3,5), 16)}, ${parseInt(hex.slice(5,7), 16)}, ${alpha})`;
+        }
+
+        function toHex(col) {
+            if (!col || col.startsWith('#')) return col || '#ffffff';
+            const m = col.match(/\d+/g);
+            if(!m) return '#ffffff';
+            return "#" + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+        }
+
+        function getAlpha(col) {
+            if (!col || col.startsWith('#')) return "1.0";
+            const m = col.match(/[\d.]+\s*\)$/);
+            return m ? m[0].replace(')', '').trim() : "1.0";
+        }
+
+        // --- メインロジック ---
+
+        window.toggleAcc = function(header) {
+            header.classList.toggle('active');
+            header.nextElementSibling.classList.toggle('open');
+        };
+
+        window.applyCurrentTab = async function() {
+            const item = allData.find(i => i.id === activeId);
+            if (!item) return;
+
+            item.label = document.getElementById('f-label').value;
+            if (!counterServer.enabled || dirtyFields.has('f-count')) {
+                item.count = parseInt(document.getElementById('f-count').value) || 0;
+            }
+            item.unit = document.getElementById('f-unit').value;
+            item.goalCount = parseInt(document.getElementById('f-goalCount').value) || 0;
+            item.showGoal = document.getElementById('f-showGoal').checked;
+            item.fontFamily = document.getElementById('f-fontInput').value;
+            item.labelSize = document.getElementById('f-lSize').value + "px";
+            item.countSize = document.getElementById('f-cSize').value + "px";
+            item.isBold = document.getElementById('f-bold').checked;
+            item.isShadow = document.getElementById('f-shadow').checked;
+            
+            // 入力欄の文字列をそのまま保存
+            item.textColor = document.getElementById('f-textColor').value;
+            item.bgColor = document.getElementById('f-bgColor').value;
+            item.borderColor = document.getElementById('f-bdColor').value;
+
+            await saveAndSync();
+            renderTabs();
+        };
+
+        window.resetSettingsOnly = async function() {
+            if (!await askConfirmation("このタブのデザイン設定をデフォルトに戻しますか？", {
+                title: '設定の初期化', acceptLabel: '初期化する'
+            })) return;
+            const index = allData.findIndex(i => i.id === activeId);
+            const currentCount = allData[index].count;
+            const defaultObj = createDefaultCounter(activeId);
+            defaultObj.count = currentCount;
+            allData[index] = defaultObj;
+            await saveAndSync();
+            render();
+        };
+
+        window.addNewCounter = async function() {
+            let maxNum = 0;
+            allData.forEach(c => {
+                const num = parseInt(c.id.replace('counter', ''));
+                if (!isNaN(num) && num > maxNum) maxNum = num;
+            });
+            const newId = 'counter' + (maxNum + 1);
+            allData.push(createDefaultCounter(newId));
+            activeId = newId;
+            await saveAndSync();
+            render();
+        };
+
+        window.deleteCurrentCounter = async function() {
+            if (allData.length <= 1) return;
+            const target = allData.find(counter => counter.id === activeId);
+            if (!await askConfirmation(`「${target?.label || activeId}」を削除しますか？\nこの操作は元に戻せません。`, {
+                title: 'カウンターの削除', acceptLabel: '削除する'
+            })) return;
+            allData = allData.filter(c => c.id !== activeId);
+            activeId = allData[0].id;
+            await saveAndSync();
+            render();
+        };
+
+        window.exportSettings = function() {
+            document.getElementById('modalTitle').textContent = "全データ書出 (バックアップ)";
+            document.getElementById('transferArea').value = JSON.stringify(allData);
+            document.getElementById('modalActionBtn').style.display = "none";
+            document.getElementById('transferModal').style.display = "flex";
+        };
+
+        window.importSettings = function() {
+            document.getElementById('modalTitle').textContent = "全データ読込 (復元)";
+            document.getElementById('transferArea').value = "";
+            const btn = document.getElementById('modalActionBtn');
+            btn.style.display = "block"; btn.textContent = "インポートを実行する";
+            btn.onclick = async () => {
+                try {
+                    allData = Core.parseCounters(document.getElementById('transferArea').value);
+                    activeId = allData[0].id;
+                    await saveAndSync(); render(); closeModal();
+                } catch(e) { alert("データの形式が正しくありません"); }
+            };
+            document.getElementById('transferModal').style.display = "flex";
+        };
+
+        window.closeModal = () => document.getElementById('transferModal').style.display = "none";
+
+        document.getElementById('content-root').addEventListener('input', event => {
+            formDirty = true;
+            if (event.target.id) dirtyFields.add(event.target.id);
+        });
+        document.getElementById('content-root').addEventListener('change', event => {
+            formDirty = true;
+            if (event.target.id) dirtyFields.add(event.target.id);
+        });
+        load();
+        counterClient.subscribe(event => {
+            if (counterServer.enabled || !event.state) return;
+            allData = event.state.counters;
+            if (!allData.some(counter => counter.id === activeId) && allData[0]) activeId = allData[0].id;
+            if (!formDirty) render();
+            else if (!dirtyFields.has('f-count')) {
+                const activeCounter = allData.find(counter => counter.id === activeId);
+                const countInput = document.getElementById('f-count');
+                if (activeCounter && countInput) countInput.value = activeCounter.count;
+            }
+        });
+        if (!counterServer.enabled) counterClient.start({ knownRevision: repository.getState().revision });
+    </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+/* style.css ver1.2.1 */
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    font-family: 'Arial', sans-serif;
+}
+
+#counter-display {
+    position: relative;
+    flex-grow: 1;
+    width: 100%;
+    overflow: hidden;
+}
+
+#controls {
+    display: flex;
+    gap: 15px;
+    padding-top: 10px; 
+    padding-bottom: 5px; 
+    width: 100%;
+    justify-content: center;
+}
+
+#controls button {
+    padding: 10px 20px;
+    font-size: 24px;
+    cursor: pointer;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+#controls button:hover {
+    background-color: #555;
+}
+
+#color-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 5px; 
+    padding-bottom: 5px; 
+    background-color: rgba(0, 0, 0, 0.5);
+    border-top: 1px solid #555;
+    width: 100%;
+    align-items: center;
+    color: white;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+/* 新しいスタイル: 表示モード選択 */
+.color-mode-selection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #444;
+    width: 90%;
+    justify-content: center;
+}
+
+.color-mode-selection label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.color-mode-selection input[type="radio"] {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+/* CSSモード用のコントロールのスタイル */
+#css-color-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+
+#color-settings label {
+    margin-bottom: 3px;
+}
+
+#color-settings input[type="text"] {
+    width: 180px;
+    padding: 5px;
+    border: 1px solid #777;
+    background-color: #222;
+    color: white;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#color-settings input[type="range"] {
+    width: 150px;
+    cursor: pointer;
+}
+
+.color-control-buttons {
+    display: flex;
+    gap: 10px; 
+    margin-top: 5px; 
+}
+
+#color-settings #apply-color-btn {
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#color-settings #apply-color-btn:hover {
+    background-color: #0056b3;
+}
+
+#color-settings #reset-settings-btn {
+    padding: 8px 15px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#color-settings #reset-settings-btn:hover {
+    background-color: #c82333;
+}
+
+#current-count-display {
+    font-size: 16px;
+    color: #eee;
+    padding: 5px 10px;
+    width: 100%;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-top: 1px solid #666;
+    box-sizing: border-box;
+}
+
+#current-count-display #actual-count {
+    font-weight: bold;
+    color: #00ff00;
+}
+
+#version-info {
+    font-size: 12px;
+    color: #bbb;
+    padding: 5px;
+    width: 100%;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-top: 1px solid #666;
+}
+
+/* shou-groupの共通スタイル */
+.shou-group {
+    position: absolute;
+    /* transform-origin: center center; はJSで制御するためここから削除するか、デフォルトのcenter centerを保持 */
+}
+
+/* stroke要素の共通スタイル */
+.stroke {
+    position: absolute;
+    display: none;
+    background-repeat: no-repeat;
+}
+
+/* --- CSSモード (.css-mode が shou-group に付与される) --- */
+.shou-group.css-mode {
+    width: 100px;  /* CSSモードでは基準サイズを100pxに設定 */
+    height: 100px;
+}
+
+.shou-group.css-mode .stroke {
+    background-color: white; /* デフォルトの背景色 */
+    border-radius: 2px; /* 角丸 */
+    background-image: none !important; /* 画像を強制的に非表示 */
+    background-size: auto; /* サイズもデフォルトに戻す */
+    background-position: initial; /* 位置もデフォルトに戻す */
+    opacity: 1; /* 不透明 */
+}
+
+/* CSSモードでの各画の具体的な位置とサイズ */
+.shou-group.css-mode .stroke-1 { width: 80px; height: 8px; top: 10px; left: 10px; }
+.shou-group.css-mode .stroke-2 { width: 8px; height: 80px; top: 10px; left: 46px; }
+.shou-group.css-mode .stroke-3 { width: 40px; height: 8px; top: 45px; left: 46px; }
+.shou-group.css-mode .stroke-4 { width: 8px; height: 45px; top: 45px; left: 20px; }
+.shou-group.css-mode .stroke-5 { width: 80px; height: 8px; top: 85px; left: 10px; }
+
+
+/* --- 画像モード (.image-mode が shou-group に付与される) --- */
+.shou-group.image-mode {
+    /* ★ここを変更！ 表示したい実際のサイズを設定 (例: 71px) */
+    width: 71px;  
+    height: 71px;
+    /* transform: scale() は不要になるため削除 */
+}
+
+.shou-group.image-mode .stroke {
+    background-color: transparent !important; /* 背景色を強制的に透明に */
+    /* ★ここを変更！ shou-group と同じサイズに設定 */
+    width: 71px;    
+    height: 71px;   
+    top: 0;          /* 各画の要素の位置を左上 (0,0) に固定 */
+    left: 0;         /* 各画の要素の位置を左上 (0,0) に固定 */
+    background-size: 100% 100%; /* 画像を要素のサイズいっぱいに引き伸ばす */
+    background-position: 0 0; /* 左上を基準に配置（画像がぴったり収まるはず） */
+}

@@ -1,0 +1,24 @@
+{
+  "host": "127.0.0.1",
+  "port": 3000,
+  "bodyLimit": "256kb",
+  "publicDir": "public",
+  "materialDataFile": "data/material-view.json",
+  "gpCounterDataFile": "data/gp-counter.json",
+  "gpCounterV2DataFile": "data/gp-counter-v2.json",
+  "maroV2DataFile": "data/maro-v2.json",
+  "remote": {
+    "enabled": false,
+    "host": "0.0.0.0",
+    "port": 3010,
+    "pairingRequired": true,
+    "sessionDays": 30,
+    "sessionFile": "data/remote-sessions.json",
+    "effectCatalogFile": "data/remote-effects.json"
+  },
+  "logging": {
+    "directory": "logs",
+    "maxBytes": 1048576,
+    "keepFiles": 14
+  }
+}

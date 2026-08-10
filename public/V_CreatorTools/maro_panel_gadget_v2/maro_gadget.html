@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maro Panel Gadget V2</title>
+    <!-- 外部設定とデータの読み込み -->
+    <script src="settings.js"></script>
+    <script>
+        (function () {
+            const CUSTOM_DATA_KEY = 'vct:maro-panel-gadget:v2:data-path';
+            let savedPath = '';
+            try { savedPath = localStorage.getItem(CUSTOM_DATA_KEY) || ''; } catch {}
+            const dataPath = /^[A-Za-z0-9][A-Za-z0-9._-]*\.js$/.test(savedPath) ? savedPath : 'data.js';
+            document.write('<script src="' + dataPath + '"><\/script>');
+            window._currentDataFile = dataPath;
+        })();
+    </script>
+    <style>
+        :root {
+            --bg-color: transparent;
+            --panel-default: #ffffff;
+            --text-main: #333333;
+            --panel-active: #ff85a2;
+            --text-active: #ffffff;
+            --accent-color: #ff4d79;
+            --modal-bg: #fffcf9;
+            --panel-title-size: 1.1rem;
+            --phrase-size: 1.1rem;
+            --modal-text-size: 1.6rem;
+            --control-panel-height: 120px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .version-tag {
+            position: fixed;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        #main-display {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        #grid-container {
+            display: grid;
+            gap: 15px;
+            width: 100%;
+            height: 100%;
+            max-width: 1800px;
+        }
+
+        #control-panel {
+            height: var(--control-panel-height);
+            background: #222;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            border-top: 2px solid #444;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #333;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-reset {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        .btn-undo {
+            background: #ffa500;
+            color: white;
+        }
+
+        .btn-all {
+            background: #ff3333;
+            color: white;
+        }
+
+        .btn:disabled {
+            background: #555 !important;
+            color: #888 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 8px;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background-color: var(--panel-default);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 15px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 3px solid transparent;
+            overflow: hidden;
+        }
+
+        .panel-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            color: inherit;
+            opacity: 0.6;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .panel-content {
+            font-weight: bold;
+            font-size: var(--panel-title-size);
+            word-break: break-all;
+        }
+
+        .panel.active {
+            border-color: var(--accent-color);
+        }
+
+        .panel.active .panel-content {
+            font-size: var(--phrase-size);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            width: 85%;
+            max-width: 900px;
+            padding: 40px;
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            max-height: 90%;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+        }
+
+        .modal-text {
+            font-size: var(--modal-text-size);
+            line-height: 1.8;
+            color: #444;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="version-tag">Gadget V2</div>
+
+    <div id="main-display">
+        <div id="grid-container"></div>
+        <div id="overlay" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div id="modal-title"
+                    style="font-weight:bold; margin-bottom:15px; color:var(--accent-color); border-left: 5px solid var(--accent-color); padding-left: 10px;">
+                </div>
+                <div class="modal-body">
+                    <p id="modal-text" class="modal-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="control-panel">
+        <div class="control-group">
+            <span>操作:</span>
+            <button class="btn btn-undo" onclick="undoLastAction()">Undo</button>
+        </div>
+        <div class="control-group">
+            <span>データ読込:</span>
+            <input type="text" id="data-file-input" style="width:140px;" placeholder="data.js">
+            <button class="btn" style="background:#4caf50; color:white; padding:8px 12px;"
+                onclick="applyDataFile()">適用</button>
+            <button class="btn btn-secondary" style="background:#666; color:white; padding:8px 8px; font-size:12px;"
+                onclick="resetDataFile()">Default</button>
+        </div>
+        <div class="control-group">
+            <span>番号リセット:</span>
+            <input type="number" id="reset-id" min="1" value="1">
+            <button class="btn btn-reset" onclick="resetById()">リセット</button>
+        </div>
+        <div class="control-group">
+            <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; color:#bbb;">
+                <input type="checkbox" id="reset-lock" onchange="toggleResetButton()">解除
+            </label>
+            <button class="btn btn-all" id="btn-all-reset" onclick="resetAll()" disabled>全初期化</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 設定の読み込み
+        const settings = (typeof CONFIG !== 'undefined') ? CONFIG : {
+            grid: { cols: 5, rows: 4 },
+            saveState: { enabled: true, key: "vct:maro-panel-gadget:v2:panel-states" },
+            colors: { panelDefault: "#ffffff", textDefault: "#333333", panelActive: "#ff85a2", textActive: "#ffffff", accent: "#ff4d79", modalBg: "#fffcf9" },
+            fonts: { panelTitleSize: "1.1rem", phraseSize: "1.1rem", modalTextSize: "1.6rem" }
+        };
+
+        const STORAGE_KEY = String(settings.saveState?.key || "vct:maro-panel-gadget:v2:panel-states");
+        const SAVE_ENABLED = settings.saveState?.enabled !== false;
+        settings.grid.cols = clampInt(settings.grid?.cols, 1, 20, 4);
+        settings.grid.rows = clampInt(settings.grid?.rows, 1, 20, 4);
+
+        // CSS変数の反映
+        const root = document.documentElement;
+        root.style.setProperty('--panel-default', settings.colors.panelDefault);
+        root.style.setProperty('--text-main', settings.colors.textDefault || "#333");
+        root.style.setProperty('--panel-active', settings.colors.panelActive);
+        root.style.setProperty('--text-active', settings.colors.textActive || "#fff");
+        root.style.setProperty('--accent-color', settings.colors.accent);
+        root.style.setProperty('--modal-bg', settings.colors.modalBg);
+        root.style.setProperty('--panel-title-size', settings.fonts.panelTitleSize);
+        root.style.setProperty('--phrase-size', settings.fonts.phraseSize);
+        root.style.setProperty('--modal-text-size', settings.fonts.modalTextSize);
+
+        const container = document.getElementById('grid-container');
+        container.style.gridTemplateColumns = `repeat(${settings.grid.cols}, 1fr)`;
+        container.style.gridTemplateRows = `repeat(${settings.grid.rows}, 1fr)`;
+
+        // 2. データの準備
+        const rawData = (typeof MARO_DATA !== 'undefined') ? MARO_DATA : [];
+        const totalPanels = settings.grid.cols * settings.grid.rows;
+        const data = [];
+
+        for (let i = 0; i < totalPanels; i++) {
+            data.push(rawData[i] || { title: `パネル ${i + 1}`, phrase: "準備中...", content: "まだありません！" });
+        }
+
+        let lastClickedId = null;
+        let panelStates = new Array(totalPanels).fill('closed');
+
+        function loadStates() {
+            if (!SAVE_ENABLED) return;
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length === totalPanels) {
+                        panelStates = parsed.map(state => state === 'phrase' ? 'phrase' : 'closed');
+                    }
+                }
+            } catch (error) { console.warn('保存状態を読み込めませんでした。', error); }
+        }
+        function saveStates() {
+            if (!SAVE_ENABLED) return;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(panelStates)); }
+            catch (error) { console.warn('開封状態を保存できませんでした。', error); }
+        }
+
+        loadStates();
+
+        // パネル生成
+        data.forEach((item, index) => {
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            panel.id = `panel-${index}`;
+            const state = panelStates[index];
+            panel.dataset.state = state;
+
+            updatePanelStyle(panel, item, state, index);
+
+            panel.addEventListener('click', () => {
+                if (panel.dataset.state === 'closed') {
+                    panel.dataset.state = 'phrase';
+                    panelStates[index] = 'phrase';
+                    updatePanelStyle(panel, item, 'phrase', index);
+                    lastClickedId = index;
+                    saveStates();
+                } else {
+                    showModal(item.title, item.content);
+                }
+            });
+            container.appendChild(panel);
+        });
+
+        // パネルのスタイルとコンテンツを更新する関数
+        function updatePanelStyle(el, item, state, index) {
+            const isCustom = item.customStyle && item.customStyle[state];
+            let bgColor, textColor;
+            if (isCustom) {
+                bgColor = item.customStyle[state].bg;
+                textColor = item.customStyle[state].text;
+            } else {
+                bgColor = state === 'phrase' ? 'var(--panel-active)' : 'var(--panel-default)';
+                textColor = state === 'phrase' ? 'var(--text-active)' : 'var(--text-main)';
+            }
+            el.style.backgroundColor = bgColor;
+            el.style.color = textColor;
+            el.classList.toggle('active', state === 'phrase');
+            el.replaceChildren();
+            const number = document.createElement('div');
+            number.className = 'panel-number';
+            number.textContent = String(index + 1);
+            const content = document.createElement('div');
+            content.className = 'panel-content';
+            content.textContent = String(state === 'phrase' ? (item.phrase ?? '') : (item.title ?? ''));
+            el.append(number, content);
+        }
+
+        // 3. コントロール操作
+        function toggleResetButton() { document.getElementById('btn-all-reset').disabled = !document.getElementById('reset-lock').checked; }
+        function undoLastAction() { if (lastClickedId !== null) { resetPanel(lastClickedId); lastClickedId = null; } }
+        function resetById() { const i = parseInt(document.getElementById('reset-id').value) - 1; if (i >= 0 && i < totalPanels) resetPanel(i); }
+        function resetAll() {
+            if (!document.getElementById('reset-lock').checked) return;
+            for (let i = 0; i < totalPanels; i++) resetPanel(i);
+            document.getElementById('reset-lock').checked = false; toggleResetButton();
+        }
+        function resetPanel(index) {
+            const panel = document.getElementById(`panel-${index}`);
+            if (panel) {
+                panel.dataset.state = 'closed';
+                panelStates[index] = 'closed';
+                updatePanelStyle(panel, data[index], 'closed', index);
+                saveStates();
+            }
+        }
+        function showModal(title, text) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('overlay').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('overlay').style.display = 'none'; }
+
+        // データファイル切替
+        function applyDataFile() {
+            const fileName = document.getElementById('data-file-input').value.trim();
+            if (!fileName) return;
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.js$/.test(fileName)) {
+                alert('同じフォルダ内の .js ファイル名を入力してください。');
+                return;
+            }
+            try { localStorage.setItem('vct:maro-panel-gadget:v2:data-path', fileName); } catch {}
+            location.reload();
+        }
+        function resetDataFile() {
+            try { localStorage.removeItem('vct:maro-panel-gadget:v2:data-path'); } catch {}
+            location.reload();
+        }
+        function clampInt(value, min, max, fallback) {
+            const number = Number(value);
+            return Number.isFinite(number) ? Math.min(max, Math.max(min, Math.trunc(number))) : fallback;
+        }
+        // 初期値セット
+        document.getElementById('data-file-input').value = window._currentDataFile || 'data.js';
+    </script>
+</body>
+
+</html>
