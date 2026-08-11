@@ -2,7 +2,7 @@
 
 ## 1. 製品概要
 
-VCT Clock V2は、OBS Studioのブラウザソースで使用するStandaloneデジタル時計です。わんコメSDKおよびコメント連携を使用せず、`index.html`、ローカルCSS、Vanilla JavaScriptだけで動作します。
+VCT Clock V2は、OBS Studioのブラウザソースで使用するStandaloneデジタル時計です。`index.html`、ローカルCSS、Vanilla JavaScriptで動作します。
 
 画面サイズは1920×1080、時計表示領域は左上の340×120です。設定後、OBS側で時計領域をクロップして使用します。
 

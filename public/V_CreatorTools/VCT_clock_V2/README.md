@@ -1,6 +1,6 @@
 # VCT Clock V2
 
-OBS Studio向けのStandaloneカスタマイズ時計です。わんコメやコメント連携は不要で、ローカルファイルとして動作します。
+OBS Studio向けのStandaloneカスタマイズ時計です。ローカルファイルとしてそのまま動作します。
 
 ## 主な機能
 
