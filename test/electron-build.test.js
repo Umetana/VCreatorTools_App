@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, "..");
 test("Electron build includes Server, public tools and user gadget templates", () => {
   const packageDocument = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   assert.equal(packageDocument.build.appId, "jp.vcreatortools.app");
+  assert.equal(packageDocument.author, "Umetana / VCreatorTools");
   assert.equal(packageDocument.build.asar, true);
   assert.ok(packageDocument.build.files.includes("build/**/*"));
   for (const required of ["server/**/*", "public/**/*", "templates/**/*"]) {

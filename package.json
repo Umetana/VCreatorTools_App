@@ -3,6 +3,7 @@
   "version": "0.1.0-dev",
   "private": true,
   "description": "VCreatorTools desktop application",
+  "author": "Umetana / VCreatorTools",
   "main": "electron/main.js",
   "license": "MIT",
   "scripts": {
