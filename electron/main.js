@@ -5,6 +5,7 @@ const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { resolveDataLocation } = require("./data-location");
 
 const APP_VERSION = "0.1.0-dev";
 const adminToken = crypto.randomBytes(32).toString("hex");
@@ -16,10 +17,14 @@ let managedCoreReady = false;
 function paths() {
   const appRoot = app.getAppPath();
   const resources = app.isPackaged ? process.resourcesPath : appRoot;
-  const userData = app.getPath("userData");
+  const dataLocation = resolveDataLocation({ isPackaged: app.isPackaged, appPath: appRoot, executablePath: app.getPath("exe"), userDataPath: app.getPath("userData"), env: process.env });
+  const userData = dataLocation.root;
   return {
     appRoot,
     userData,
+    dataMode: dataLocation.mode,
+    dataRoot: dataLocation.root,
+    portableMarkerFile: dataLocation.markerFile,
     serverEntry: path.join(resources, "server", "server.js"),
     publicDir: path.join(resources, "public"),
     managedCoreSourceDir: path.join(resources, "public", "V_CreatorTools", "_vct_core"),
@@ -34,8 +39,12 @@ function paths() {
 
 function ensureRuntime() {
   const current = paths();
-  for (const directory of [current.userData, current.dataDir, current.logsDir, current.userGadgetsDir]) {
-    fs.mkdirSync(directory, { recursive: true });
+  try {
+    for (const directory of [current.userData, current.dataDir, current.logsDir, current.userGadgetsDir]) {
+      fs.mkdirSync(directory, { recursive: true });
+    }
+  } catch (error) {
+    throw new Error(`${current.dataMode}データ保存先へ書き込めません: ${current.dataRoot} (${error.message})`);
   }
   if (!managedCoreReady) {
     if (!fs.existsSync(current.managedCoreSourceDir)) throw new Error("同梱VCreatorTools Coreが見つかりません");

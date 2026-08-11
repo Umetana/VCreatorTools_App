@@ -1,0 +1,4 @@
+{
+  "mode": "portable",
+  "note": "Portable配布物ではこのファイル名をportable.jsonとして実行ファイルと同じFolderへ配置します。"
+}

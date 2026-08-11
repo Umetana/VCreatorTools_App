@@ -27,6 +27,8 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /force: false, errorOnExist: true/);
   assert.match(preload, /installUserGadgetSample/);
   assert.match(main, /managedCoreSourceDir/);
+  assert.match(main, /resolveDataLocation/);
+  assert.match(main, /dataMode: dataLocation\.mode/);
   assert.match(main, /path\.join\(current\.userGadgetsDir, "_vct_core"\)/);
   assert.match(main, /fs\.realpathSync\(managedCoreDestination\)/);
   assert.match(main, /ipcMain\.handle\("user-gadget:install-gp-counter-display"/);
@@ -50,4 +52,6 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.doesNotMatch(app, /^refreshGadgets\(\);$/m);
   assert.match(app, /window\.vct\.installUserGadgetSample\(\)/);
   assert.match(app, /window\.vct\.installGpCounterDisplay\(\)/);
+  assert.match(app, /"データモード"/);
+  assert.match(app, /"データ保存先"/);
 });
