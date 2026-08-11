@@ -9,7 +9,7 @@
     "start": "electron .",
     "smoke": "electron . --smoke-test",
     "test": "node --test test/*.test.js",
-    "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js"
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js && node --check public/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/counter-client.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/gp-counter-server.js"
   },
   "dependencies": {
     "express": "5.2.1",

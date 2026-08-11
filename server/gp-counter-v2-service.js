@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const Schema = require('../public/V_CreatorTools/GP_multi_counter_v2/counter-schema.js');
-const Protocol = require('../public/V_CreatorTools/GP_multi_counter_v2/counter-protocol.js');
+const Schema = require('../public/V_CreatorTools/_vct_core/gp-counter/v2/counter-schema.js');
+const Protocol = require('../public/V_CreatorTools/_vct_core/gp-counter/v2/counter-protocol.js');
 
 function createGpCounterV2Service(options = {}) {
   const dataFile = options.dataFile === null ? null : path.resolve(options.dataFile || path.join(__dirname, 'data', 'gp-counter-v2.json'));
