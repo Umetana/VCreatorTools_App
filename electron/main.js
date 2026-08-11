@@ -187,6 +187,7 @@ function createWindow() {
     height: 700,
     minWidth: 760,
     minHeight: 520,
+    icon: path.join(app.getAppPath(), "build", "icon.ico"),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false }
   });
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"));

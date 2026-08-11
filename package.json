@@ -38,6 +38,7 @@
       "output": "dist/electron"
     },
     "files": [
+      "build/**/*",
       "electron/**/*",
       "renderer/**/*",
       "server/**/*",
@@ -51,6 +52,7 @@
     ],
     "win": {
       "target": ["nsis"],
+      "icon": "build/icon.ico",
       "artifactName": "VCreatorTools-Setup-${version}.${ext}"
     },
     "nsis": {
