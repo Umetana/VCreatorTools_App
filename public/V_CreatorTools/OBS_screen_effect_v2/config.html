@@ -150,7 +150,8 @@
         body.dock-view .sidebar { width: 180px; }
         body.dock-view .main-content { margin-left: 180px; padding: 18px; }
         body.dock-view .sidebar-header { font-size: 0.95rem; }
-        body.dock-view .developer-tool { display: none; }
+        /* Third-party effect installation is not a supported release feature yet. */
+        .developer-tool { display: none !important; }
 
         @media (max-width: 700px) {
             .sidebar, body.dock-view .sidebar {

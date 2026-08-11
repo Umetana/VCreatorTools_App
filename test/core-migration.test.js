@@ -88,3 +88,11 @@ test("developer documentation identifies Core as canonical and legacy files as c
   assert.match(runtime, /_vct_core\/runtime\/v1\/vct-runtime\.js/);
   assert.match(runtime, /互換用/);
 });
+
+test("release Screen Effect settings hide the unsupported third-party editor entry", () => {
+  const config = read("public", "V_CreatorTools", "OBS_screen_effect_v2", "config.html");
+  const documentation = read("public", "V_CreatorTools", "OBS_screen_effect_v2", "README.md");
+  assert.match(config, /\.developer-tool \{ display: none !important; \}/);
+  assert.match(config, /location\.href='effect_editor\.html'/);
+  assert.match(documentation, /第三者製Effectの追加・配布・自動導入は現行リリースの対応範囲外/);
+});

@@ -14,7 +14,7 @@ OBSブラウザーソースへ演出を表示し、Controller、Total Operations
 - `controller.html`: 手動発火パネル
 - `config.html`: ブラウザー／OBS共通の設定画面
 - `config_obs.html`: OBS Dock向け設定入口。統合Configへ転送
-- `effect_editor.html`: Effect一覧の編集補助
+- `effect_editor.html`: 将来検討用の開発補助。通常の設定UIからは非表示
 
 ## 基本的な使い方
 
@@ -59,6 +59,8 @@ GP Multi Counter V2のSnapshotは初期状態としてのみ扱い、演出を�
 標準動作は同一Effectを含む上限なしの重ね掛けです。連打した回数だけ演出インスタンスを生成します。再読み込みまたはページ離脱時は、実行中の全Effectを破棄し、途中状態を復元しません。
 
 ## Plugin開発
+
+第三者製Effectの追加・配布・自動導入は現行リリースの対応範囲外です。既存のEditorとPluginコードは将来検討用に保持しますが、通常の設定UIには追加入口を表示しません。
 
 Plugin APIはv2のみ対応します。テンプレートと開発契約は`effects/template_effect/`にあります。
 
