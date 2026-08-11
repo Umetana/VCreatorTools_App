@@ -35,3 +35,18 @@ Folder単位の移動・複製・バックアップが可能。Program Files等�
 Electron Builder等が`PORTABLE_EXECUTABLE_DIR`を設定した場合もPortableとして扱う。開発・診断時は`VCT_PORTABLE_ROOT`で明示的なRootを指定できる。
 
 App管理画面は現在のデータモードと絶対保存先を表示する。どちらのモードでも公式`public`はアプリ本体側、設定・状態・ログ・ユーザーガジェットはData Root側に分離する。
+
+## Build段階
+
+```powershell
+npm run dist:unpacked
+npm run dist:installer
+npm run dist:portable
+```
+
+`dist:unpacked`はInstaller作成前の実機検証用。Server、public、templatesはASARのunpack対象とし、子Serverによる静的配信とユーザーCore展開に利用する。
+
+- Installer: `dist/electron/VCreatorTools-Setup-<version>.exe`
+- Portable: `dist/electron/VCreatorTools-Portable-<version>.zip`
+
+Portable ZIPはunpacked版をStageへ複製し、`portable.json`と案内文書を追加して生成する。元の`win-unpacked`はInstalledモード検証用として変更しない。

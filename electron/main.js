@@ -16,7 +16,7 @@ let managedCoreReady = false;
 
 function paths() {
   const appRoot = app.getAppPath();
-  const resources = app.isPackaged ? process.resourcesPath : appRoot;
+  const unpackedResources = app.isPackaged ? `${appRoot}.unpacked` : appRoot;
   const dataLocation = resolveDataLocation({ isPackaged: app.isPackaged, appPath: appRoot, executablePath: app.getPath("exe"), userDataPath: app.getPath("userData"), env: process.env });
   const userData = dataLocation.root;
   return {
@@ -25,11 +25,11 @@ function paths() {
     dataMode: dataLocation.mode,
     dataRoot: dataLocation.root,
     portableMarkerFile: dataLocation.markerFile,
-    serverEntry: path.join(resources, "server", "server.js"),
-    publicDir: path.join(resources, "public"),
-    managedCoreSourceDir: path.join(resources, "public", "V_CreatorTools", "_vct_core"),
-    userGadgetTemplateDir: path.join(resources, "templates", "user-gadget-basic"),
-    gpCounterDisplayTemplateDir: path.join(resources, "templates", "gp-counter-display"),
+    serverEntry: path.join(appRoot, "server", "server.js"),
+    publicDir: path.join(unpackedResources, "public"),
+    managedCoreSourceDir: path.join(unpackedResources, "public", "V_CreatorTools", "_vct_core"),
+    userGadgetTemplateDir: path.join(unpackedResources, "templates", "user-gadget-basic"),
+    gpCounterDisplayTemplateDir: path.join(unpackedResources, "templates", "gp-counter-display"),
     configFile: path.join(userData, "server.config.json"),
     dataDir: path.join(userData, "data"),
     logsDir: path.join(userData, "logs"),
@@ -117,6 +117,7 @@ async function saveSettings(value) {
 }
 
 function mainBaseUrl() {
+  if (process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT) return `http://127.0.0.1:${normalizePort(process.env.VCT_SMOKE_PORT, "Smoke Port")}`;
   return `http://127.0.0.1:${publicSettings().mainPort}`;
 }
 
@@ -151,7 +152,7 @@ function startServer() {
   serverProcess = spawn(process.execPath, [current.serverEntry], {
     cwd: current.userData,
     windowsHide: true,
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_USER_GADGETS_DIR: current.userGadgetsDir },
+    env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_USER_GADGETS_DIR: current.userGadgetsDir },
     stdio: ["ignore", "pipe", "pipe"]
   });
   serverStatus = { state: "running", pid: serverProcess.pid, error: null };
