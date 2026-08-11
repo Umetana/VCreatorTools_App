@@ -33,7 +33,7 @@ Ms.Bridgeは運用モードではなく、わんコメの`comment`・`meta`を�
 
 ## 共通ランタイム
 
-`/__shared/js/vct-runtime.js`は環境・モード判定、安全なJSON保存、BroadcastChannel、storageイベント購読を提供する。初期導入では既存データ形式を変更しない。
+`/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js`は環境・モード判定、安全なJSON保存、BroadcastChannel、storageイベント購読を提供する。初期導入では既存データ形式を変更しない。`/__shared/js/vct-runtime.js`はWeb Appと既存配布物の互換用。
 
 URLへ`?vctDebug=1`を付けると、通常UIへ影響しない固定診断パネルを表示する。モード、origin、Storage、BroadcastChannel、統合サーバー接続、ランタイム版を確認できる。複数パラメーターを指定する場合は`&vctDebug=1`とする。
 

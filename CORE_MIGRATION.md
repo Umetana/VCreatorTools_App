@@ -103,15 +103,15 @@ VCreatorTools_GP_Multi_Counter/
 
 ## 移行手順
 
-1. `_vct_core/runtime/v1`と`_vct_core/gp-counter/v2`を追加する
-2. Server側のCounter schema参照をCore正本へ切り替える
-3. GP Multi Counter本体の参照をCoreへ切り替えて3 modeを検証する
-4. TOC2、OBS Gadget、Open Panel Counterの参照を順に切り替える
+1. `_vct_core/runtime/v1`と`_vct_core/gp-counter/v2`を追加する（完了）
+2. Server側のCounter schema参照をCore正本へ切り替える（完了）
+3. GP Multi Counter本体の参照をCoreへ切り替えて3 modeを検証する（完了）
+4. TOC2、OBS Gadget、Open Panel Counterの参照を順に切り替える（完了）
 5. OBS Screen Effect公式HostのRuntime／Counter参照だけを切り替える（完了）
-6. `user_gadgets/_vct_core`をElectronが安全に展開・更新する
-7. manifest付きのPortable Counter Display Starterを追加する
-8. Standard、Sync、Server、OBS、単品相対Pathを自動・手動テストする
-9. 旧`__shared`とGP Folder内の互換fileを削除できるか判定する
+6. `user_gadgets/_vct_core`をElectronが安全に展開・更新する（完了）
+7. manifest付きのPortable Counter Display Starterを追加する（完了）
+8. Standard、Sync、Server、OBS、単品相対Pathを自動・手動テストする（App運用分は完了、単品Build検証は未実施）
+9. 旧`__shared`とGP Folder内の互換fileを削除できるか判定する（既存配布物互換のため当面保持）
 
 ## Screen Effectの今回の範囲
 

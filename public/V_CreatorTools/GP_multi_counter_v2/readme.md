@@ -85,6 +85,10 @@ V2の通常運用ではJSONコピーによるOBS反映は不要。同一Sync環�
 
 新しい表示は`display_custom_template/display_template.html`を基準に作成する。V1の`display_sample`は旧Protocol依存のためV2へ同梱しない。旧サンプルは`GP_multi_counter_v1`に保存されている。
 
+VCreatorTools Appでは「GP Counter表示スターターを追加」により、`user_gadgets`へmanifest付きのPortable表示を作成できる。`user_gadgets/_vct_core`を相対参照するため、Standard、Sync、Serverで同じ表示コードを利用する。
+
+共通Counter SDKの正本は`../_vct_core/gp-counter/v2`。本Folder直下の`counter-*.js`と`gp-counter-server.js`は、既存カスタム表示との互換用に当面保持する。
+
 ## ライセンス
 
 MIT License

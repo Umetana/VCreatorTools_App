@@ -51,6 +51,10 @@ http://127.0.0.1:3000/.../display_template.html?id=1&vctMode=server
 ・display_template.html
   Standard / Sync / Server対応の表示用最小構成テンプレート
 
+・VCreatorTools Appのユーザーガジェットとして作る場合
+  App画面の「GP Counter表示スターターを追加」を使用してください。
+  user_gadgets/_vct_coreを利用するPortable構成で追加されます。
+
 ・../PROTOCOL.md
   V2のMessage Envelope、Snapshot、Changed、State Requestの説明
 

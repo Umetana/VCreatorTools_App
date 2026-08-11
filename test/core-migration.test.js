@@ -79,3 +79,12 @@ test("official Screen Effect host and Maro pages use the versioned Runtime", () 
   assert.match(effectHost, /\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
   assert.doesNotMatch(effectHost, /\.\.\/GP_multi_counter_v2\/counter-/);
 });
+
+test("developer documentation identifies Core as canonical and legacy files as compatibility", () => {
+  const guide = read("public", "V_CreatorTools", "GP_multi_counter_v2", "DEVELOPER_GUIDE.md");
+  const runtime = read("public", "_docs", "VCreatorTools_RUNTIME_API_v0.1.md");
+  assert.match(guide, /_vct_core\/gp-counter\/v2/);
+  assert.match(guide, /互換用/);
+  assert.match(runtime, /_vct_core\/runtime\/v1\/vct-runtime\.js/);
+  assert.match(runtime, /互換用/);
+});

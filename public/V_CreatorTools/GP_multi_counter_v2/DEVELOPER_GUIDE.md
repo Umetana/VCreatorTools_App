@@ -37,22 +37,22 @@ V2では旧互換より、通信の意味を明確にすることを優先した
 ## 4. 実装構成
 
 ```text
-counter-core.js
+../_vct_core/gp-counter/v2/counter-core.js
   Counter初期値、正規化、表示対象IDなどの共通処理
 
-counter-schema.js
+../_vct_core/gp-counter/v2/counter-schema.js
   CounterとState文書の検証
 
-counter-protocol.js
+../_vct_core/gp-counter/v2/counter-protocol.js
   Message Envelopeの生成・検証・重複排除
 
-counter-store.js
+../_vct_core/gp-counter/v2/counter-store.js
   LocalStorage、revision、差分、operationの管理
 
-counter-client.js
+../_vct_core/gp-counter/v2/counter-client.js
   BroadcastChannel、State Request、Snapshot応答
 
-gp-counter-server.js
+../_vct_core/gp-counter/v2/gp-counter-server.js
   Server API／WebSocketをV2 Envelopeとして扱うブラウザClient
 
 gp-counter-v2-service.js
@@ -218,12 +218,12 @@ Server画面のLocalStorageは表示フォールバック用キャッシュで�
 読み込み順：
 
 ```html
-<script src="../../__shared/js/vct-runtime.js"></script>
-<script src="counter-core.js"></script>
-<script src="counter-schema.js"></script>
-<script src="counter-protocol.js"></script>
-<script src="counter-store.js"></script>
-<script src="counter-client.js"></script>
+<script src="../_vct_core/runtime/v1/vct-runtime.js"></script>
+<script src="../_vct_core/gp-counter/v2/counter-core.js"></script>
+<script src="../_vct_core/gp-counter/v2/counter-schema.js"></script>
+<script src="../_vct_core/gp-counter/v2/counter-protocol.js"></script>
+<script src="../_vct_core/gp-counter/v2/counter-store.js"></script>
+<script src="../_vct_core/gp-counter/v2/counter-client.js"></script>
 ```
 
 Sync Consumer：
@@ -324,7 +324,7 @@ Serverは状態を確定してrevisionを増やし、V2 Changed EnvelopeをWebSo
 
 ## 16. カスタム表示
 
-`display_custom_template/display_template.html`を複製し、主にHTML、CSS、`apply(counter)`だけを変更する。
+公式Folder内で作る場合は`display_custom_template/display_template.html`を複製する。Electron Appのユーザー領域で作る場合は「GP Counter表示スターターを追加」を使用し、`gp_counter_custom_display/display.html`のHTML、CSS、`apply(counter)`を変更する。
 
 テンプレートには次が実装済み。
 
@@ -336,6 +336,8 @@ Serverは状態を確定してrevisionを増やし、V2 Changed EnvelopeをWebSo
 - schema検証
 
 独自表示内でBroadcastChannel、LocalStorage、Server APIを直接扱わない。
+
+Counter SDKの正本は`../_vct_core/gp-counter/v2`。GP Multi Counter直下の同名fileは既存カスタム表示との互換用であり、新規実装から参照しない。
 
 ## 17. TOC V2
 

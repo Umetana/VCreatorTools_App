@@ -36,16 +36,18 @@
 
 `type: "view"`だけを持つ旧manifestは、一覧APIで`role: "display"`へ変換される。
 
-対象: `/__shared/js/vct-runtime.js` 0.1.x
+正本: `/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js` 0.1.x
+
+`/__shared/js/vct-runtime.js`は配置Rootの異なるWeb Appと既存配布物の互換用に保持する。
 
 この文書はStandard / Sync / Serverの環境差を吸収するブラウザー共通APIの互換契約を定める。v0.1系列では、ここに記載した名前と基本動作を破壊的に変更しない。
 
 ## 読み込み
 
-各ガジェットから`public/__shared/js/vct-runtime.js`への相対パスを、ガジェット本体より先に読み込む。
+`public/V_CreatorTools`配下の各ガジェットは、version付きCoreへの相対パスを本体より先に読み込む。
 
 ```html
-<script src="../../__shared/js/vct-runtime.js"></script>
+<script src="../_vct_core/runtime/v1/vct-runtime.js"></script>
 ```
 
 グローバルは`window.VCTRuntime`。既存のコメント・IndexedDB処理用`window.VCT_RUNTIME`とは別APIであり、置換しない。
