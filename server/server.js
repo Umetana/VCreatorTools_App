@@ -128,6 +128,22 @@ function emptyGpCounterState() {
   return { schema: GP_COUNTER_STATE_SCHEMA, revision: 0, updatedAt: null, counters: [] };
 }
 
+function publicGpCounterState(state) {
+  return {
+    schema: "vct.public.gp-counter-state.v1",
+    apiVersion: 1,
+    revision: state.revision,
+    updatedAt: state.updatedAt,
+    counters: state.counters.map((counter) => ({
+      id: counter.id,
+      label: counter.label,
+      count: counter.count,
+      unit: counter.unit,
+      goal: { enabled: counter.showGoal, value: counter.goalCount },
+    })),
+  };
+}
+
 function createUnifiedServer(options = {}) {
   const config = options.config || {};
   const host = options.host || process.env.HOST || config.host || DEFAULT_HOST;
@@ -197,6 +213,7 @@ function createUnifiedServer(options = {}) {
   app.use(express.json({ limit: bodyLimit, strict: true }));
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: "/events" });
+  const publicEventClients = new Set();
 
   function broadcast(event) {
     const message = JSON.stringify(event);
@@ -233,6 +250,12 @@ function createUnifiedServer(options = {}) {
 
   const gpCounterV2 = createGpCounterV2Service({ dataFile: gpCounterV2DataFile, broadcast, logger });
   gpCounterV2.mount(app);
+  const publishPublicCounterState = () => {
+    const event = { schema: "vct.public-event.v1", apiVersion: 1, type: "gp-counter.state", sentAt: Date.now(), payload: publicGpCounterState(gpCounterV2.getState()) };
+    const message = `event: gp-counter.state\ndata: ${JSON.stringify(event)}\n\n`;
+    for (const client of publicEventClients) client.write(message);
+  };
+  gpCounterV2.subscribe(publishPublicCounterState);
   const effectTransport = createEffectTransportService({
     broadcast,
     logger,
@@ -483,13 +506,25 @@ function createUnifiedServer(options = {}) {
     serverVersion: SERVICE_VERSION,
     capabilities: {
       discovery: { available: true, access: "read" },
-      stateRead: { available: false },
+      stateRead: { available: true, resources: { gpCounterV2: { endpoint: "/api/public/v1/gp-counter/state", schema: "vct.public.gp-counter-state.v1" } } },
       stateWrite: { available: false },
       actions: { available: false },
       administration: { available: false },
-      events: { available: false },
+      events: { available: true, transport: "sse", endpoint: "/api/public/v1/events", types: ["gp-counter.state"] },
     },
   }));
+  app.get("/api/public/v1/gp-counter/state", (_req, res) => res.json(publicGpCounterState(gpCounterV2.getState())));
+  app.get("/api/public/v1/events", (req, res) => {
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+    publicEventClients.add(res);
+    const initial = { schema: "vct.public-event.v1", apiVersion: 1, type: "gp-counter.state", sentAt: Date.now(), payload: publicGpCounterState(gpCounterV2.getState()) };
+    res.write(`event: gp-counter.state\ndata: ${JSON.stringify(initial)}\n\n`);
+    req.on("close", () => publicEventClients.delete(res));
+  });
   app.get("/api/remote/status", (req, res) => {
     const authorized = isAdminRequest(req);
     const pairing = authorized ? remote.pairingInfo() : { active: false, code: null, expiresAt: null, sessions: [], restricted: true };
@@ -565,6 +600,8 @@ dl{display:grid;grid-template-columns:180px 1fr;gap:10px;margin:0}dt{color:#9ca3
 
   async function stop() {
     await remote.stop();
+    for (const client of publicEventClients) client.end();
+    publicEventClients.clear();
     for (const client of wss.clients) client.terminate();
     await new Promise((resolve, reject) => {
       wss.close((wsError) => {
@@ -610,4 +647,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createUnifiedServer, validateBridgeEvent, validateMaterialState, loadConfig, createFileLogger };
+module.exports = { createUnifiedServer, validateBridgeEvent, validateMaterialState, publicGpCounterState, loadConfig, createFileLogger };

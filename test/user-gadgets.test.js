@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
-const { createUnifiedServer } = require("../server/server");
+const { createUnifiedServer, publicGpCounterState } = require("../server/server");
 
 test("user gadget static mount resolves real paths inside its root", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "server", "server.js"), "utf8");
@@ -24,6 +24,17 @@ test("bundled user gadget sample is a standalone and Sync-only API-free template
   const script = fs.readFileSync(path.join(template, "sample.js"), "utf8");
   assert.match(script, /new BroadcastChannel/);
   assert.doesNotMatch(script, /fetch\s*\(|\/api\//);
+});
+
+test("public GP Counter DTO includes display values but excludes styling settings", () => {
+  const result = publicGpCounterState({
+    revision: 7,
+    updatedAt: 123456789,
+    counters: [{ id: "counter1", label: "来場者", count: 42, unit: "人", goalCount: 100, showGoal: true, bgColor: "#000", borderColor: "#fff", textColor: "#fff", labelSize: "20px", countSize: "40px", isBold: true, isShadow: true, fontFamily: "secret-font" }],
+  });
+  assert.deepEqual(result.counters, [{ id: "counter1", label: "来場者", count: 42, unit: "人", goal: { enabled: true, value: 100 } }]);
+  assert.equal(JSON.stringify(result).includes("bgColor"), false);
+  assert.equal(JSON.stringify(result).includes("fontFamily"), false);
 });
 
 test("user gadgets require a manifest and Remote management stays admin-only", async () => {
@@ -52,9 +63,26 @@ test("user gadgets require a manifest and Remote management stays admin-only", a
     assert.equal(publicCapabilities.apiVersion, 1);
     assert.equal(publicCapabilities.capabilities.discovery.available, true);
     assert.equal(publicCapabilities.capabilities.discovery.access, "read");
-    for (const capability of ["stateRead", "stateWrite", "actions", "administration", "events"]) {
+    assert.equal(publicCapabilities.capabilities.stateRead.available, true);
+    assert.equal(publicCapabilities.capabilities.stateRead.resources.gpCounterV2.endpoint, "/api/public/v1/gp-counter/state");
+    assert.equal(publicCapabilities.capabilities.events.available, true);
+    assert.equal(publicCapabilities.capabilities.events.transport, "sse");
+    for (const capability of ["stateWrite", "actions", "administration"]) {
       assert.equal(publicCapabilities.capabilities[capability].available, false);
     }
+
+    const publicCounterState = await fetch(`${base}/api/public/v1/gp-counter/state`).then((response) => response.json());
+    assert.equal(publicCounterState.schema, "vct.public.gp-counter-state.v1");
+    assert.equal(publicCounterState.apiVersion, 1);
+    assert.deepEqual(publicCounterState.counters, []);
+
+    const eventAbort = new AbortController();
+    const eventResponse = await fetch(`${base}/api/public/v1/events`, { signal: eventAbort.signal });
+    assert.match(eventResponse.headers.get("content-type"), /^text\/event-stream/);
+    const firstEvent = new TextDecoder().decode((await eventResponse.body.getReader().read()).value);
+    assert.match(firstEvent, /event: gp-counter\.state/);
+    assert.match(firstEvent, /"schema":"vct\.public-event\.v1"/);
+    eventAbort.abort();
 
     const restricted = await fetch(`${base}/api/remote/status`).then((response) => response.json());
     assert.equal(restricted.pairing.restricted, true);

@@ -36,7 +36,7 @@ Electron運用中は起動ごとにランダムな管理Tokenを生成し、次�
 
 ## 現段階のAPI
 
-正式な共有Endpointは`GET /api/public/v1/capabilities`だけである。利用可能な共有Capabilityを機械判定するための読取専用APIで、現段階では`discovery`だけを`available: true`として返す。
+正式な共有Endpointは`/api/public/v1`配下に限定する。Capability discovery、GP Multi Counter v2の公開Snapshot、同SnapshotのSSE通知を読取用途で利用できる。更新・Action・管理は公開しない。
 
 Counter、Material、Maro、Screen Effect、Remote Effect Catalog、Bridge等の既存Endpointは、公式ブラウザーツールと同じOrigin契約を共有している。入力検証は行うが、`user_gadgets`向けの正式な共有APIとはまだ宣言しない。
 
@@ -44,8 +44,7 @@ Counter、Material、Maro、Screen Effect、Remote Effect Catalog、Bridge等の
 
 正式公開前に次を行う。
 
-1. 読取専用の共有リソース候補を選定
-2. version付き状態読取APIとevent購読を追加
-3. 状態更新とActionにCapability tokenが必要か決定
-4. BridgeとCatalog更新を含む既存Endpointの認証要否を決定
-5. 悪意ある同一Originページを想定したSecurity testを追加
+1. 状態更新とActionにCapability tokenが必要か決定
+2. Actionのrate limitと重複排除を設計
+3. BridgeとCatalog更新を含む既存Endpointの認証要否を決定
+4. 悪意ある同一Originページを想定したSecurity testを追加

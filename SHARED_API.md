@@ -1,6 +1,6 @@
 # User Gadget Shared API
 
-Status: v1 discoveryのみ安定契約
+Status: v1 discovery・GP Multi Counter v2読取・event購読が安定契約
 
 ## 目的と境界
 
@@ -13,7 +13,8 @@ Status: v1 discoveryのみ安定契約
 | 区分 | 例 | v1公開 | 理由 |
 |---|---|---:|---|
 | Discovery | Server/API能力の確認 | Yes | 副作用がなく最小限 |
-| 読取 | Counter、Material、Maro状態 | No | データ最小化とschema確定が必要 |
+| 読取 | GP Counter v2公開DTO | Yes | 表示に必要なfieldだけに限定 |
+| 読取 | Material、Maro状態 | No | データ最小化とschema確定が必要 |
 | 状態更新 | 設定・Catalogの全置換 | No | 永続正本を変更し影響範囲が大きい |
 | Action | Counter操作、演出発火 | No | 意図しない配信操作を防ぐ設計が必要 |
 | 管理 | Pairing、Session破棄 | No | Electron管理Token専用 |
@@ -32,16 +33,37 @@ Status: v1 discoveryのみ安定契約
   "serverVersion": "1.0.0",
   "capabilities": {
     "discovery": { "available": true, "access": "read" },
-    "stateRead": { "available": false },
+    "stateRead": {
+      "available": true,
+      "resources": {
+        "gpCounterV2": {
+          "endpoint": "/api/public/v1/gp-counter/state",
+          "schema": "vct.public.gp-counter-state.v1"
+        }
+      }
+    },
     "stateWrite": { "available": false },
     "actions": { "available": false },
     "administration": { "available": false },
-    "events": { "available": false }
+    "events": {
+      "available": true,
+      "transport": "sse",
+      "endpoint": "/api/public/v1/events",
+      "types": ["gp-counter.state"]
+    }
   }
 }
 ```
 
 Consumerは未知のCapabilityとfieldを無視する。`apiVersion: 1`では既存fieldを削除せず、追加fieldは任意として導入する。破壊的変更は新しいURL versionで行う。
+
+### `GET /api/public/v1/gp-counter/state`
+
+GP Multi Counter v2の読取専用Snapshotを返す。Counterは`id`、`label`、`count`、`unit`、`goal.enabled`、`goal.value`だけを公開し、色、font、layout等の設定は含めない。
+
+### `GET /api/public/v1/events`
+
+EventSourceで購読するSSE。接続直後とCounter更新時に`gp-counter.state`を送る。dataは`vct.public-event.v1` Envelopeで、payloadは上記の公開Snapshotと同じschemaを持つ。未知のevent typeは無視する。
 
 ## Internal endpoint inventory
 
@@ -57,4 +79,4 @@ Consumerは未知のCapabilityとfieldを無視する。`apiVersion: 1`では既
 
 ## 次の段階
 
-最初の状態読取候補はGP Multi Counter v2とする。公開用DTOから設定や不要な内部fieldを除外し、読取Endpointとevent schemaを同時に固定する。状態更新とActionは、その後に用途、確認UI、rate limit、Capability tokenの必要性を評価して追加する。
+次は状態更新とActionを分けて評価する。最初のAction候補はGP Multi Counter v2だが、用途、確認UI、rate limit、request IDによる重複排除、Capability tokenの必要性を決めるまでは公開しない。
