@@ -19,6 +19,19 @@ test("GP Multi Counter pilot pages load the versioned Core", () => {
   assert.match(template, /\.\.\/\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
 });
 
+test("Counter consumers load Runtime and Counter SDK from the versioned Core", () => {
+  for (const parts of [
+    ["Total_Operations_Console_v2", "index.html"],
+    ["OBS_gadget_v2", "index.html"],
+    ["open_panel_counter_v2", "open_panel_counter.html"],
+  ]) {
+    const html = read("public", "V_CreatorTools", ...parts);
+    assert.match(html, /\.\.\/_vct_core\/runtime\/v1\/vct-runtime\.js/);
+    assert.match(html, /\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
+    assert.doesNotMatch(html, /__shared|\.\.\/GP_multi_counter_v2\/counter-/);
+  }
+});
+
 test("migration compatibility copies still match the Core source", () => {
   assert.equal(
     read("public", "__shared", "js", "vct-runtime.js"),
