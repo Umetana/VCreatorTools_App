@@ -107,7 +107,7 @@ VCreatorTools_GP_Multi_Counter/
 2. Server側のCounter schema参照をCore正本へ切り替える
 3. GP Multi Counter本体の参照をCoreへ切り替えて3 modeを検証する
 4. TOC2、OBS Gadget、Open Panel Counterの参照を順に切り替える
-5. OBS Screen Effect公式HostのCounter参照だけを切り替える
+5. OBS Screen Effect公式HostのRuntime／Counter参照だけを切り替える（完了）
 6. `user_gadgets/_vct_core`をElectronが安全に展開・更新する
 7. manifest付きのPortable Counter Display Starterを追加する
 8. Standard、Sync、Server、OBS、単品相対Pathを自動・手動テストする

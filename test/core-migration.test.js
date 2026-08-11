@@ -62,3 +62,20 @@ test("portable GP Counter display starter uses the sibling managed Core", () => 
   assert.match(html, /\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
   assert.doesNotMatch(html, /\.\.\/\.\.\/_vct_core/);
 });
+
+test("official Screen Effect host and Maro pages use the versioned Runtime", () => {
+  for (const parts of [
+    ["OBS_screen_effect_v2", "index.html"],
+    ["OBS_screen_effect_v2", "config.html"],
+    ["OBS_screen_effect_v2", "controller.html"],
+    ["maro_panel_gadget_v2", "index.html"],
+    ["maro_panel_gadget_v2", "maro_view.html"],
+  ]) {
+    const html = read("public", "V_CreatorTools", ...parts);
+    assert.match(html, /\.\.\/_vct_core\/runtime\/v1\/vct-runtime\.js/);
+    assert.doesNotMatch(html, /__shared\/js\/vct-runtime\.js/);
+  }
+  const effectHost = read("public", "V_CreatorTools", "OBS_screen_effect_v2", "index.html");
+  assert.match(effectHost, /\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
+  assert.doesNotMatch(effectHost, /\.\.\/GP_multi_counter_v2\/counter-/);
+});
