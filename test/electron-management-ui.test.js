@@ -26,12 +26,17 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /if \(fs\.existsSync\(destination\)\) throw/);
   assert.match(main, /force: false, errorOnExist: true/);
   assert.match(preload, /installUserGadgetSample/);
+  assert.match(main, /managedCoreSourceDir/);
+  assert.match(main, /path\.join\(current\.userGadgetsDir, "_vct_core"\)/);
+  assert.match(main, /fs\.realpathSync\(managedCoreDestination\)/);
+  assert.match(main, /ipcMain\.handle\("user-gadget:install-gp-counter-display"/);
+  assert.match(preload, /installGpCounterDisplay/);
 });
 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
-  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
@@ -44,4 +49,5 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.doesNotMatch(app, /^refreshRemote\(\);$/m);
   assert.doesNotMatch(app, /^refreshGadgets\(\);$/m);
   assert.match(app, /window\.vct\.installUserGadgetSample\(\)/);
+  assert.match(app, /window\.vct\.installGpCounterDisplay\(\)/);
 });

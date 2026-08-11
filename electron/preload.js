@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("vct", {
   remoteQr: (index) => ipcRenderer.invoke("remote:qr", index),
   openPath: (name) => ipcRenderer.invoke("open:path", name),
   installUserGadgetSample: () => ipcRenderer.invoke("user-gadget:install-sample"),
+  installGpCounterDisplay: () => ipcRenderer.invoke("user-gadget:install-gp-counter-display"),
   onStatus: (callback) => ipcRenderer.on("server:status", (_event, value) => callback(value)),
   onLog: (callback) => ipcRenderer.on("server:log", (_event, value) => callback(value))
 });

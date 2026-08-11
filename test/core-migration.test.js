@@ -51,3 +51,14 @@ test("Server GP Counter service imports the Core schema and protocol", () => {
   assert.match(service, /_vct_core\/gp-counter\/v2\/counter-protocol\.js/);
   assert.doesNotMatch(service, /GP_multi_counter_v2\/counter-(?:schema|protocol)\.js/);
 });
+
+test("portable GP Counter display starter uses the sibling managed Core", () => {
+  const template = path.join(root, "templates", "gp-counter-display");
+  const manifest = JSON.parse(fs.readFileSync(path.join(template, "manifest.json"), "utf8"));
+  assert.deepEqual(manifest.modes, ["standalone", "sync", "server"]);
+  assert.equal(manifest.pages[0].obs, true);
+  const html = fs.readFileSync(path.join(template, "display.html"), "utf8");
+  assert.match(html, /\.\.\/_vct_core\/runtime\/v1\/vct-runtime\.js/);
+  assert.match(html, /\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
+  assert.doesNotMatch(html, /\.\.\/\.\.\/_vct_core/);
+});

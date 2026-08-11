@@ -41,8 +41,10 @@ test("user gadgets require a manifest and Remote management stays admin-only", a
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "vct-user-gadgets-"));
   const valid = path.join(temporary, "sample");
   const missingManifest = path.join(temporary, "not-listed");
+  const managedCore = path.join(temporary, "_vct_core");
   fs.mkdirSync(valid);
   fs.mkdirSync(missingManifest);
+  fs.mkdirSync(managedCore);
   fs.writeFileSync(path.join(valid, "index.html"), "<!doctype html><title>User sample</title>");
   fs.writeFileSync(path.join(valid, "manifest.json"), JSON.stringify({ schemaVersion: 1, version: "1.0.0", name: "User Sample", status: "release", modes: ["sync"], pages: [{ name: "Sample", file: "index.html", role: "display", obs: true, modes: ["sync"] }] }));
   fs.writeFileSync(path.join(missingManifest, "index.html"), "<!doctype html><title>Hidden</title>");

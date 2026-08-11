@@ -205,6 +205,21 @@ document.getElementById("install-user-sample").onclick = async () => {
     result.textContent = error.message;
   }
 };
+document.getElementById("install-gp-display").onclick = async () => {
+  const result = document.getElementById("user-sample-result");
+  result.className = "";
+  result.textContent = "追加中…";
+  try {
+    await window.vct.installGpCounterDisplay();
+    result.className = "success";
+    result.textContent = "GP Counter表示スターターを追加しました";
+    gadgetsLoaded = false;
+    await refreshCycle(true);
+  } catch (error) {
+    result.className = "error";
+    result.textContent = error.message;
+  }
+};
 window.vct.onStatus(() => refreshCycle());
 window.vct.onLog((line) => { log.textContent += line; log.scrollTop = log.scrollHeight; });
 loadSettings();

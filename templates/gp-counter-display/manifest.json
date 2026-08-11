@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.0",
+  "name": "GP Counter Custom Display Starter",
+  "status": "development",
+  "modes": ["standalone", "sync", "server"],
+  "pages": [
+    {
+      "name": "Custom Counter Display",
+      "file": "display.html?id=1",
+      "type": "view",
+      "role": "display",
+      "obs": true,
+      "modes": ["standalone", "sync", "server"]
+    }
+  ]
+}

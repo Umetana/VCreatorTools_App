@@ -11,6 +11,7 @@ const adminToken = crypto.randomBytes(32).toString("hex");
 let mainWindow = null;
 let serverProcess = null;
 let serverStatus = { state: "stopped", pid: null, error: null };
+let managedCoreReady = false;
 
 function paths() {
   const appRoot = app.getAppPath();
@@ -21,7 +22,9 @@ function paths() {
     userData,
     serverEntry: path.join(resources, "server", "server.js"),
     publicDir: path.join(resources, "public"),
+    managedCoreSourceDir: path.join(resources, "public", "V_CreatorTools", "_vct_core"),
     userGadgetTemplateDir: path.join(resources, "templates", "user-gadget-basic"),
+    gpCounterDisplayTemplateDir: path.join(resources, "templates", "gp-counter-display"),
     configFile: path.join(userData, "server.config.json"),
     dataDir: path.join(userData, "data"),
     logsDir: path.join(userData, "logs"),
@@ -33,6 +36,16 @@ function ensureRuntime() {
   const current = paths();
   for (const directory of [current.userData, current.dataDir, current.logsDir, current.userGadgetsDir]) {
     fs.mkdirSync(directory, { recursive: true });
+  }
+  if (!managedCoreReady) {
+    if (!fs.existsSync(current.managedCoreSourceDir)) throw new Error("同梱VCreatorTools Coreが見つかりません");
+    const managedCoreDestination = path.join(current.userGadgetsDir, "_vct_core");
+    if (fs.existsSync(managedCoreDestination)) {
+      const relative = path.relative(fs.realpathSync(current.userGadgetsDir), fs.realpathSync(managedCoreDestination));
+      if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("ユーザーCoreの配置先が不正です");
+    }
+    fs.cpSync(current.managedCoreSourceDir, managedCoreDestination, { recursive: true, force: true });
+    managedCoreReady = true;
   }
   if (!fs.existsSync(current.configFile)) {
     const config = {
@@ -216,6 +229,14 @@ ipcMain.handle("user-gadget:install-sample", () => {
   if (fs.existsSync(destination)) throw new Error("確認用サンプルは既に追加されています");
   if (!fs.existsSync(current.userGadgetTemplateDir)) throw new Error("同梱テンプレートが見つかりません");
   fs.cpSync(current.userGadgetTemplateDir, destination, { recursive: true, force: false, errorOnExist: true });
+  return { path: destination };
+});
+ipcMain.handle("user-gadget:install-gp-counter-display", () => {
+  const current = ensureRuntime();
+  const destination = path.join(current.userGadgetsDir, "gp_counter_custom_display");
+  if (fs.existsSync(destination)) throw new Error("GP Counter表示スターターは既に追加されています");
+  if (!fs.existsSync(current.gpCounterDisplayTemplateDir)) throw new Error("同梱表示スターターが見つかりません");
+  fs.cpSync(current.gpCounterDisplayTemplateDir, destination, { recursive: true, force: false, errorOnExist: true });
   return { path: destination };
 });
 

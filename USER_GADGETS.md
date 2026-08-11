@@ -15,6 +15,8 @@ Electronの「ユーザーガジェット」ボタンから配置Folderを開け
 
 「確認用サンプルを追加」は同梱の`templates/user-gadget-basic`を`vct_user_gadget_sample`として一度だけ複製する。既存Folderは上書きしない。サンプルはServer APIへ依存せず、StandaloneとBroadcastChannelによるSyncの最小構成を示す。
 
+Electron Appは起動時に公式Core正本を`user_gadgets/_vct_core`へ展開する。先頭が`_`のApp管理Folderは一覧に掲載しない。「GP Counter表示スターターを追加」は`gp_counter_custom_display`を一度だけ複製し、同Coreを利用してStandard、Sync、Serverの既存Counter Clientを動かす。
+
 ## 一覧掲載
 
 静的ファイルはmanifestなしでもURLを直接指定して表示できる。一覧掲載には`manifest.json`が必須で、公式manifestと同じschema version 1、相対HTML Path、role、modeを検証する。不正なFolderだけを一覧から除外し、公式ツールの列挙は継続する。

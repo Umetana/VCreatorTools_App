@@ -340,7 +340,7 @@ function createUnifiedServer(options = {}) {
         const rootDir = root.directory || path.join(publicDir, root.key);
         if (!fs.existsSync(rootDir)) return [];
         return fs.readdirSync(rootDir, { withFileTypes: true })
-          .filter((entry) => entry.isDirectory())
+          .filter((entry) => entry.isDirectory() && !(root.requireManifest && entry.name.startsWith("_")))
           .flatMap((entry) => {
             const folderDir = path.join(rootDir, entry.name);
             const manifestFile = path.join(folderDir, "manifest.json");
