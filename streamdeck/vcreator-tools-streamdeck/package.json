@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "esbuild src/plugin.ts --bundle --platform=node --format=esm --target=node24 --sourcemap --outfile=jp.vcreatortools.streamdeck.sdPlugin/bin/plugin.js",
     "check": "tsc --noEmit"
   },
   "dependencies": {
@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@elgato/cli": "^1.8.0",
+    "esbuild": "^0.25.9",
     "typescript": "7.0.2"
   }
 }
