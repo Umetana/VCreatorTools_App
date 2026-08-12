@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/plugin.ts --bundle --platform=node --format=esm --target=node24 --sourcemap --outfile=jp.vcreatortools.streamdeck.sdPlugin/bin/plugin.js",
+    "build": "esbuild src/plugin.ts --bundle --platform=node --format=cjs --target=node24 --sourcemap --outfile=jp.vcreatortools.streamdeck.sdPlugin/bin/plugin.cjs",
     "check": "tsc --noEmit"
   },
   "dependencies": {

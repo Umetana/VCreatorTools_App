@@ -6,7 +6,7 @@
   "Author": "Umetana / VCreatorTools",
   "Version": "0.1.0.0",
   "SDKVersion": 3,
-  "CodePath": "bin/plugin.js",
+  "CodePath": "bin/plugin.cjs",
   "Icon": "imgs/plugin",
   "Category": "VCreatorTools",
   "CategoryIcon": "imgs/category",

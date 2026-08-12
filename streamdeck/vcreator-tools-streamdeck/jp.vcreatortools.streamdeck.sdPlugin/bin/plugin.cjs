@@ -17319,6 +17319,12 @@ var api = {
 };
 
 // src/actions.ts
+function counterIcon(operation) {
+  const symbol2 = operation === "decrement" ? "\u2212" : operation === "reset" ? "\u21BA" : operation === "set" ? "SET" : "+";
+  const size = operation === "set" ? 42 : 72;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#172033"/><text x="72" y="70" fill="#7dd3fc" font-family="Arial,sans-serif" font-size="${size}" font-weight="700" text-anchor="middle">${symbol2}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 var _CounterAction_decorators, _init, _a;
 _CounterAction_decorators = [action({ UUID: "jp.vcreatortools.streamdeck.counter" })];
 var CounterAction = class extends (_a = SingletonAction) {
@@ -17329,19 +17335,36 @@ var CounterAction = class extends (_a = SingletonAction) {
       await plugin_default.ui.sendToPropertyInspector({ type: "catalog-error" });
     }
   }
-  async updateTitle(action2, counterId) {
+  async setVisual(action2, counter, operation) {
+    await Promise.all([action2.setImage(counterIcon(operation)), action2.setTitle(`${counter.label}
+${counter.count}${counter.unit}`)]);
+  }
+  async updateTitle(action2, counterId, operation) {
     if (!counterId || !action2.isKey()) return;
     try {
       const result = await api.counters();
       const counter = result.counters.find((item) => item.id === counterId);
-      if (counter) await action2.setTitle(`${counter.label}
-${counter.count}${counter.unit}`);
+      if (counter) await this.setVisual(action2, counter, operation);
     } catch {
       await action2.setTitle(counterId);
     }
   }
+  async syncCounter(counter) {
+    const updates = [];
+    for (const action2 of plugin_default.actions) {
+      if (action2.manifestId !== "jp.vcreatortools.streamdeck.counter" || !action2.isKey()) continue;
+      updates.push((async () => {
+        const settings2 = await action2.getSettings();
+        if (settings2.counterId === counter.id) await this.setVisual(action2, counter, settings2.operation);
+      })());
+    }
+    await Promise.allSettled(updates);
+  }
   async onWillAppear(ev) {
-    await this.updateTitle(ev.action, ev.payload.settings.counterId);
+    await this.updateTitle(ev.action, ev.payload.settings.counterId, ev.payload.settings.operation);
+  }
+  async onDidReceiveSettings(ev) {
+    await this.updateTitle(ev.action, ev.payload.settings.counterId, ev.payload.settings.operation);
   }
   async onPropertyInspectorDidAppear(_ev) {
     await this.sendCatalog();
@@ -17355,9 +17378,7 @@ ${counter.count}${counter.unit}`);
     try {
       const result = await api.counterCommand({ ...settings2, counterId: settings2.counterId, operation: settings2.operation });
       const counter = result.state.counters.find((item) => item.id === settings2.counterId);
-      if (counter) await ev.action.setTitle(`${counter.label}
-${counter.count}${counter.unit}`);
-      await ev.action.showOk();
+      if (counter) await this.syncCounter(counter);
     } catch {
       await ev.action.showAlert();
     }
@@ -17387,7 +17408,6 @@ var EffectAction = class extends (_a2 = SingletonAction) {
     if (!buttonId) return ev.action.showAlert();
     try {
       await api.triggerEffect(buttonId);
-      await ev.action.showOk();
     } catch {
       await ev.action.showAlert();
     }
@@ -17412,4 +17432,4 @@ plugin_default.connect();
    * @copyright Copyright (c) Corsair Memory Inc.
    *)
 */
-//# sourceMappingURL=plugin.js.map
+//# sourceMappingURL=plugin.cjs.map
