@@ -17327,6 +17327,13 @@ var api = {
 var _CounterAction_decorators, _init, _a;
 _CounterAction_decorators = [action({ UUID: "jp.vcreatortools.streamdeck.counter" })];
 var CounterAction = class extends (_a = SingletonAction) {
+  async sendCatalog() {
+    try {
+      await plugin_default.ui.sendToPropertyInspector({ type: "catalog", counters: (await api.counters()).counters });
+    } catch {
+      await plugin_default.ui.sendToPropertyInspector({ type: "catalog-error" });
+    }
+  }
   async updateTitle(action2, counterId) {
     if (!counterId || !action2.isKey()) return;
     try {
@@ -17342,11 +17349,10 @@ ${counter.count}${counter.unit}`);
     await this.updateTitle(ev.action, ev.payload.settings.counterId);
   }
   async onPropertyInspectorDidAppear(_ev) {
-    try {
-      await plugin_default.ui.sendToPropertyInspector({ type: "catalog", counters: (await api.counters()).counters });
-    } catch {
-      await plugin_default.ui.sendToPropertyInspector({ type: "catalog-error" });
-    }
+    await this.sendCatalog();
+  }
+  async onSendToPlugin(_ev) {
+    await this.sendCatalog();
   }
   async onKeyDown(ev) {
     const settings2 = ev.payload.settings;
@@ -17368,12 +17374,18 @@ __runInitializers(_init, 1, CounterAction);
 var _EffectAction_decorators, _init2, _a2;
 _EffectAction_decorators = [action({ UUID: "jp.vcreatortools.streamdeck.effect" })];
 var EffectAction = class extends (_a2 = SingletonAction) {
-  async onPropertyInspectorDidAppear(_ev) {
+  async sendCatalog() {
     try {
       await plugin_default.ui.sendToPropertyInspector({ type: "catalog", effects: (await api.effects()).buttons });
     } catch {
       await plugin_default.ui.sendToPropertyInspector({ type: "catalog-error" });
     }
+  }
+  async onPropertyInspectorDidAppear(_ev) {
+    await this.sendCatalog();
+  }
+  async onSendToPlugin(_ev) {
+    await this.sendCatalog();
   }
   async onKeyDown(ev) {
     const buttonId = ev.payload.settings.buttonId;
