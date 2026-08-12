@@ -43,6 +43,8 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /page\.urlParameter === "counterId"/);
   assert.match(app, /result\.searchParams\.set\("id", counterId\)/);
+  assert.match(app, /任意の番号/);
+  assert.doesNotMatch(app, /element\("datalist"\)/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
   assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root === "user_gadgets"\)/);
   assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root !== "user_gadgets"\)/);

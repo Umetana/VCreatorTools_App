@@ -108,25 +108,28 @@ function renderGadgets(container, gadgets, emptyMessage) {
       if (page.urlParameter === "counterId") {
         const field = element("label", "counter-url-field");
         field.append(element("span", "", "Counter ID"));
-        const input = element("input");
-        const listId = `counter-ids-${Math.random().toString(36).slice(2)}`;
-        input.setAttribute("list", listId);
-        input.value = selectedCounterId;
-        input.placeholder = "1 または counter1";
-        const list = element("datalist");
-        list.id = listId;
+        const select = element("select");
         const choices = new Map(Array.from({ length: 10 }, (_, index) => [`counter${index + 1}`, ""]));
         for (const option of page.counterOptions || []) choices.set(option.id, option.label || "");
         for (const [id, label] of choices) {
           const option = element("option");
           option.value = id;
-          option.label = label;
-          list.append(option);
+          option.textContent = label ? `${id} — ${label}` : `${id}（未設定候補）`;
+          select.append(option);
         }
+        const customOption = element("option", "", "任意の番号…");
+        customOption.value = "__custom__";
+        select.append(customOption);
+        const input = element("input");
+        input.type = "number";
+        input.min = "1";
+        input.step = "1";
+        input.placeholder = "11";
+        input.hidden = true;
         const error = element("span", "counter-url-error");
-        input.oninput = () => {
-          const normalized = normalizeCounterId(input.value);
-          error.textContent = normalized ? "" : "1以上の数字、または counter数字を入力してください";
+        const applyCounterId = (value) => {
+          const normalized = normalizeCounterId(value);
+          error.textContent = normalized ? "" : "1以上の数字を入力してください";
           if (!normalized) return;
           selectedCounterId = normalized;
           for (const item of urlRows) {
@@ -134,7 +137,14 @@ function renderGadgets(container, gadgets, emptyMessage) {
             item.code.textContent = item.url;
           }
         };
-        field.append(input, list, error);
+        select.onchange = () => {
+          input.hidden = select.value !== "__custom__";
+          error.textContent = "";
+          if (!input.hidden) { input.focus(); return; }
+          applyCounterId(select.value);
+        };
+        input.oninput = () => applyCounterId(input.value);
+        field.append(select, input, error);
         pageElement.append(field);
       }
       for (const mode of page.modes) {
