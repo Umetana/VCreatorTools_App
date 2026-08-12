@@ -30,8 +30,7 @@
     {
       "name": "display_layout.html",
       "file": "display_layout.html",
-      "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"],
-      "urlParameter": "counterId"
+      "type": "view", "role": "display", "obs": true, "modes": ["sync", "server"]
     }
   ]
 }

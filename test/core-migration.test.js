@@ -21,9 +21,10 @@ test("GP Multi Counter pilot pages load the versioned Core", () => {
 
 test("GP Multi Counter display pages expose Counter ID URL selection", () => {
   const manifest = JSON.parse(read("public", "V_CreatorTools", "GP_multi_counter_v2", "manifest.json"));
-  const displays = manifest.pages.filter((page) => page.role === "display");
-  assert.ok(displays.length >= 2);
-  for (const page of displays) assert.equal(page.urlParameter, "counterId");
+  const display = manifest.pages.find((page) => page.file === "display.html");
+  const layout = manifest.pages.find((page) => page.file === "display_layout.html");
+  assert.equal(display.urlParameter, "counterId");
+  assert.equal(layout.urlParameter, undefined);
 });
 
 test("Counter consumers load Runtime and Counter SDK from the versioned Core", () => {
