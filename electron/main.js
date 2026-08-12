@@ -1,18 +1,22 @@
 "use strict";
 
 const { app, BrowserWindow, clipboard, ipcMain, shell } = require("electron");
-const { spawn } = require("node:child_process");
+const { execFile, spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
+const net = require("node:net");
 const path = require("node:path");
+const { promisify } = require("node:util");
 const { resolveDataLocation } = require("./data-location");
 
 const APP_VERSION = "0.1.0-dev";
+const execFileAsync = promisify(execFile);
 const adminToken = crypto.randomBytes(32).toString("hex");
 let mainWindow = null;
 let serverProcess = null;
 let serverStatus = { state: "stopped", pid: null, error: null };
 let managedCoreReady = false;
+let quitAfterServerStops = false;
 
 function paths() {
   const appRoot = app.getAppPath();
@@ -144,26 +148,83 @@ function appendAppLog(value) {
   mainWindow?.webContents.send("server:log", line);
 }
 
-function startServer() {
+function checkPortAvailable(host, port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.once("error", (error) => resolve({ available: false, error }));
+    probe.listen({ host, port, exclusive: true }, () => probe.close(() => resolve({ available: true })));
+  });
+}
+
+async function listeningPid(port) {
+  if (process.platform !== "win32") return null;
+  try {
+    const { stdout } = await execFileAsync("netstat.exe", ["-ano", "-p", "tcp"], { windowsHide: true });
+    const escapedPort = String(port).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = stdout.match(new RegExp(`^\\s*TCP\\s+\\S+:${escapedPort}\\s+\\S+\\s+LISTENING\\s+(\\d+)\\s*$`, "mi"));
+    return match ? Number(match[1]) : null;
+  } catch { return null; }
+}
+
+async function portConflict(label, host, port) {
+  const result = await checkPortAvailable(host, port);
+  if (result.available) return null;
+  const pid = await listeningPid(port);
+  return `${label} Port ${port} は別のプロセス${pid ? ` (PID ${pid})` : ""}が使用中です`;
+}
+
+async function waitForServerReady(child) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (serverProcess !== child || child.exitCode !== null) return false;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const health = await fetch(`${mainBaseUrl()}/health`, { signal: AbortSignal.timeout(500) }).then((response) => response.json()).catch(() => null);
+    if (health?.ok) return true;
+  }
+  return false;
+}
+
+async function startServer() {
   if (serverProcess) return serverStatus;
   const current = ensureRuntime();
+  const settings = publicSettings();
   serverStatus = { state: "starting", pid: null, error: null };
   publishStatus();
+  const mainConflict = await portConflict("Main", settings.mainHost, settings.mainPort);
+  const remoteConflict = settings.remoteEnabled ? await portConflict("Remote", settings.remoteHost, settings.remotePort) : null;
+  if (mainConflict || remoteConflict) {
+    serverStatus = { state: "error", pid: null, error: [mainConflict, remoteConflict].filter(Boolean).join(" / ") };
+    appendAppLog(`${new Date().toISOString()} ${serverStatus.error}\n`);
+    publishStatus();
+    return serverStatus;
+  }
   serverProcess = spawn(process.execPath, [current.serverEntry], {
     cwd: current.userData,
     windowsHide: true,
     env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_USER_GADGETS_DIR: current.userGadgetsDir },
     stdio: ["ignore", "pipe", "pipe"]
   });
-  serverStatus = { state: "running", pid: serverProcess.pid, error: null };
+  const child = serverProcess;
+  serverStatus = { state: "starting", pid: child.pid, error: null };
   serverProcess.stdout.on("data", (chunk) => appendAppLog(chunk));
   serverProcess.stderr.on("data", (chunk) => appendAppLog(chunk));
-  serverProcess.once("error", (error) => appendAppLog(`${new Date().toISOString()} spawn error: ${error.stack || error}\n`));
-  serverProcess.once("exit", (code, signal) => {
-    serverProcess = null;
-    serverStatus = { state: "stopped", pid: null, error: code && !signal ? `exit ${code}` : null };
+  serverProcess.once("error", (error) => {
+    serverStatus = { state: "error", pid: null, error: `Serverを起動できません: ${error.message}` };
+    appendAppLog(`${new Date().toISOString()} spawn error: ${error.stack || error}\n`);
     publishStatus();
   });
+  serverProcess.once("exit", (code, signal) => {
+    serverProcess = null;
+    const unexpected = serverStatus.state !== "stopping" && !quitAfterServerStops;
+    serverStatus = { state: unexpected ? "error" : "stopped", pid: null, error: unexpected ? `Serverが異常終了しました (exit ${code ?? "-"}, signal ${signal ?? "-"})` : null };
+    publishStatus();
+  });
+  publishStatus();
+  if (await waitForServerReady(child)) {
+    serverStatus = { state: "running", pid: child.pid, error: null };
+  } else if (serverProcess === child) {
+    serverStatus = { state: "error", pid: child.pid, error: "Serverの起動確認がタイムアウトしました" };
+  }
   publishStatus();
   return serverStatus;
 }
@@ -195,7 +256,7 @@ function createWindow() {
 }
 
 async function runSmokeTest() {
-  startServer();
+  await startServer();
   const baseUrl = mainBaseUrl();
   let health = null;
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -251,7 +312,17 @@ ipcMain.handle("user-gadget:install-gp-counter-display", () => {
   return { path: destination };
 });
 
+const hasSingleInstanceLock = process.argv.includes("--smoke-test") || app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+else app.on("second-instance", () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+});
+
 app.whenReady().then(async () => {
+  if (!hasSingleInstanceLock) return;
   ensureRuntime();
   if (process.argv.includes("--smoke-test")) {
     try { await runSmokeTest(); app.quit(); }
@@ -259,12 +330,13 @@ app.whenReady().then(async () => {
     return;
   }
   createWindow();
-  startServer();
+  await startServer();
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 app.on("before-quit", (event) => {
-  if (!serverProcess) return;
+  if (!serverProcess || quitAfterServerStops) return;
   event.preventDefault();
+  quitAfterServerStops = true;
   stopServer().finally(() => app.quit());
 });

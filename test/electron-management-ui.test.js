@@ -33,6 +33,11 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /fs\.realpathSync\(managedCoreDestination\)/);
   assert.match(main, /ipcMain\.handle\("user-gadget:install-gp-counter-display"/);
   assert.match(preload, /installGpCounterDisplay/);
+  assert.match(main, /app\.requestSingleInstanceLock\(\)/);
+  assert.match(main, /app\.on\("second-instance"/);
+  assert.match(main, /checkPortAvailable/);
+  assert.match(main, /netstat\.exe/);
+  assert.match(main, /waitForServerReady/);
 });
 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
@@ -58,4 +63,6 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /window\.vct\.installGpCounterDisplay\(\)/);
   assert.match(app, /"データモード"/);
   assert.match(app, /"データ保存先"/);
+  assert.match(app, /エラー: server\.error/);
+  assert.match(app, /info\.server\.state === "running" && health\?\.ok === true/);
 });

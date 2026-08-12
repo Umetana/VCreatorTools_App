@@ -9,10 +9,10 @@ let gadgetsLoaded = false;
 let refreshCycleRunning = false;
 
 function showStatus(server, health) {
-  const state = health?.ok ? "running" : server.state;
-  badge.textContent = state === "running" ? "● 稼働中" : state === "starting" ? "起動中" : "停止中";
-  badge.className = state;
-  const rows = { App: "0.1.0-dev", Server: health?.version || "-", 待受: health ? `${health.host}:${health.port}` : "-", PID: server.pid || "-", WebSocket: health?.websocketClients ?? "-", Remote: health?.features?.remote?.state || "-", "データモード": server.dataMode || "-", "データ保存先": server.dataRoot || "-" };
+  const state = server.state === "running" && health?.ok ? "running" : server.state;
+  badge.textContent = state === "running" ? "● 稼働中" : state === "starting" ? "起動中" : state === "stopping" ? "停止中…" : state === "error" ? "● 起動エラー" : "停止中";
+  badge.className = state === "error" ? "error" : state;
+  const rows = { App: "0.1.0-dev", Server: state === "running" ? health?.version || "-" : "-", 待受: state === "running" && health ? `${health.host}:${health.port}` : "-", PID: server.pid || "-", エラー: server.error || "-", WebSocket: state === "running" ? health?.websocketClients ?? "-" : "-", Remote: state === "running" ? health?.features?.remote?.state || "-" : "-", "データモード": server.dataMode || "-", "データ保存先": server.dataRoot || "-" };
   status.innerHTML = Object.entries(rows).map(([key,value]) => `<dt>${key}</dt><dd>${value}</dd>`).join("");
 }
 
@@ -20,7 +20,7 @@ async function refresh() {
   const [info, health] = await Promise.all([window.vct.info(), window.vct.health()]);
   document.getElementById("version").textContent = info.version;
   showStatus({ ...info.server, dataMode: info.dataMode, dataRoot: info.dataRoot }, health);
-  serverConnected = health?.ok === true;
+  serverConnected = info.server.state === "running" && health?.ok === true;
   return serverConnected;
 }
 
