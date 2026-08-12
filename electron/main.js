@@ -37,6 +37,7 @@ function paths() {
     configFile: path.join(userData, "server.config.json"),
     dataDir: path.join(userData, "data"),
     logsDir: path.join(userData, "logs"),
+    automationTokenFile: path.join(userData, "automation-token.txt"),
     userGadgetsDir: path.join(userData, "user_gadgets")
   };
 }
@@ -84,7 +85,14 @@ function ensureRuntime() {
     };
     fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   }
+  if (!fs.existsSync(current.automationTokenFile)) fs.writeFileSync(current.automationTokenFile, `${crypto.randomBytes(32).toString("base64url")}\n`, { encoding: "utf8", mode: 0o600 });
   return current;
+}
+
+function automationToken() {
+  const token = fs.readFileSync(ensureRuntime().automationTokenFile, "utf8").trim();
+  if (token.length < 32) throw new Error("Automation Tokenが不正です");
+  return token;
 }
 
 function readConfig() {
@@ -201,7 +209,7 @@ async function startServer() {
   serverProcess = spawn(process.execPath, [current.serverEntry], {
     cwd: current.userData,
     windowsHide: true,
-    env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_USER_GADGETS_DIR: current.userGadgetsDir },
+    env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_AUTOMATION_TOKEN: automationToken(), VCT_USER_GADGETS_DIR: current.userGadgetsDir },
     stdio: ["ignore", "pipe", "pipe"]
   });
   const child = serverProcess;
@@ -292,6 +300,18 @@ ipcMain.handle("server:health", async () => {
     const response = await fetch(`${mainBaseUrl()}/health`, { signal: AbortSignal.timeout(1500) });
     return await response.json();
   } catch { return null; }
+});
+ipcMain.handle("automation:status", () => {
+  const token = automationToken();
+  return { configured: true, hint: `末尾 ${token.slice(-6)}` };
+});
+ipcMain.handle("automation:copy-token", () => { clipboard.writeText(automationToken()); return true; });
+ipcMain.handle("automation:regenerate-token", async () => {
+  const current = ensureRuntime();
+  await stopServer();
+  fs.writeFileSync(current.automationTokenFile, `${crypto.randomBytes(32).toString("base64url")}\n`, { encoding: "utf8", mode: 0o600 });
+  await startServer();
+  return { configured: true, hint: `末尾 ${automationToken().slice(-6)}` };
 });
 ipcMain.handle("open:server-page", (_event, page) => shell.openExternal(`${mainBaseUrl()}${page === "admin" ? "/admin" : "/"}`));
 ipcMain.handle("open:path", (_event, target) => shell.openPath(paths()[target]));

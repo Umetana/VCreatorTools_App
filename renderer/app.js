@@ -85,6 +85,15 @@ async function refreshRemote() {
   }
 }
 
+async function refreshAutomation() {
+  const state = document.getElementById("automation-state");
+  try {
+    const result = await window.vct.automationStatus();
+    state.textContent = result.configured ? `設定済み（${result.hint}）` : "未設定";
+    state.className = result.configured ? "success" : "error";
+  } catch { state.textContent = "確認できません"; state.className = "error"; }
+}
+
 function renderGadgets(container, gadgets, emptyMessage) {
   container.replaceChildren();
   if (!gadgets.length) {
@@ -211,6 +220,7 @@ async function refreshCycle(forceGadgets = false) {
       return;
     }
     await refreshRemote();
+    await refreshAutomation();
     if (forceGadgets || !gadgetsLoaded) await refreshGadgets();
   } finally {
     refreshCycleRunning = false;
@@ -248,6 +258,18 @@ document.getElementById("sessions-revoke").onclick = async () => {
   if (!confirm("すべてのRemote端末をログアウトしますか？")) return;
   const result = document.getElementById("remote-result");
   try { await window.vct.revokeRemoteSessions(); result.className = "success"; result.textContent = "全Sessionを破棄しました"; await refreshRemote(); }
+  catch (error) { result.className = "error"; result.textContent = error.message; }
+};
+document.getElementById("automation-copy").onclick = async () => {
+  const result = document.getElementById("automation-result");
+  await window.vct.copyAutomationToken();
+  result.className = "success";
+  result.textContent = "Tokenをコピーしました";
+};
+document.getElementById("automation-regenerate").onclick = async () => {
+  if (!confirm("Automation Tokenを再生成しますか？ 既存の外部ツールは再設定が必要になります。")) return;
+  const result = document.getElementById("automation-result");
+  try { await window.vct.regenerateAutomationToken(); result.className = "success"; result.textContent = "再生成してServerを再起動しました"; gadgetsLoaded = false; await refreshCycle(true); }
   catch (error) { result.className = "error"; result.textContent = error.message; }
 };
 document.querySelectorAll("[data-path]").forEach((button) => { button.onclick = () => window.vct.openPath(button.dataset.path); });

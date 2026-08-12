@@ -12,6 +12,7 @@ const { createEffectTransportService } = require("./effect-transport-service");
 const { createMaroV2Service } = require("./maro-v2-service");
 const { REMOTE_DEFAULTS, normalizeRemoteConfig, createRemoteServer } = require("./remote-server");
 const { createRemoteEffectCatalogService } = require("./remote-effect-catalog-service");
+const { createAutomationService } = require("./automation-service");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
@@ -167,6 +168,7 @@ function createUnifiedServer(options = {}) {
   const bodyLimit = options.bodyLimit || process.env.BODY_LIMIT || config.bodyLimit || "256kb";
   const bridgeToken = options.bridgeToken ?? process.env.BRIDGE_TOKEN ?? "";
   const adminToken = options.adminToken ?? process.env.VCT_ADMIN_TOKEN ?? "";
+  const automationToken = options.automationToken ?? process.env.VCT_AUTOMATION_TOKEN ?? "";
   const logger = options.logger || console;
   const remoteConfig = normalizeRemoteConfig(options.remote || config.remote, { env: process.env, mainPort: port });
   const app = express();
@@ -269,6 +271,8 @@ function createUnifiedServer(options = {}) {
     : path.resolve(options.remoteEffectCatalogFile || remoteConfig.effectCatalogFile || path.join(__dirname, "data", "remote-effects.json"));
   const remoteEffectCatalog = createRemoteEffectCatalogService({ dataFile: remoteEffectCatalogFile, logger });
   remoteEffectCatalog.mount(app);
+  const automation = createAutomationService({ token: automationToken, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
+  automation.mount(app);
   const remoteSessionFile = options.remoteSessionFile === null || options.dataFile === null
     ? null
     : path.resolve(options.remoteSessionFile || remoteConfig.sessionFile || path.join(__dirname, "data", "remote-sessions.json"));
@@ -616,7 +620,7 @@ dl{display:grid;grid-template-columns:180px 1fr;gap:10px;margin:0}dt{color:#9ca3
     });
   }
 
-  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog }, start, stop, broadcast };
+  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog, automation }, start, stop, broadcast };
 }
 
 if (require.main === module) {
