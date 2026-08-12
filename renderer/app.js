@@ -38,6 +38,19 @@ function element(tag, className, text) {
   return node;
 }
 
+function normalizeCounterId(value) {
+  const input = String(value || "").trim();
+  if (/^[1-9]\d*$/.test(input)) return `counter${input}`;
+  if (/^counter[1-9]\d*$/i.test(input)) return input.toLowerCase();
+  return null;
+}
+
+function withCounterId(url, counterId) {
+  const result = new URL(url);
+  result.searchParams.set("id", counterId);
+  return result.toString();
+}
+
 async function refreshRemote() {
   const state = document.getElementById("remote-state");
   const content = document.getElementById("remote-content");
@@ -90,14 +103,52 @@ function renderGadgets(container, gadgets, emptyMessage) {
       title.append(element("strong", "", page.name), element("span", "role", page.role));
       if (page.obs) title.append(element("span", "mode", "OBS"));
       pageElement.append(title);
+      let selectedCounterId = "counter1";
+      const urlRows = [];
+      if (page.urlParameter === "counterId") {
+        const field = element("label", "counter-url-field");
+        field.append(element("span", "", "Counter ID"));
+        const input = element("input");
+        const listId = `counter-ids-${Math.random().toString(36).slice(2)}`;
+        input.setAttribute("list", listId);
+        input.value = selectedCounterId;
+        input.placeholder = "1 または counter1";
+        const list = element("datalist");
+        list.id = listId;
+        const choices = new Map(Array.from({ length: 10 }, (_, index) => [`counter${index + 1}`, ""]));
+        for (const option of page.counterOptions || []) choices.set(option.id, option.label || "");
+        for (const [id, label] of choices) {
+          const option = element("option");
+          option.value = id;
+          option.label = label;
+          list.append(option);
+        }
+        const error = element("span", "counter-url-error");
+        input.oninput = () => {
+          const normalized = normalizeCounterId(input.value);
+          error.textContent = normalized ? "" : "1以上の数字、または counter数字を入力してください";
+          if (!normalized) return;
+          selectedCounterId = normalized;
+          for (const item of urlRows) {
+            item.url = withCounterId(item.baseUrl, selectedCounterId);
+            item.code.textContent = item.url;
+          }
+        };
+        field.append(input, list, error);
+        pageElement.append(field);
+      }
       for (const mode of page.modes) {
-        const url = page.urls[mode];
+        const baseUrl = page.urls[mode];
+        const url = page.urlParameter === "counterId" ? withCounterId(baseUrl, selectedCounterId) : baseUrl;
         const row = element("div", "url-row");
-        row.append(element("span", "mode", mode), element("code", "", url));
+        const code = element("code", "", url);
+        const urlItem = { baseUrl, url, code };
+        urlRows.push(urlItem);
+        row.append(element("span", "mode", mode), code);
         const copy = element("button", "", "URLコピー");
-        copy.onclick = async () => { await window.vct.copyGadgetUrl(url); copy.textContent = "コピー済み"; setTimeout(() => { copy.textContent = "URLコピー"; }, 1200); };
+        copy.onclick = async () => { await window.vct.copyGadgetUrl(urlItem.url); copy.textContent = "コピー済み"; setTimeout(() => { copy.textContent = "URLコピー"; }, 1200); };
         const open = element("button", "", "開く");
-        open.onclick = () => window.vct.openGadgetUrl(url);
+        open.onclick = () => window.vct.openGadgetUrl(urlItem.url);
         row.append(copy, open);
         pageElement.append(row);
       }

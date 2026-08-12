@@ -381,8 +381,12 @@ function createUnifiedServer(options = {}) {
                 const role = page.role ?? (page.type === "view" ? "display" : page.type) ?? "display";
                 if (typeof role !== "string" || !allowedRoles.has(role)) throw new Error(`manifest.pages[${index}].role is unsupported`);
                 if (page.obs !== undefined && typeof page.obs !== "boolean") throw new Error(`manifest.pages[${index}].obs must be boolean`);
+                if (page.urlParameter !== undefined && page.urlParameter !== "counterId") throw new Error(`manifest.pages[${index}].urlParameter is unsupported`);
                 const urls = Object.fromEntries(modes.map((mode) => [mode, pageUrl(root, entry.name, file, mode)]));
-                return { name: page.name?.trim() || file, type: page.type ?? role, role, obs: page.obs ?? false, modes, urls, url: urls.sync ?? urls.server ?? urls.standalone };
+                const counterOptions = page.urlParameter === "counterId"
+                  ? gpCounterV2.getState().counters.map((counter) => ({ id: counter.id, label: counter.label }))
+                  : undefined;
+                return { name: page.name?.trim() || file, type: page.type ?? role, role, obs: page.obs ?? false, modes, urls, url: urls.sync ?? urls.server ?? urls.standalone, ...(page.urlParameter ? { urlParameter: page.urlParameter, counterOptions } : {}) };
               });
               if (normalizedPages.length === 0) return [];
               const rawName = manifest?.name?.trim() || `${entry.name}${manifest ? "" : " (Auto)"}`;

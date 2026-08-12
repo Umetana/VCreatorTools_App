@@ -41,6 +41,8 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
+  assert.match(app, /page\.urlParameter === "counterId"/);
+  assert.match(app, /result\.searchParams\.set\("id", counterId\)/);
   assert.match(app, /window\.vct\.remoteQr\(index\)/);
   assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root === "user_gadgets"\)/);
   assert.match(app, /gadgets\.filter\(\(gadget\) => gadget\.root !== "user_gadgets"\)/);

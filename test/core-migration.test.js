@@ -19,6 +19,13 @@ test("GP Multi Counter pilot pages load the versioned Core", () => {
   assert.match(template, /\.\.\/\.\.\/_vct_core\/gp-counter\/v2\/counter-client\.js/);
 });
 
+test("GP Multi Counter display pages expose Counter ID URL selection", () => {
+  const manifest = JSON.parse(read("public", "V_CreatorTools", "GP_multi_counter_v2", "manifest.json"));
+  const displays = manifest.pages.filter((page) => page.role === "display");
+  assert.ok(displays.length >= 2);
+  for (const page of displays) assert.equal(page.urlParameter, "counterId");
+});
+
 test("Counter consumers load Runtime and Counter SDK from the versioned Core", () => {
   for (const parts of [
     ["Total_Operations_Console_v2", "index.html"],
