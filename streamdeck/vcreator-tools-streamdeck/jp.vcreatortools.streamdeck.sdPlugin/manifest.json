@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "jp.vcreatortools.streamdeck",
+  "Name": "VCreatorTools",
+  "Description": "VCreatorToolsのCounterとScreen Effectを操作します。",
+  "Author": "Umetana / VCreatorTools",
+  "Version": "0.1.0.0",
+  "SDKVersion": 3,
+  "CodePath": "bin/plugin.js",
+  "Icon": "imgs/plugin",
+  "Category": "VCreatorTools",
+  "CategoryIcon": "imgs/category",
+  "Nodejs": { "Version": "24" },
+  "OS": [{ "Platform": "windows", "MinimumVersion": "10" }],
+  "Software": { "MinimumVersion": "7.1" },
+  "Actions": [
+    { "UUID": "jp.vcreatortools.streamdeck.counter", "Name": "Counter操作", "Icon": "imgs/counter", "PropertyInspectorPath": "ui/settings.html", "Controllers": ["Keypad"], "States": [{ "Image": "imgs/counter" }] },
+    { "UUID": "jp.vcreatortools.streamdeck.effect", "Name": "Effect実行", "Icon": "imgs/effect", "PropertyInspectorPath": "ui/settings.html", "Controllers": ["Keypad"], "States": [{ "Image": "imgs/effect" }] }
+  ]
+}
