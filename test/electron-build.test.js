@@ -41,6 +41,12 @@ test("packaged runtime separates the ASAR Server entry from unpacked static reso
   assert.match(main, /managedCoreSourceDir: path\.join\(unpackedResources/);
 });
 
+test("Electron project provides a packaged-content verifier", () => {
+  const packageDocument = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  assert.equal(packageDocument.scripts["verify:unpacked"], "node scripts/verify-electron-unpacked.js");
+  assert.ok(fs.existsSync(path.join(root, "scripts", "verify-electron-unpacked.js")));
+});
+
 test("packaged smoke test can use an isolated port", () => {
   const main = fs.readFileSync(path.join(root, "electron", "main.js"), "utf8");
   assert.match(main, /process\.env\.VCT_SMOKE_PORT/);

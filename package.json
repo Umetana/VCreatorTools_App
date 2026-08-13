@@ -14,6 +14,7 @@
     "dist:unpacked": "electron-builder --win --dir",
     "dist:installer": "electron-builder --win nsis",
     "dist:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-electron-portable.ps1",
+    "verify:unpacked": "node scripts/verify-electron-unpacked.js",
     "test": "node --test test/*.test.js",
     "check": "node --check electron/main.js && node --check electron/data-location.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js && node --check server/automation-service.js && node --check server/user-assets-service.js && node --check public/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/counter-client.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/gp-counter-server.js"
   },
