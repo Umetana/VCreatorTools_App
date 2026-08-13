@@ -14,6 +14,7 @@ class NewcomerSurroundEffect {
     apiVersion: 2,
     name: "初見歓迎！統合版（A/B切替）",
     description: "集合形式(A)とランダムぴょんぴょん(B)を切り替え可能な初見歓迎演出です。",
+    assetDisclosure: "ai-generated",
     runtime: { lifecycleOwner: "effect" },
     fields: [
       {
@@ -50,8 +51,8 @@ class NewcomerSurroundEffect {
       { name: "speechDensity", label: "セリフ出現率", type: "number", default: 0.45, min: 0, max: 1, step: 0.05 },
       { name: "speechDurationMs", label: "セリフ表示時間(ms)", type: "number", default: 1200, min: 500, max: 5000, step: 100 },
 
-      // 共通・配置設定
-      { name: "safeAreaBottomPx", label: "下の安全余白 (TypeA/B共通)", type: "number", default: 140, min: 0, max: 400, step: 10 },
+      // 配置設定（保存済み設定との互換のためキー名は維持）
+      { name: "safeAreaBottomPx", label: "A: 下からの位置(px)", type: "number", default: 140, min: 0, max: 400, step: 10 },
       { name: "safeMarginPx", label: "画面端の安全距離 (TypeB用)", type: "number", default: 40, min: 0, max: 200, step: 5 },
 
       // TypeA 固有

@@ -1,15 +1,20 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const { createUnifiedServer } = require("../server/server");
 
-test("Material Hub is listed as browser-local Web App with Sync and Server viewers", async () => {
+test("Material Hub is listed as browser-local Web App with Sync and Server viewers", async (t) => {
+  const userAssetsDir = fs.mkdtempSync(path.join(os.tmpdir(), "vct-material-assets-"));
+  t.after(() => fs.rmSync(userAssetsDir, { recursive: true, force: true }));
   const instance = createUnifiedServer({
     host: "127.0.0.1",
     port: 0,
     publicDir: path.join(__dirname, "..", "public"),
+    userAssetsDir,
     dataFile: null,
     remoteSessionFile: null,
     remoteEffectCatalogFile: null,

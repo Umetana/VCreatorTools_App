@@ -8,6 +8,7 @@ class FeatherEffect {
         apiVersion: 2,
         name: "エンジェル・フェザー",
         description: "羽根が優雅に舞い落ちるスクリーンエフェクト",
+        assetDisclosure: "ai-generated",
         fields: [
             { name: "count", label: "羽根の数", type: "number", default: 25, min: 1, max: 80, step: 1 },
             { name: "minSize", label: "最小サイズ(px)", type: "number", default: 30, min: 10, max: 100, step: 1 },

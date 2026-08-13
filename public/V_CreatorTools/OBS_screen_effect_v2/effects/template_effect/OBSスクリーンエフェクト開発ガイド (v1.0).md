@@ -61,6 +61,8 @@ API v2ではconstructorの第1引数に`EffectContext`が渡されます。`cont
 
 `context.assets.url()`にはPluginフォルダ内の相対パスだけを渡せます。絶対URL、`..`、`.`、URL scheme、query、hashは拒否されます。例: `context.assets.url('assets/image.png')`。
 
+AI生成画像などの素材を含むPluginは、Manifestへ`assetDisclosure: "ai-generated"`を宣言してください。HostはEffect選択画面で`[AI生成素材]`と表示します。Plugin名や利用者が設定するボタン名へ表記を直接埋め込む必要はありません。
+
 設定ファイルではEffect固有値を`params.options`へ保存しますが、RuntimeがPlugin境界で平坦化します。Pluginでは共通値と固有値をどちらも`params`直下から参照してください。
 
 ```javascript

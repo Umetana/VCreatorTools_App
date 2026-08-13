@@ -86,6 +86,9 @@ class EffectRegistry {
         if (manifest?.description !== undefined && !this.isText(manifest.description, 0, 1024)) {
             errors.push('descriptionは1024文字以下の文字列である必要があります');
         }
+        if (manifest?.assetDisclosure !== undefined && manifest.assetDisclosure !== 'ai-generated') {
+            errors.push('assetDisclosureはai-generatedである必要があります');
+        }
         if (!Array.isArray(manifest?.fields) || manifest.fields.length > 64) {
             errors.push('fieldsは最大64件の配列である必要があります');
         }
@@ -128,7 +131,7 @@ class EffectRegistry {
             errors.push(`${prefix}.nameは予約済みです`);
         }
         if (field.label !== undefined && !this.isText(field.label, 1, 128)) errors.push(`${prefix}.labelが不正です`);
-        if (!['boolean', 'number', 'color', 'select', 'text'].includes(field.type)) {
+        if (!['boolean', 'number', 'color', 'select', 'text', 'asset-select'].includes(field.type)) {
             errors.push(`${prefix}.typeが未対応です`);
             return errors;
         }
@@ -162,6 +165,12 @@ class EffectRegistry {
                 });
                 if (new Set(values).size !== values.length) errors.push(`${prefix}.optionsのvalueが重複しています`);
                 if (!values.includes(field.default)) errors.push(`${prefix}.defaultがoptionsに存在しません`);
+            }
+        }
+        if (field.type === 'asset-select') {
+            if (!this.isText(field.default, 0, 256)) errors.push(`${prefix}.defaultは256文字以下の文字列が必要です`);
+            if (!['/api/user-assets/v1/screen-effect/image-performance', '/api/user-assets/v1/screen-effect/money-shower'].includes(field.dataSource)) {
+                errors.push(`${prefix}.dataSourceが未対応です`);
             }
         }
         return errors;

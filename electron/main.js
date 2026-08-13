@@ -38,14 +38,15 @@ function paths() {
     dataDir: path.join(userData, "data"),
     logsDir: path.join(userData, "logs"),
     automationTokenFile: path.join(userData, "automation-token.txt"),
-    userGadgetsDir: path.join(userData, "user_gadgets")
+    userGadgetsDir: path.join(userData, "user_gadgets"),
+    userAssetsDir: path.join(userData, "user_assets")
   };
 }
 
 function ensureRuntime() {
   const current = paths();
   try {
-    for (const directory of [current.userData, current.dataDir, current.logsDir, current.userGadgetsDir]) {
+    for (const directory of [current.userData, current.dataDir, current.logsDir, current.userGadgetsDir, current.userAssetsDir]) {
       fs.mkdirSync(directory, { recursive: true });
     }
   } catch (error) {
@@ -68,6 +69,7 @@ function ensureRuntime() {
       bodyLimit: "256kb",
       publicDir: current.publicDir,
       userGadgetsDir: current.userGadgetsDir,
+      userAssetsDir: current.userAssetsDir,
       materialDataFile: path.join(current.dataDir, "material-view.json"),
       gpCounterDataFile: path.join(current.dataDir, "gp-counter.json"),
       gpCounterV2DataFile: path.join(current.dataDir, "gp-counter-v2.json"),
@@ -121,6 +123,7 @@ async function saveSettings(value) {
   config.port = mainPort;
   config.publicDir = current.publicDir;
   config.userGadgetsDir = current.userGadgetsDir;
+  config.userAssetsDir = current.userAssetsDir;
   config.remote = { ...(config.remote || {}), enabled: remoteEnabled, host: "0.0.0.0", port: remotePort };
   await stopServer();
   fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
@@ -209,7 +212,7 @@ async function startServer() {
   serverProcess = spawn(process.execPath, [current.serverEntry], {
     cwd: current.userData,
     windowsHide: true,
-    env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_AUTOMATION_TOKEN: automationToken(), VCT_USER_GADGETS_DIR: current.userGadgetsDir },
+    env: { ...process.env, PORT: process.argv.includes("--smoke-test") && process.env.VCT_SMOKE_PORT ? process.env.VCT_SMOKE_PORT : process.env.PORT, ELECTRON_RUN_AS_NODE: "1", VCT_CONFIG_FILE: current.configFile, VCT_ADMIN_TOKEN: adminToken, VCT_AUTOMATION_TOKEN: automationToken(), VCT_USER_GADGETS_DIR: current.userGadgetsDir, VCT_USER_ASSETS_DIR: current.userAssetsDir },
     stdio: ["ignore", "pipe", "pipe"]
   });
   const child = serverProcess;

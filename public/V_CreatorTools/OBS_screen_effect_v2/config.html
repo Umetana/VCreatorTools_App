@@ -402,6 +402,7 @@
 
                     <div class="button-row">
                         <button class="btn btn-primary" onclick="saveButton()">保存</button>
+                        <button class="btn btn-secondary" id="btn-duplicate" onclick="duplicateButton()">複製</button>
                         <button class="btn btn-secondary" onclick="deleteButton()">削除</button>
                         <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
                     </div>
@@ -473,13 +474,13 @@
             effectList = [...official, ...user];
 
             if (effectList.length > 0) {
-                populateEffectSelect();
+                await populateEffectSelect();
             } else {
                 // Fallback attempt for fetch
                 try {
                     const response = await fetch('./effects/list.json');
                     effectList = await response.json();
-                    populateEffectSelect();
+                    await populateEffectSelect();
                 } catch (e) {
                     console.error("Failed to load effect list via both methods", e);
                 }
@@ -487,14 +488,17 @@
             renderUI();
         }
 
-        function populateEffectSelect() {
+        async function populateEffectSelect() {
             const select = document.getElementById('edit-effect-id');
-            select.replaceChildren(...effectList.map((effect) => {
+            const options = await Promise.all(effectList.map(async (effect) => {
                 const option = document.createElement('option');
                 option.value = effect.id;
-                option.textContent = effect.name;
+                const effectClass = await core.loadEffect(effect.id);
+                const disclosure = effectClass?.manifest?.assetDisclosure === 'ai-generated' ? ' [AI生成素材]' : '';
+                option.textContent = `${effect.name}${disclosure}`;
                 return option;
             }));
+            select.replaceChildren(...options);
         }
 
         function showTab(tabId, sourceButton = null) {
@@ -640,6 +644,7 @@
         async function openModal(index) {
             currentEditingIndex = index;
             const btn = core.settings.buttons.find(b => b.gridIndex === index);
+            document.getElementById('btn-duplicate').style.display = btn ? '' : 'none';
 
             document.getElementById('modal-title').innerText = btn ? 'ボタン編集' : 'エフェクト割り当て';
             document.getElementById('edit-label').value = btn ? btn.label : '新しいボタン';
@@ -701,7 +706,7 @@
             }
 
             container.replaceChildren();
-            effectClass.manifest.fields.forEach(f => {
+            for (const f of effectClass.manifest.fields) {
                 const div = document.createElement('div');
                 div.className = 'form-group';
 
@@ -736,6 +741,9 @@
                         option.selected = item.value == val;
                         input.appendChild(option);
                     });
+                } else if (f.type === 'asset-select') {
+                    input = document.createElement('select');
+                    await populateAssetSelect(input, f, val);
                 } else {
                     input = document.createElement('input');
                     input.type = 'text';
@@ -746,7 +754,7 @@
                 input.dataset.type = f.type === 'number' ? 'number' : (f.type === 'boolean' ? 'boolean' : 'string');
                 div.append(label, input);
                 container.appendChild(div);
-            });
+            }
         }
 
         function closeModal() {
@@ -850,6 +858,33 @@
             downloadBlob('settings.js', settingsJS(), 'text/javascript');
         }
 
+        function duplicateButton() {
+            const source = core.settings.buttons.find((button) => button.gridIndex === currentEditingIndex);
+            if (!source) return;
+            const totalCells = core.settings.gridConfig.cols * core.settings.gridConfig.rows;
+            const occupied = new Set(core.settings.buttons.map((button) => button.gridIndex));
+            let targetIndex = -1;
+            for (let index = currentEditingIndex + 1; index < totalCells; index++) {
+                if (!occupied.has(index)) { targetIndex = index; break; }
+            }
+            if (targetIndex === -1) {
+                for (let index = 0; index < currentEditingIndex; index++) {
+                    if (!occupied.has(index)) { targetIndex = index; break; }
+                }
+            }
+            if (targetIndex === -1) {
+                alert('空きマスがありません。先にグリッド数を増やしてください。');
+                return;
+            }
+            const copy = JSON.parse(JSON.stringify(source));
+            copy.id = `btn_${Date.now()}`;
+            copy.label = `${source.label} コピー`;
+            copy.gridIndex = targetIndex;
+            core.saveSettings({ ...core.settings, buttons: [...core.settings.buttons, copy] });
+            closeModal();
+            renderGrid();
+        }
+
         function settingsJSON() {
             return JSON.stringify(core.settings, null, 2);
         }
@@ -935,14 +970,37 @@
         const pageParams = new URLSearchParams(location.search);
         const viewMode = pageParams.get('view');
         if (viewMode === 'dock') document.body.classList.add('dock-view');
-        if (pageParams.get('from') === 'toc-v2') {
-            const returnButton = document.getElementById('toc-return');
-            const returnParams = new URLSearchParams();
-            if (pageParams.get('vctMode') === 'server') returnParams.set('vctMode', 'server');
+        const returnButton = document.getElementById('toc-return');
+        const returnParams = new URLSearchParams();
+        if (pageParams.get('vctMode') === 'server') returnParams.set('vctMode', 'server');
+        const openedFromToc = pageParams.get('from') === 'toc-v2'
+            || /\/Total_Operations_Console_v2\/index\.html(?:[?#]|$)/.test(document.referrer);
+        if (openedFromToc) {
             returnButton.hidden = false;
             returnButton.addEventListener('click', () => {
                 location.href = `../Total_Operations_Console_v2/index.html${returnParams.size ? `?${returnParams}` : ''}`;
             });
+        }
+
+        async function populateAssetSelect(select, field, currentValue) {
+            const appendOption = (value, label) => {
+                const option = document.createElement('option');
+                option.value = value; option.textContent = label; option.selected = value === currentValue;
+                select.appendChild(option);
+            };
+            appendOption('', '画像を選択してください');
+            try {
+                const response = await fetch(field.dataSource, { cache: 'no-store' });
+                const body = response.ok ? await response.json() : null;
+                if (!body?.ok || !Array.isArray(body.assets)) throw new Error('invalid asset response');
+                body.assets.forEach((asset) => appendOption(asset.assetId, asset.label));
+                if (currentValue && !body.assets.some((asset) => asset.assetId === currentValue)) {
+                    appendOption(currentValue, `${currentValue}（現在利用不可）`);
+                }
+            } catch {
+                if (currentValue) appendOption(currentValue, `${currentValue}（Serverへ接続できません）`);
+                else select.firstElementChild.textContent = 'Serverへ接続できません';
+            }
         }
         if ('showSaveFilePicker' in window) {
             document.getElementById('btn-file-system-save').style.display = '';

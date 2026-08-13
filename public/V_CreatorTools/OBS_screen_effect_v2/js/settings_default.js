@@ -3,7 +3,7 @@ window.OBS_EFFECT_DEFAULT_SETTINGS = {
   "schemaVersion": 1,
   "masterVolume": 0.5,
   "resolution": { "width": 1920, "height": 1080 },
-  "gridConfig": { "cols": 3, "rows": 2 },
+  "gridConfig": { "cols": 3, "rows": 4 },
   "buttons": [
     {
       "id": "starter_crown",
@@ -68,6 +68,69 @@ window.OBS_EFFECT_DEFAULT_SETTINGS = {
         "duration": 7000, "volume": 0.5, "bgOpacity": 0.4,
         "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
         "options": { "roleType": "random", "waitDuration": 1500, "resultDuration": 4000 }
+      }
+    },
+    {
+      "id": "starter_particle", "label": "ハートが浮かぶ", "effectId": "particle_effect", "gridIndex": 5,
+      "params": {
+        "mainText": "THANK YOU!", "mainColor": "#ff5f8f", "fontFamily": "sans-serif", "fontSize": "100px",
+        "duration": 4500, "volume": 0.5, "bgOpacity": 0,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "shape": "heart", "motion": "rise", "emission": "continuous", "spawnArea": "screen", "count": 40, "minSize": 24, "maxSize": 54, "travelTimeMs": 3500, "swayPx": 60, "rotation": 180, "useMainColor": false }
+      }
+    },
+    {
+      "id": "starter_confetti", "label": "紙吹雪", "effectId": "confetti_effect", "gridIndex": 6,
+      "params": {
+        "mainText": "CONGRATULATIONS!", "mainColor": "#ffffff", "fontFamily": "sans-serif", "fontSize": "100px",
+        "duration": 5200, "volume": 0.5, "bgOpacity": 0,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "count": 120, "emission": "burst", "fallTimeMs": 4500, "windPx": 140, "swayPx": 70, "minSize": 8, "maxSize": 18, "palette": "party" }
+      }
+    },
+    {
+      "id": "starter_impact", "label": "インパクト", "effectId": "impact_effect", "gridIndex": 7,
+      "params": {
+        "mainText": "IMPACT!", "mainColor": "#ffd84d", "fontFamily": "sans-serif", "fontSize": "140px",
+        "duration": 1800, "volume": 0.5, "bgOpacity": 0.15,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "showRays": true, "showShockwave": true, "showFlash": true, "rayCount": 32, "shockwaveCount": 3, "intensity": 1 }
+      }
+    },
+    {
+      "id": "starter_alert", "label": "警報", "effectId": "alert_effect", "gridIndex": 8,
+      "params": {
+        "mainText": "WARNING!", "mainColor": "#ff3030", "fontFamily": "sans-serif", "fontSize": "120px",
+        "duration": 3500, "volume": 0.5, "bgOpacity": 0.1,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "showBands": true, "showFlash": true, "beaconPlacement": "top", "rotationTimeMs": 1200, "pulseTimeMs": 650, "intensity": 1 }
+      }
+    },
+    {
+      "id": "starter_spotlight", "label": "スポットライト", "effectId": "spotlight_effect", "gridIndex": 9,
+      "params": {
+        "mainText": "YOU ARE THE STAR!", "mainColor": "#fff3b0", "fontFamily": "sans-serif", "fontSize": "110px",
+        "duration": 4200, "volume": 0.5, "bgOpacity": 0,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "mode": "focus", "position": "center", "targetX": 50, "targetY": 50, "shape": "ellipse", "spotSize": 28, "darkness": 0.72, "textPosition": "spot", "showDust": true, "dustCount": 24 }
+      }
+    },
+    {
+      "id": "starter_image_performance", "label": "画像パフォーマンス", "effectId": "image_performance_effect", "gridIndex": 10,
+      "params": {
+        "mainText": "", "mainColor": "#ffffff", "fontFamily": "sans-serif", "fontSize": "100px",
+        "duration": 3500, "volume": 0.5, "bgOpacity": 0,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "assetId": "", "motion": "cutin", "position": "center", "targetX": 50, "targetY": 50, "imageSize": 45, "direction": "left", "cutinExit": "fade", "shakePx": 16, "count": 28, "minSize": 50, "maxSize": 130, "fallTimeMs": 3800 }
+      }
+    },
+    {
+      "id": "starter_money_shower", "label": "Money Shower", "effectId": "money_shower_effect", "gridIndex": 11,
+      "params": {
+        "mainText": "", "mainColor": "#ffffff", "fontFamily": "sans-serif", "fontSize": "100px",
+        "duration": 5200, "volume": 0.5, "bgOpacity": 0,
+        "trigger": { "type": "none", "linkedId": "counter1", "value": 1 },
+        "options": { "material": "mixed", "usePortrait": false, "portraitAssetId": "", "portraitTone": "auto", "count": 42, "minSize": 80, "maxSize": 170, "fallTimeMs": 4300, "swayPx": 130, "rotationTurns": 3, "coinBounce": true, "billBounce": false }
       }
     }
   ]

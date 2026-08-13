@@ -1,0 +1,12 @@
+.fx-alert-root{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:96;display:grid;place-items:center;color:var(--fx-alert-color);isolation:isolate;animation:fx-alert-life var(--fx-alert-duration) linear both}
+.fx-alert-flash{position:absolute;inset:0;background:var(--fx-alert-color);mix-blend-mode:screen;animation:fx-alert-flash var(--fx-alert-pulse) steps(2,end) infinite;opacity:calc(.18*var(--fx-alert-intensity))}
+.fx-alert-band{position:absolute;left:-8%;width:116%;height:9vh;min-height:56px;max-height:110px;background:repeating-linear-gradient(135deg,#111 0 34px,var(--fx-alert-color) 34px 68px);border-block:4px solid var(--fx-alert-color);box-shadow:0 0 20px var(--fx-alert-color);animation:fx-alert-band-scroll 1.2s linear infinite}
+.fx-alert-band-top{top:8%}.fx-alert-band-bottom{bottom:8%;transform:rotate(180deg)}
+.fx-alert-beacon{position:absolute;width:75vmax;height:75vmax;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 39%,var(--fx-alert-color) 45% 51%,transparent 58% 100%);filter:blur(16px);mix-blend-mode:screen;opacity:calc(.48*var(--fx-alert-intensity));animation:fx-alert-beacon var(--fx-alert-rotation) linear infinite;transform-origin:center}
+.fx-alert-beacon.is-top-left{left:-50vmax;top:-53vmax}.fx-alert-beacon.is-top-right{right:-50vmax;top:-53vmax;animation-direction:reverse}.fx-alert-beacon.is-bottom-left{left:-50vmax;bottom:-53vmax;animation-direction:reverse}.fx-alert-beacon.is-bottom-right{right:-50vmax;bottom:-53vmax}
+.fx-alert-text{position:relative;z-index:3;max-width:86vw;padding:.18em .5em;text-align:center;font-weight:1000;line-height:1.05;overflow-wrap:anywhere;color:#fff;background:rgba(0,0,0,.72);border:5px solid var(--fx-alert-color);box-shadow:0 0 calc(28px*var(--fx-alert-intensity)) var(--fx-alert-color),inset 0 0 18px rgba(0,0,0,.8);text-shadow:0 3px 0 #000,0 0 14px var(--fx-alert-color);animation:fx-alert-text var(--fx-alert-pulse) steps(2,end) infinite}
+@keyframes fx-alert-life{0%,100%{opacity:0}5%,92%{opacity:1}}
+@keyframes fx-alert-flash{0%{opacity:calc(.22*var(--fx-alert-intensity))}50%{opacity:.02}}
+@keyframes fx-alert-band-scroll{to{background-position:96px 0}}
+@keyframes fx-alert-beacon{to{transform:rotate(360deg)}}
+@keyframes fx-alert-text{0%{filter:brightness(1.5);transform:scale(1.02)}50%{filter:brightness(.82);transform:scale(1)}}

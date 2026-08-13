@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const { createUnifiedServer } = require("../server/server");
@@ -9,9 +11,11 @@ function counter(id, count = 0) {
   return { id, label: id, count, unit: "回", goalCount: 10, showGoal: true, bgColor: "#000", borderColor: "#fff", textColor: "#fff", labelSize: "20px", countSize: "36px", isBold: true, isShadow: false, fontFamily: "sans-serif" };
 }
 
-test("Local Automation API requires its dedicated token and exposes scoped actions", async () => {
+test("Local Automation API requires its dedicated token and exposes scoped actions", async (t) => {
   const token = "automation-test-token-1234567890";
-  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), dataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, automationToken: token, remote: { enabled: false }, logger: { info() {}, error() {} } });
+  const userAssetsDir = fs.mkdtempSync(path.join(os.tmpdir(), "vct-automation-assets-"));
+  t.after(() => fs.rmSync(userAssetsDir, { recursive: true, force: true }));
+  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userAssetsDir, dataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, automationToken: token, remote: { enabled: false }, logger: { info() {}, error() {} } });
   try {
     await instance.start();
     const base = `http://127.0.0.1:${instance.server.address().port}`;

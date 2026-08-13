@@ -3,6 +3,7 @@
   "port": 3000,
   "bodyLimit": "256kb",
   "publicDir": "public",
+  "userAssetsDir": null,
   "materialDataFile": "data/material-view.json",
   "gpCounterDataFile": "data/gp-counter.json",
   "gpCounterV2DataFile": "data/gp-counter-v2.json",

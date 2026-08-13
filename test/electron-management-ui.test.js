@@ -16,6 +16,7 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /url\.origin !== mainBaseUrl\(\)/);
   assert.match(main, /"X-VCT-Admin-Token": adminToken/);
   assert.match(main, /VCT_USER_GADGETS_DIR: current\.userGadgetsDir/);
+  assert.match(main, /VCT_USER_ASSETS_DIR: current\.userAssetsDir/);
   for (const channel of ["gadgets:list", "gadget:copy", "gadget:open", "remote:status", "remote:pairing-regenerate", "remote:sessions-revoke-all", "remote:qr"]) {
     assert.match(main, new RegExp(`ipcMain\\.handle\\("${channel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   }
@@ -30,6 +31,7 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /resolveDataLocation/);
   assert.match(main, /dataMode: dataLocation\.mode/);
   assert.match(main, /path\.join\(current\.userGadgetsDir, "_vct_core"\)/);
+  assert.match(main, /userAssetsDir: path\.join\(userData, "user_assets"\)/);
   assert.match(main, /fs\.realpathSync\(managedCoreDestination\)/);
   assert.match(main, /ipcMain\.handle\("user-gadget:install-gp-counter-display"/);
   assert.match(preload, /installGpCounterDisplay/);
@@ -48,6 +50,7 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
   for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "automation-state", "automation-copy", "automation-regenerate", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /data-path="userAssetsDir"/);
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
   assert.match(app, /page\.urlParameter === "counterId"/);

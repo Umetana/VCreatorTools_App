@@ -49,7 +49,7 @@ test("user gadgets require a manifest and Remote management stays admin-only", a
   fs.writeFileSync(path.join(valid, "manifest.json"), JSON.stringify({ schemaVersion: 1, version: "1.0.0", name: "User Sample", status: "release", modes: ["sync"], pages: [{ name: "Sample", file: "index.html", role: "display", obs: true, modes: ["sync"] }] }));
   fs.writeFileSync(path.join(missingManifest, "index.html"), "<!doctype html><title>Hidden</title>");
   const adminToken = "test-admin-token";
-  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userGadgetsDir: temporary, adminToken, dataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, remote: { enabled: false }, logger: { info() {}, error() {} } });
+  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userGadgetsDir: temporary, userAssetsDir: path.join(temporary, "user_assets"), adminToken, dataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, remote: { enabled: false }, logger: { info() {}, error() {} } });
   try {
     const address = await instance.start();
     const base = `http://127.0.0.1:${address.port}`;

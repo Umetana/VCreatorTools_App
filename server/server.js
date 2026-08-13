@@ -13,6 +13,7 @@ const { createMaroV2Service } = require("./maro-v2-service");
 const { REMOTE_DEFAULTS, normalizeRemoteConfig, createRemoteServer } = require("./remote-server");
 const { createRemoteEffectCatalogService } = require("./remote-effect-catalog-service");
 const { createAutomationService } = require("./automation-service");
+const { createUserAssetsService } = require("./user-assets-service");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
@@ -31,6 +32,7 @@ function loadConfig(configFile = path.join(__dirname, "server.config.json")) {
     bodyLimit: "256kb",
     publicDir: "public",
     userGadgetsDir: null,
+    userAssetsDir: null,
     materialDataFile: "data/material-view.json",
     gpCounterDataFile: "data/gp-counter.json",
     gpCounterV2DataFile: "data/gp-counter-v2.json",
@@ -153,6 +155,8 @@ function createUnifiedServer(options = {}) {
   const configuredUserGadgetsDir = options.userGadgetsDir ?? process.env.VCT_USER_GADGETS_DIR ?? config.userGadgetsDir;
   const userGadgetsDir = configuredUserGadgetsDir ? path.resolve(configuredUserGadgetsDir) : null;
   const userGadgetsAvailable = Boolean(userGadgetsDir && fs.existsSync(userGadgetsDir) && fs.statSync(userGadgetsDir).isDirectory());
+  const configuredUserAssetsDir = options.userAssetsDir ?? process.env.VCT_USER_ASSETS_DIR ?? config.userAssetsDir;
+  const userAssetsDir = path.resolve(configuredUserAssetsDir || path.join(__dirname, "user_assets"));
   const dataFile = options.dataFile === null
     ? null
     : path.resolve(options.dataFile || process.env.MATERIAL_DATA_FILE || config.materialDataFile || path.join(__dirname, "data", "material-view.json"));
@@ -271,6 +275,8 @@ function createUnifiedServer(options = {}) {
     : path.resolve(options.remoteEffectCatalogFile || remoteConfig.effectCatalogFile || path.join(__dirname, "data", "remote-effects.json"));
   const remoteEffectCatalog = createRemoteEffectCatalogService({ dataFile: remoteEffectCatalogFile, logger });
   remoteEffectCatalog.mount(app);
+  const userAssets = createUserAssetsService({ rootDirectory: userAssetsDir, logger });
+  userAssets.mount(app);
   const automation = createAutomationService({ token: automationToken, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
   automation.mount(app);
   const remoteSessionFile = options.remoteSessionFile === null || options.dataFile === null
@@ -503,7 +509,7 @@ function createUnifiedServer(options = {}) {
     counters: { ...counters },
     acceptedSchema: BRIDGE_SCHEMA,
     acceptedEventTypes: [...ALLOWED_EVENT_TYPES],
-    features: { static: true, gadgets: true, userGadgets: userGadgetsAvailable, websocket: true, bridge: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
+    features: { static: true, gadgets: true, userGadgets: userGadgetsAvailable, userAssets: true, websocket: true, bridge: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
     };
   }
 
@@ -620,7 +626,7 @@ dl{display:grid;grid-template-columns:180px 1fr;gap:10px;margin:0}dt{color:#9ca3
     });
   }
 
-  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog, automation }, start, stop, broadcast };
+  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog, automation, userAssets }, start, stop, broadcast };
 }
 
 if (require.main === module) {

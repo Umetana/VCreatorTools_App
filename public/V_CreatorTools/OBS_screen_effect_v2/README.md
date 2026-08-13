@@ -4,6 +4,8 @@
 
 本ガジェットのコードおよび同梱画像素材はMIT Licenseで公開します。画像素材はDALL-E 3で生成した画像を元に、公開者が分解、透過処理、Clip Studio Paintによる加工を行ったものです。
 
+設定画面で`[AI生成素材]`と表示されるEffectには、AIで生成後に加工した画像素材が含まれます。AI生成素材を使用したくない場合は、この表示がないEffectを選択してください。
+
 公開者は、公開者が保有または許諾できる範囲の権利について、MIT Licenseの条件で自由な利用、改変、再配布等を許諾する意思を示します。AI生成物に関する権利の成立や解釈は国・地域によって異なり得るため、特定地域における権利の有効性を保証するものではありません。
 
 OBSブラウザーソースへ演出を表示し、Controller、Total Operations Console V2、GP Multi Counter V2から発火できるスクリーンエフェクト基盤です。V1は未公開の開発版だったため、V2を最初の正式版とします。
@@ -14,7 +16,7 @@ OBSブラウザーソースへ演出を表示し、Controller、Total Operations
 - `controller.html`: 手動発火パネル
 - `config.html`: ブラウザー／OBS共通の設定画面
 - `config_obs.html`: OBS Dock向け設定入口。統合Configへ転送
-- `effect_editor.html`: 将来検討用の開発補助。通常の設定UIからは非表示
+- `effect_editor.html`: Effect一覧の編集補助
 
 ## 基本的な使い方
 
@@ -24,7 +26,11 @@ OBSブラウザーソースへ演出を表示し、Controller、Total Operations
 4. OBSブラウザーソースへ`index.html`を追加します。
 5. `controller.html`またはTotal Operations Console V2から発火します。
 
-同梱初期設定には公式5演出が登録されています。Counterによる自動発火はすべて無効です。
+同梱初期設定には公式演出が登録されています。Counterによる自動発火はすべて無効です。汎用パーティクルは同じPluginを複数ボタンへ登録し、素材・移動・発生方式を個別保存して使い分けられます。紙吹雪は3D反転や風を持つ専用Pluginです。設定済みボタンは編集画面の「複製」から空きマスへコピーできます。
+
+画像パフォーマンスは開発Server専用です。`user_assets/screen_effect_v2/image_performance`へPNG画像を置き、Server起動中の設定画面から画像を選択します。設定には画像URLではなくファイル名の`assetId`を保存し、発火時にServerの一覧APIで再検証します。ローカルファイル直開きでは利用できません。
+
+Money ShowerはAI生成の金貨・紙幣素材を使用します。肖像を合成する場合は`user_assets/screen_effect_v2/money_shower`へPNG画像を置き、Server起動中の設定画面から選択します。肖像なしなら固定素材だけで動作します。
 
 ## 設定の優先順位
 
@@ -60,9 +66,9 @@ GP Multi Counter V2のSnapshotは初期状態としてのみ扱い、演出を�
 
 ## Plugin開発
 
-第三者製Effectの追加・配布・自動導入は現行リリースの対応範囲外です。既存のEditorとPluginコードは将来検討用に保持しますが、通常の設定UIには追加入口を表示しません。
-
 Plugin APIはv2のみ対応します。テンプレートと開発契約は`effects/template_effect/`にあります。
+
+第三者製Effectの追加・配布・自動導入は現行リリースの対応範囲外です。関連コードは将来検討用に残していますが、設定画面の導線は非表示にしています。
 
 - Effect ID、フォルダ名、`REGISTERED_EFFECTS`のキーを一致させる
 - `new EffectClass(context, params)`で生成される

@@ -6,6 +6,7 @@ class MahjongDrawEffect {
         apiVersion: 2,
         name: "麻雀ツモ演出",
         description: "リーチからツモまでの緊張感を再現するエフェクト",
+        assetDisclosure: "ai-generated",
         runtime: { lifecycleOwner: "effect" },
         fields: [
             {

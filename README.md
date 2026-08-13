@@ -9,9 +9,11 @@ npm install
 npm start
 ```
 
-初回起動時にElectronのuserData配下へ`server.config.json`、`data/`、`logs/`、`user_gadgets/`を作成します。
+初回起動時にElectronのuserData配下へ`server.config.json`、`data/`、`logs/`、`user_gadgets/`、`user_assets/`を作成します。
 
 `user_gadgets/`は`http://127.0.0.1:<Main Port>/user_gadgets/<folder>/...`へ静的配信します。一覧掲載には検証可能な`manifest.json`が必要で、公式ツールと区別して`User`と表示します。Electron運用中のRemote管理Endpointは起動ごとの管理Tokenで保護され、持ち込みページや通常ブラウザーへPairing codeとSession情報を公開しません。
+
+`user_assets/`はServer専用Effectが使う利用者画像の保存領域です。画像パフォーマンスは`screen_effect_v2/image_performance/`、Money Showerの肖像は`screen_effect_v2/money_shower/`へPNGを置きます。Main Serverだけが検証済み画像を配信し、Remote Serverからは公開しません。
 
 公式単品版・統合版・ユーザーガジェットで共通利用できるversion付き`_vct_core`への構造移行方針は`CORE_MIGRATION.md`を参照してください。GP Multi CounterをPilotとし、Screen Effectの第三者Plugin対応は保留します。
 
