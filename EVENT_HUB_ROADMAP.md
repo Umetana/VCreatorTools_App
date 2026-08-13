@@ -1,0 +1,82 @@
+# VCT Event Hub 導入計画
+
+Status: 1.0.0必須・段階導入
+
+## 配置と責務
+
+Event HubはElectron内蔵Serverの常駐サービスとして実装する。TOC2はRuleの編集・有効化・状態確認を担当し、ブラウザーを閉じても判定処理はServerで継続する。
+
+```text
+Ms.Bridge → Event Hub → 既存Action Service → Counter / Screen Effect
+                         ↑
+               TOC2 / Remote / Stream Deck
+```
+
+Event Hub自身はCounter状態更新やEffect描画を実装しない。既存の`gpCounterV2`と`effectTransport`を内部Actionとして呼び出す。Local Automation APIのHTTP endpointへ自己接続せず、同じService層を共有する。
+
+## 初期契約
+
+- 入力：検証済み`msbridge.event.v1`の`comment`と`meta`
+- Rule：1 Event／1 Condition／1 Action
+- Action：Counterのincrement、decrement、reset、set、および登録済みEffect Buttonの発火
+- Effect：Remote Effect Catalogと同様に登録済みButtonだけを参照し、任意paramsをRuleへ保存しない
+- 保存：`data/event-hub-v1.json`
+- Rule schema：`vct.event-hub.rules.v1`
+- 実行ログ：通常ログへRule ID、Event識別子、Action結果を記録する。コメント本文や利用者名を恒久保存しない
+
+## beta.2 — Server MVP
+
+- Rule repository、schema検証、revisionによる競合防止
+- 有効／無効、Event field、operator、比較値、Action target
+- Bridge検証成功後にEvent Hubへ渡す内部購読点
+- Counter／Effect Action adapter
+- Commentの重複防止
+- Meta数値条件のエッジ発火
+- APIによる一覧、置換、診断、テスト実行
+- 単体・統合テスト
+
+この段階の操作UIは診断用に限定し、TOC2の本格UIは次段階とする。
+
+## beta.3 — TOC2 UIと運用調整
+
+- Event、Condition、Actionを1行で編集できるRule UI
+- Counter一覧とEffect Catalogからの選択
+- Ruleの複製、有効／無効、削除
+- JSON Import／Export
+- 最終一致時刻、最終実行結果、エラー表示
+- Bridge再接続、Server再起動、設定更新中の挙動確認
+- OBS、Chrome、Remote、Stream Deckとの同時運用試験
+
+## RC — 契約固定
+
+- 保存schemaの移行試験
+- Backup／復元手順
+- 長時間稼働と大量コメント時の負荷試験
+- Rate limit、失敗時の再実行方針、ログ上限の確定
+- 旧TOC2ワード監視設定が存在する場合の扱いを確定
+
+## 発火意味論
+
+### Comment
+
+1つのBridge Eventにつき、各Ruleは最大1回だけ評価・実行する。`raw.id`等の安定IDを優先し、なければEventのsequenceと受信情報から短期dedupe keyを作る。再接続による同一コメント再送でActionを重複させない。
+
+### Meta
+
+`viewer >= 100`のような条件は、未一致から一致へ変化した瞬間だけ発火する。同じ条件を満たすMetaが継続して届いても連続発火しない。一度未一致へ戻った後の再到達は再発火できる。
+
+### 設定変更と再起動
+
+Rule追加・編集直後の現在値評価ではActionを発火しない。Server再起動後の最初のMetaはbaselineとして扱い、次の変化から判定する。Commentは受信した新規Eventだけを対象とする。
+
+## 初期版で行わないこと
+
+- AND／ORを含む複合条件
+- 複数ActionのChain
+- 遅延ActionやSchedule
+- 任意JavaScript、正規表現
+- Event Hubからのわんコメ直接購読
+- 公開Shared APIからのRule変更
+- RemoteやStream DeckからのRule編集
+
+必要性が確認されるまで汎用Automation Engineへ拡張しない。

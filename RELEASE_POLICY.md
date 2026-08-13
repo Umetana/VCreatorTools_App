@@ -35,6 +35,7 @@ dev／betaでは、実運用前のBackupと既知事項の確認を利用者へ�
 - 管理API、Remote、Pairing、認証、File操作とのアクセス境界を検証
 - Local Automation APIと専用Token
 - Counter／Effectを対象とするStream Deck Plugin
+- Bridgeのcomment／metaを既存Actionへ接続するVCT Event Hub
 - Windows配布Build、Installer、更新・移行方針
 - Chrome、OBS、スマートフォンRemote、Stream Deckを含む実環境試験
 - License、第三者依存、正式素材、配布内容の最終監査
@@ -51,6 +52,16 @@ dev／betaでは、実運用前のBackupと既知事項の確認を利用者へ�
 6. dev配布Buildによる継続テスト
 7. Local Automation APIとStream Deck Plugin
 8. beta公開、移行・更新・互換性試験
-9. 1.0.0の公開判定
+9. VCT Event Hubの段階導入と実運用試験
+10. 1.0.0の公開判定
 
 段階ごとに動作確認とCommitを行い、後続機能を先行段階の必須条件にはしない。ただしstable 1.0.0の判定では全公開条件を満たす。
+
+## beta系列の目安
+
+- `0.1.0-beta.1`: Electron配布、Server管理、公式ツール、Remote、Stream Deck、ユーザー領域の基準版
+- `0.2.0-beta.1`: Event Hub Server MVP。Rule保存、Bridge入力、Counter／Effect Action、監査ログ
+- `0.3.0-beta.1`: TOC2 Event Hub設定UI、Import／Export、重複・再接続・閾値運用の実環境調整
+- `1.0.0-rc.1`: 保存schemaとAction契約を固定し、更新・復元・長時間稼働を検証
+
+Event Hubは現行`0.1.0-beta.1`へ差し込まず、安定した基準版との比較が可能な次minor betaから導入する。
