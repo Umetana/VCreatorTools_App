@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/plugin.ts --bundle --platform=node --format=cjs --target=node24 --sourcemap --outfile=jp.vcreatortools.streamdeck.sdPlugin/bin/plugin.cjs",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "package": "npm run check && npm run build && streamdeck validate jp.vcreatortools.streamdeck.sdPlugin --no-update-check && streamdeck pack jp.vcreatortools.streamdeck.sdPlugin --force --no-update-check --no-file-list --output ../../dist/electron"
   },
   "dependencies": {
     "@elgato/streamdeck": "2.1.1"
