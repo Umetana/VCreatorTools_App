@@ -108,8 +108,11 @@ test("release Screen Effect settings hide the unsupported third-party editor ent
 test("TOC separates Server WebSocket connectivity from Bridge event reception", () => {
   const html = read("public", "V_CreatorTools", "Total_Operations_Console_v2", "index.html");
   const script = read("public", "V_CreatorTools", "Total_Operations_Console_v2", "toc.js");
+  const style = read("public", "V_CreatorTools", "Total_Operations_Console_v2", "toc.css");
   assert.match(html, /id="server-ws-badge"/);
   assert.match(html, /id="bridge-badge"/);
   assert.match(script, /setServerWsStatus/);
   assert.match(script, /setBridgeReception/);
+  assert.match(style, /--warn:#facc15/);
+  assert.match(style, /\.badge\.waiting\{color:var\(--warn\)/);
 });
