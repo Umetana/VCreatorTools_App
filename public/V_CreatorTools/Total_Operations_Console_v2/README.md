@@ -14,10 +14,13 @@ V2世代のVCreatorToolsを操作・観測する独立Console。
   - `effect.trigger`による手動発火
   - `settings.updated`への追従
 - Ms.Bridge Monitor
+  - Server WebSocket接続とBridgeイベント受信実績を別表示
   - `msbridge.event.v1`の`comment`／`meta`をWebSocketで観測
   - Platform、同時視聴者、高評価、登録者、最終更新時刻
   - 最新コメント、監視ワード一致履歴
   - Bridge Server URLの保存と再接続
+
+上部の`Server WS`は`/events`へのWebSocket接続状態を示す。`Bridge`は現在のWebSocket接続後に`comment`または`meta`を受信した実績を示し、時間によるタイムアウト判定は行わない。最終受信時刻とevent typeはBridgeタブへ表示する。
 - System
   - Mode、origin、Storage、BroadcastChannel、Server診断
   - 簡易イベントログ

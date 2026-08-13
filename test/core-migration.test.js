@@ -104,3 +104,12 @@ test("release Screen Effect settings hide the unsupported third-party editor ent
   assert.match(config, /location\.href='effect_editor\.html'/);
   assert.match(documentation, /第三者製Effectの追加・配布・自動導入は現行リリースの対応範囲外/);
 });
+
+test("TOC separates Server WebSocket connectivity from Bridge event reception", () => {
+  const html = read("public", "V_CreatorTools", "Total_Operations_Console_v2", "index.html");
+  const script = read("public", "V_CreatorTools", "Total_Operations_Console_v2", "toc.js");
+  assert.match(html, /id="server-ws-badge"/);
+  assert.match(html, /id="bridge-badge"/);
+  assert.match(script, /setServerWsStatus/);
+  assert.match(script, /setBridgeReception/);
+});

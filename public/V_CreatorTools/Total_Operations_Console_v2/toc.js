@@ -178,7 +178,7 @@
       subscribers: first(normalized.subscriberCount, normalized.subscribers, data.subscriberCount, data.subscribers)
     };
     $('meta-platform').textContent = formatMeta(meta.platform); $('meta-viewers').textContent = formatMeta(meta.viewers); $('meta-likes').textContent = formatMeta(meta.likes); $('meta-subscribers').textContent = formatMeta(meta.subscribers);
-    $('meta-updated').textContent = `最終更新 ${new Date().toLocaleTimeString()}`; addLog(`bridge meta ${meta.platform}`);
+    addLog(`bridge meta ${meta.platform}`);
   }
   function handleComment(event) {
     const comment = commentData(event); if (!comment.text) return;
@@ -188,19 +188,26 @@
   }
   function receiveBridge(event) {
     if (!event || event.schema !== 'msbridge.event.v1') return;
-    if (event.eventType === 'meta') handleMeta(event); else if (event.eventType === 'comment') handleComment(event);
+    if (event.eventType !== 'meta' && event.eventType !== 'comment') return;
+    setBridgeReception(true, event.eventType);
+    if (event.eventType === 'meta') handleMeta(event); else handleComment(event);
   }
 
   function toWebSocketUrl(httpUrl) { const url = new URL(httpUrl); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'; url.pathname = '/events'; url.search = ''; url.hash = ''; return url.href; }
-  function setBridgeStatus(online, text) { const badge = $('bridge-badge'); badge.className = `badge ${online ? 'online' : 'offline'}`; badge.textContent = text; }
+  function setServerWsStatus(online, text) { const badge = $('server-ws-badge'); badge.className = `badge ${online ? 'online' : 'offline'}`; badge.textContent = text; }
+  function setBridgeReception(received, eventType = '') {
+    const badge = $('bridge-badge'); badge.className = `badge ${received ? 'online' : 'waiting'}`; badge.textContent = received ? 'Bridge 受信あり' : 'Bridge 受信待ち';
+    if (received) $('meta-updated').textContent = `最終受信：${new Date().toLocaleTimeString()}（${eventType}）`;
+  }
   function connectBridge() {
     clearTimeout(reconnectTimer); bridgeSocket?.close();
-    try { bridgeSocket = new WebSocket(toWebSocketUrl($('bridge-url').value)); } catch (error) { setBridgeStatus(false, 'Bridge URL不正'); return; }
+    setServerWsStatus(false, 'Server WS 接続中...'); setBridgeReception(false);
+    try { bridgeSocket = new WebSocket(toWebSocketUrl($('bridge-url').value)); } catch (error) { setServerWsStatus(false, 'Server WS URL不正'); return; }
     const socket = bridgeSocket;
-    socket.addEventListener('open', () => { if (bridgeSocket !== socket) return; setBridgeStatus(true, 'Bridge 接続中'); addLog('bridge connected'); });
+    socket.addEventListener('open', () => { if (bridgeSocket !== socket) return; setServerWsStatus(true, 'Server WS 接続中'); addLog('server websocket connected'); });
     socket.addEventListener('message', event => { if (bridgeSocket !== socket) return; try { receiveBridge(JSON.parse(event.data)); } catch { /* multiplexed invalid data is ignored */ } });
-    socket.addEventListener('close', () => { if (bridgeSocket !== socket) return; setBridgeStatus(false, 'Bridge 切断'); reconnectTimer = setTimeout(connectBridge, 5000); });
-    socket.addEventListener('error', () => { if (bridgeSocket === socket) setBridgeStatus(false, 'Bridge 接続エラー'); });
+    socket.addEventListener('close', () => { if (bridgeSocket !== socket) return; setServerWsStatus(false, 'Server WS 切断'); setBridgeReception(false); reconnectTimer = setTimeout(connectBridge, 5000); });
+    socket.addEventListener('error', () => { if (bridgeSocket === socket) setServerWsStatus(false, 'Server WS 接続エラー'); });
   }
 
   async function initialBridgeUrl() {

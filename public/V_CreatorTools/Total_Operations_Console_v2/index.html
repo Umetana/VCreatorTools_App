@@ -9,7 +9,10 @@
 <body>
 <header>
   <div><h1>Total Operations Console V2</h1><div id="summary" class="muted">初期化中...</div></div>
-  <span id="bridge-badge" class="badge offline">Bridge 未接続</span>
+  <div class="status-badges" aria-label="接続状態">
+    <span id="server-ws-badge" class="badge offline">Server WS 接続前</span>
+    <span id="bridge-badge" class="badge waiting">Bridge 受信待ち</span>
+  </div>
 </header>
 <nav aria-label="機能">
   <button class="tab active" data-tab="counter">🔢 Counter</button>
@@ -51,7 +54,7 @@
       <article><span>Likes</span><strong id="meta-likes">---</strong></article>
       <article><span>Subscribers</span><strong id="meta-subscribers">---</strong></article>
     </div>
-    <div id="meta-updated" class="muted meta-updated">まだmetaを受信していません</div>
+    <div id="meta-updated" class="muted meta-updated">最終受信：---</div>
     <label class="field">監視ワード（空白・カンマ区切り）
       <input id="word-rules" type="text" placeholder="例: おめでとう, ナイス GG">
     </label>
