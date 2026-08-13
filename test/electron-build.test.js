@@ -14,6 +14,9 @@ test("Electron build includes Server, public tools and user gadget templates", (
   assert.equal(packageDocument.build.asar, true);
   assert.ok(packageDocument.build.files.includes("build/**/*"));
   assert.ok(packageDocument.build.files.includes("AUTOMATION_API.md"));
+  for (const requiredFile of packageDocument.build.files.filter((entry) => !entry.includes("*"))) {
+    assert.ok(fs.existsSync(path.join(root, requiredFile)), `missing build file: ${requiredFile}`);
+  }
   for (const required of ["server/**/*", "public/**/*", "templates/**/*"]) {
     assert.ok(packageDocument.build.files.includes(required));
     assert.ok(packageDocument.build.asarUnpack.includes(required));

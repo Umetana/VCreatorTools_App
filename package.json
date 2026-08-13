@@ -50,7 +50,8 @@
       "README.md",
       "AUTOMATION_API.md",
       "USER_GUIDE.md",
-      "THIRD_PARTY_NOTICES.md"
+      "THIRD_PARTY_NOTICES.md",
+      "THIRD_PARTY_LICENSES.txt"
     ],
     "win": {
       "target": ["nsis"],
