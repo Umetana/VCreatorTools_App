@@ -4,12 +4,12 @@ Status: 1.0.0必須・段階導入
 
 ## 配置と責務
 
-Event HubはElectron内蔵Serverの常駐サービスとして実装する。TOC2はRuleの編集・有効化・状態確認を担当し、ブラウザーを閉じても判定処理はServerで継続する。
+Event HubはElectron内蔵Serverの常駐サービスとして実装する。Rule編集は独立したEvent Hub管理UIが担当し、ブラウザーを閉じても判定処理はServerで継続する。TOC2は総合操作パネルとして、Event Hubの稼働状態と管理UIへの導線だけを提供する。
 
 ```text
 Ms.Bridge → Event Hub → 既存Action Service → Counter / Screen Effect
                          ↑
-               TOC2 / Remote / Stream Deck
+       TOC2 / Remote / Stream Deck / Event Hub管理UI
 ```
 
 Event Hub自身はCounter状態更新やEffect描画を実装しない。既存の`gpCounterV2`と`effectTransport`を内部Actionとして呼び出す。Local Automation APIのHTTP endpointへ自己接続せず、同じService層を共有する。
@@ -35,15 +35,16 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 - APIによる一覧、置換、診断、テスト実行
 - 単体・統合テスト
 
-この段階の操作UIは診断用に限定し、TOC2の本格UIは次段階とする。
+この段階の操作UIは診断用に限定し、独立したEvent Hub管理UIは次段階とする。
 
-## beta.3 — TOC2 UIと運用調整
+## beta.3 — Event Hub管理UIと運用調整
 
-- Event、Condition、Actionを1行で編集できるRule UI
+- Event、Condition、Actionを1行で編集できる独立Rule UI
 - Counter一覧とEffect Catalogからの選択
 - Ruleの複製、有効／無効、削除
 - JSON Import／Export
 - 最終一致時刻、最終実行結果、エラー表示
+- TOC2へ稼働状態、Rule件数、最終実行結果、管理UIへの導線を追加
 - Bridge再接続、Server再起動、設定更新中の挙動確認
 - OBS、Chrome、Remote、Stream Deckとの同時運用試験
 
@@ -78,5 +79,6 @@ Rule追加・編集直後の現在値評価ではActionを発火しない。Serv
 - Event Hubからのわんコメ直接購読
 - 公開Shared APIからのRule変更
 - RemoteやStream DeckからのRule編集
+- TOC2内部へのRule編集ロジックの実装
 
 必要性が確認されるまで汎用Automation Engineへ拡張しない。

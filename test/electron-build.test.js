@@ -47,6 +47,13 @@ test("Electron project provides a packaged-content verifier", () => {
   assert.ok(fs.existsSync(path.join(root, "scripts", "verify-electron-unpacked.js")));
 });
 
+test("Event Hub roadmap keeps rule editing outside TOC", () => {
+  const roadmap = fs.readFileSync(path.join(root, "EVENT_HUB_ROADMAP.md"), "utf8");
+  assert.match(roadmap, /独立したEvent Hub管理UI/);
+  assert.match(roadmap, /TOC2は総合操作パネル/);
+  assert.match(roadmap, /TOC2内部へのRule編集ロジックの実装/);
+});
+
 test("packaged smoke test can use an isolated port", () => {
   const main = fs.readFileSync(path.join(root, "electron", "main.js"), "utf8");
   assert.match(main, /process\.env\.VCT_SMOKE_PORT/);

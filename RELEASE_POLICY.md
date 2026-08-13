@@ -61,7 +61,7 @@ dev／betaでは、実運用前のBackupと既知事項の確認を利用者へ�
 
 - `0.1.0-beta.1`: Electron配布、Server管理、公式ツール、Remote、Stream Deck、ユーザー領域の基準版
 - `0.2.0-beta.1`: Event Hub Server MVP。Rule保存、Bridge入力、Counter／Effect Action、監査ログ
-- `0.3.0-beta.1`: TOC2 Event Hub設定UI、Import／Export、重複・再接続・閾値運用の実環境調整
+- `0.3.0-beta.1`: 独立Event Hub管理UI、TOC2の状態表示・導線、Import／Export、重複・再接続・閾値運用の実環境調整
 - `1.0.0-rc.1`: 保存schemaとAction契約を固定し、更新・復元・長時間稼働を検証
 
 Event Hubは現行`0.1.0-beta.1`へ差し込まず、安定した基準版との比較が可能な次minor betaから導入する。
