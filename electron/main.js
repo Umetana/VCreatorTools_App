@@ -9,7 +9,7 @@ const path = require("node:path");
 const { promisify } = require("node:util");
 const { resolveDataLocation } = require("./data-location");
 
-const APP_VERSION = "0.1.0-dev";
+const APP_VERSION = require("../package.json").version;
 const execFileAsync = promisify(execFile);
 const adminToken = crypto.randomBytes(32).toString("hex");
 let mainWindow = null;

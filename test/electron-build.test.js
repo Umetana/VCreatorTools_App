@@ -47,6 +47,15 @@ test("Electron project provides a packaged-content verifier", () => {
   assert.ok(fs.existsSync(path.join(root, "scripts", "verify-electron-unpacked.js")));
 });
 
+test("Electron UI reads the App version from package metadata", () => {
+  const main = fs.readFileSync(path.join(root, "electron", "main.js"), "utf8");
+  const renderer = fs.readFileSync(path.join(root, "renderer", "app.js"), "utf8");
+  assert.match(main, /const APP_VERSION = require\("\.\.\/package\.json"\)\.version/);
+  assert.match(renderer, /showStatus\([^;]+info\.version\)/);
+  assert.doesNotMatch(main, /0\.1\.0-dev/);
+  assert.doesNotMatch(renderer, /0\.1\.0-dev/);
+});
+
 test("Event Hub roadmap keeps rule editing outside TOC", () => {
   const roadmap = fs.readFileSync(path.join(root, "EVENT_HUB_ROADMAP.md"), "utf8");
   assert.match(roadmap, /独立したEvent Hub管理UI/);
