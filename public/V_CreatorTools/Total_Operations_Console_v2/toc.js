@@ -224,6 +224,20 @@
     $('summary').textContent = `Mode: ${info.mode} / ${info.origin}`;
   }
 
+  async function refreshEventHubStatus() {
+    const badge = $('event-hub-badge');
+    try {
+      const response = await fetch('/api/event-hub/v1/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`status_${response.status}`);
+      const status = await response.json();
+      badge.className = 'badge online'; badge.textContent = `Event Hub ${status.enabledRuleCount} active`;
+      $('event-hub-summary').textContent = `稼働中 / ${status.ruleCount} Rules / 最終実行 ${status.runtime.lastResult ? new Date(status.runtime.lastResult.at).toLocaleTimeString() : '---'}`;
+    } catch {
+      badge.className = 'badge offline'; badge.textContent = 'Event Hub 取得不可';
+      $('event-hub-summary').textContent = '状態を取得できません';
+    }
+  }
+
   function configureNavigation() {
     const params = new URLSearchParams({ from: 'toc-v2' });
     if (VCTRuntime.mode === VCTRuntime.MODES.SERVER) params.set('vctMode', 'server');
@@ -249,7 +263,7 @@
 
   (async () => {
     configureNavigation(); renderCounters(); renderEffects(); await loadRemoteEffectCatalog();
-    $('bridge-url').value = await initialBridgeUrl(); await renderDiagnostics(); connectBridge();
+    $('bridge-url').value = await initialBridgeUrl(); await renderDiagnostics(); connectBridge(); refreshEventHubStatus(); setInterval(refreshEventHubStatus, 5000);
     if (counterServer.enabled) counterServer.initialize(counterState.counters).catch(error => addLog(`Counter Server: ${error.message}`));
     else counterClient.start({ knownRevision: counterState.revision });
   })();

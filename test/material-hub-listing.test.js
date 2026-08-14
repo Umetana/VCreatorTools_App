@@ -25,8 +25,11 @@ test("Material Hub is listed as browser-local Web App with Sync and Server viewe
     const address = await instance.start();
     const gadgets = await fetch(`http://127.0.0.1:${address.port}/api/get-gadgets`).then((response) => response.json());
     const material = gadgets.find((item) => item.root === "vct_web_app" && item.rawName === "Material Hub");
+    const eventHub = gadgets.find((item) => item.root === "V_CreatorTools" && item.rawName === "VCT Event Hub");
     assert.ok(material);
-    assert.equal(gadgets.length, 9);
+    assert.ok(eventHub);
+    assert.equal(gadgets.length, 10);
+    assert.deepEqual(eventHub.pages[0].modes, ["server"]);
     assert.deepEqual(material.pages.find((page) => page.name === "Material Hub").modes, ["standalone"]);
     assert.deepEqual(material.pages.find((page) => page.name === "Material Editor").modes, ["standalone"]);
     assert.deepEqual(material.pages.find((page) => page.name === "Material Viewer").modes, ["sync", "server"]);

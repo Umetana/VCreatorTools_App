@@ -73,6 +73,7 @@ function ensureRuntime() {
       materialDataFile: path.join(current.dataDir, "material-view.json"),
       gpCounterDataFile: path.join(current.dataDir, "gp-counter.json"),
       gpCounterV2DataFile: path.join(current.dataDir, "gp-counter-v2.json"),
+      eventHubDataFile: path.join(current.dataDir, "event-hub-v1.json"),
       maroV2DataFile: path.join(current.dataDir, "maro-v2.json"),
       remote: {
         enabled: false,

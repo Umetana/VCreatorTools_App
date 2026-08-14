@@ -1,6 +1,6 @@
 {
   "name": "vcreator-tools-app",
-  "version": "0.1.0-beta.1",
+  "version": "0.2.0-beta.1",
   "private": true,
   "description": "VCreatorTools desktop application",
   "author": "Umetana / VCreatorTools",
@@ -18,7 +18,7 @@
     "release:checksums": "node scripts/generate-release-checksums.js",
     "verify:unpacked": "node scripts/verify-electron-unpacked.js",
     "test": "node --test test/*.test.js",
-    "check": "node --check electron/main.js && node --check electron/data-location.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js && node --check server/automation-service.js && node --check server/user-assets-service.js && node --check public/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/counter-client.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/gp-counter-server.js"
+    "check": "node --check electron/main.js && node --check electron/data-location.js && node --check electron/preload.js && node --check renderer/app.js && node --check server/server.js && node --check server/automation-service.js && node --check server/event-hub-schema.js && node --check server/event-hub-repository.js && node --check server/event-hub-action-service.js && node --check server/event-hub-service.js && node --check server/user-assets-service.js && node --check public/V_CreatorTools/Event_Hub/event-hub.js && node --check public/V_CreatorTools/_vct_core/runtime/v1/vct-runtime.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/counter-client.js && node --check public/V_CreatorTools/_vct_core/gp-counter/v2/gp-counter-server.js"
   },
   "dependencies": {
     "express": "5.2.1",

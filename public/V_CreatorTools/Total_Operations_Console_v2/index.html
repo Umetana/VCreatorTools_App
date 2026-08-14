@@ -12,6 +12,7 @@
   <div class="status-badges" aria-label="接続状態">
     <span id="server-ws-badge" class="badge offline">Server WS 接続前</span>
     <span id="bridge-badge" class="badge waiting">Bridge 受信待ち</span>
+    <span id="event-hub-badge" class="badge waiting">Event Hub 確認中</span>
   </div>
 </header>
 <nav aria-label="機能">
@@ -66,6 +67,10 @@
 
   <section id="tab-system" class="panel">
     <h2>System</h2>
+    <div class="event-hub-card">
+      <div><strong>VCT Event Hub</strong><div id="event-hub-summary" class="muted">状態を確認中...</div></div>
+      <a id="event-hub-link" href="../Event_Hub/index.html?vctMode=server">管理UIを開く</a>
+    </div>
     <dl id="diagnostics" class="diagnostics"></dl>
     <label class="field">Bridge Server URL
       <input id="bridge-url" type="url" placeholder="http://127.0.0.1:3000">

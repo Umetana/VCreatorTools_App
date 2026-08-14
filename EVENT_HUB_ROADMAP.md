@@ -1,6 +1,6 @@
 # VCT Event Hub 導入計画
 
-Status: 1.0.0必須・段階導入
+Status: 0.2.0-beta.1実装
 
 ## 配置と責務
 
@@ -24,7 +24,7 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 - Rule schema：`vct.event-hub.rules.v1`
 - 実行ログ：通常ログへRule ID、Event識別子、Action結果を記録する。コメント本文や利用者名を恒久保存しない
 
-## beta.2 — Server MVP
+## 0.2.0-beta.1 — Server MVP・管理UI
 
 - Rule repository、schema検証、revisionによる競合防止
 - 有効／無効、Event field、operator、比較値、Action target
@@ -34,17 +34,15 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 - Meta数値条件のエッジ発火
 - APIによる一覧、置換、診断、テスト実行
 - 単体・統合テスト
-
-この段階の操作UIは診断用に限定し、独立したEvent Hub管理UIは次段階とする。
-
-## beta.3 — Event Hub管理UIと運用調整
-
 - Event、Condition、Actionを1行で編集できる独立Rule UI
 - Counter一覧とEffect Catalogからの選択
 - Ruleの複製、有効／無効、削除
-- JSON Import／Export
 - 最終一致時刻、最終実行結果、エラー表示
 - TOC2へ稼働状態、Rule件数、最終実行結果、管理UIへの導線を追加
+
+## beta.2 — 運用調整
+
+- JSON Import／Export
 - Bridge再接続、Server再起動、設定更新中の挙動確認
 - OBS、Chrome、Remote、Stream Deckとの同時運用試験
 

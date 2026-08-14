@@ -14,6 +14,7 @@ const { REMOTE_DEFAULTS, normalizeRemoteConfig, createRemoteServer } = require("
 const { createRemoteEffectCatalogService } = require("./remote-effect-catalog-service");
 const { createAutomationService } = require("./automation-service");
 const { createUserAssetsService } = require("./user-assets-service");
+const { createEventHubService } = require("./event-hub-service");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
@@ -37,6 +38,7 @@ function loadConfig(configFile = path.join(__dirname, "server.config.json")) {
     gpCounterDataFile: "data/gp-counter.json",
     gpCounterV2DataFile: "data/gp-counter-v2.json",
     maroV2DataFile: "data/maro-v2.json",
+    eventHubDataFile: "data/event-hub-v1.json",
     remote: REMOTE_DEFAULTS,
     logging: { directory: "logs", maxBytes: 1048576, keepFiles: 14 },
   };
@@ -169,6 +171,9 @@ function createUnifiedServer(options = {}) {
   const maroV2DataFile = options.maroV2DataFile === null || options.dataFile === null
     ? null
     : path.resolve(options.maroV2DataFile || process.env.MARO_V2_DATA_FILE || config.maroV2DataFile || path.join(__dirname, "data", "maro-v2.json"));
+  const eventHubDataFile = options.eventHubDataFile === null || options.dataFile === null
+    ? null
+    : path.resolve(options.eventHubDataFile || process.env.EVENT_HUB_DATA_FILE || config.eventHubDataFile || path.join(__dirname, "data", "event-hub-v1.json"));
   const bodyLimit = options.bodyLimit || process.env.BODY_LIMIT || config.bodyLimit || "256kb";
   const bridgeToken = options.bridgeToken ?? process.env.BRIDGE_TOKEN ?? "";
   const adminToken = options.adminToken ?? process.env.VCT_ADMIN_TOKEN ?? "";
@@ -189,6 +194,15 @@ function createUnifiedServer(options = {}) {
 
   function requireAdmin(req, res, next) {
     if (isAdminRequest(req)) return next();
+    return res.status(403).json({ ok: false, error: "admin_authorization_required" });
+  }
+
+  function requireAdminOrSameOrigin(req, res, next) {
+    if (isAdminRequest(req)) return next();
+    try {
+      const source = req.get("origin") || req.get("referer") || "";
+      if (source && new URL(source).host === req.get("host")) return next();
+    } catch { /* invalid browser source */ }
     return res.status(403).json({ ok: false, error: "admin_authorization_required" });
   }
 
@@ -275,6 +289,8 @@ function createUnifiedServer(options = {}) {
     : path.resolve(options.remoteEffectCatalogFile || remoteConfig.effectCatalogFile || path.join(__dirname, "data", "remote-effects.json"));
   const remoteEffectCatalog = createRemoteEffectCatalogService({ dataFile: remoteEffectCatalogFile, logger });
   remoteEffectCatalog.mount(app);
+  const eventHub = createEventHubService({ dataFile: eventHubDataFile, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
+  eventHub.mount(app, requireAdminOrSameOrigin);
   const userAssets = createUserAssetsService({ rootDirectory: userAssetsDir, logger });
   userAssets.mount(app);
   const automation = createAutomationService({ token: automationToken, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
@@ -300,6 +316,7 @@ function createUnifiedServer(options = {}) {
     const validationError = validateBridgeEvent(req.body);
     if (validationError) return res.status(400).json({ ok: false, error: validationError });
     const event = { ...req.body, hubReceivedAt: new Date().toISOString() };
+    eventHub.accept(event);
     const delivered = broadcast(event);
     counters.bridgeEvents += 1;
     logger.info?.(`[bridge] ${event.eventType} clients=${delivered}`);
@@ -509,7 +526,7 @@ function createUnifiedServer(options = {}) {
     counters: { ...counters },
     acceptedSchema: BRIDGE_SCHEMA,
     acceptedEventTypes: [...ALLOWED_EVENT_TYPES],
-    features: { static: true, gadgets: true, userGadgets: userGadgetsAvailable, userAssets: true, websocket: true, bridge: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
+    features: { static: true, gadgets: true, userGadgets: userGadgetsAvailable, userAssets: true, websocket: true, bridge: true, eventHub: true, materialView: true, gpCounter: true, gpCounterV2: true, screenEffectV2: true, maroV2: true, remote: remote.status() },
     };
   }
 
@@ -626,7 +643,7 @@ dl{display:grid;grid-template-columns:180px 1fr;gap:10px;margin:0}dt{color:#9ca3
     });
   }
 
-  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog, automation, userAssets }, start, stop, broadcast };
+  return { app, server, wss, remote, services: { gpCounterV2, effectTransport, maroV2, remoteEffectCatalog, eventHub, automation, userAssets }, start, stop, broadcast };
 }
 
 if (require.main === module) {

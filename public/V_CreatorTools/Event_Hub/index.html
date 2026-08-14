@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VCT Event Hub</title><link rel="stylesheet" href="event-hub.css"></head>
+<body>
+<header><div><p class="eyebrow">VCreatorTools / Server</p><h1>Event Hub</h1><p>イベント、条件、操作を小さなRuleとして組み合わせます。</p></div><div id="runtime-badge" class="badge">接続確認中</div></header>
+<main>
+  <section class="summary" aria-label="稼働状況"><article><span>Rules</span><strong id="rule-count">—</strong></article><article><span>Enabled</span><strong id="enabled-count">—</strong></article><article><span>Last action</span><strong id="last-action">—</strong></article></section>
+  <section class="toolbar"><div><h2>Rules</h2><p>1 Event / 1 Condition / 1 Action</p></div><div><button id="reload" class="secondary">再読込</button><button id="add">＋ Rule追加</button><button id="save">保存</button></div></section>
+  <div id="notice" role="status"></div>
+  <section id="rules" class="rules"></section>
+  <section class="help"><h2>発火仕様</h2><p>Commentは重複受信を抑止します。Metaは条件が未一致から一致へ変化した時だけ発火し、起動・設定変更後の最初の値は基準値として扱います。</p><a href="../Total_Operations_Console_v2/index.html?vctMode=server">Total Operations Consoleへ戻る</a></section>
+</main>
+<template id="rule-template"><article class="rule"><div class="rule-top"><input class="label" aria-label="Rule名" maxlength="200"><label class="toggle"><input class="enabled" type="checkbox">有効</label><button class="duplicate secondary">複製</button><button class="remove danger">削除</button></div><div class="flow"><label><span>Event field</span><select class="field"></select></label><label><span>Condition</span><select class="operator"></select></label><label><span>Value</span><input class="value"></label><span class="arrow">→</span><label><span>Action</span><select class="action-type"><option value="counter.command">Counter</option><option value="effect.button.trigger">Effect Button</option></select></label><label class="target-wrap"><span>Target</span><select class="target"></select></label><label class="operation-wrap"><span>Operation</span><select class="operation"><option value="increment">+ increment</option><option value="decrement">− decrement</option><option value="reset">reset</option><option value="set">set</option></select></label><label class="amount-wrap"><span>Amount</span><input class="amount" type="number" min="0" step="1" value="1"></label></div><div class="rule-id"></div></article></template>
+<script src="event-hub.js"></script></body></html>

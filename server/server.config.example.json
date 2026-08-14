@@ -7,6 +7,7 @@
   "materialDataFile": "data/material-view.json",
   "gpCounterDataFile": "data/gp-counter.json",
   "gpCounterV2DataFile": "data/gp-counter-v2.json",
+  "eventHubDataFile": "data/event-hub-v1.json",
   "maroV2DataFile": "data/maro-v2.json",
   "remote": {
     "enabled": false,

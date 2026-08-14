@@ -1,0 +1,11 @@
+{
+  "id": "vct_event_hub",
+  "schemaVersion": 1,
+  "version": "0.2.0-beta.1",
+  "name": "VCT Event Hub",
+  "status": "beta",
+  "modes": ["server"],
+  "pages": [
+    { "name": "Event Hub 管理", "file": "index.html", "type": "settings", "role": "settings", "obs": false, "modes": ["server"] }
+  ]
+}
