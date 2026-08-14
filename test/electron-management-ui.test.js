@@ -17,7 +17,7 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /"X-VCT-Admin-Token": adminToken/);
   assert.match(main, /VCT_USER_GADGETS_DIR: current\.userGadgetsDir/);
   assert.match(main, /VCT_USER_ASSETS_DIR: current\.userAssetsDir/);
-  for (const channel of ["gadgets:list", "gadget:copy", "gadget:open", "remote:status", "remote:pairing-regenerate", "remote:sessions-revoke-all", "remote:qr"]) {
+  for (const channel of ["server:restart", "gadgets:list", "gadget:copy", "gadget:open", "remote:status", "remote:pairing-regenerate", "remote:sessions-revoke-all", "remote:qr"]) {
     assert.match(main, new RegExp(`ipcMain\\.handle\\("${channel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   }
   assert.doesNotMatch(preload, /openExternal/);
@@ -44,12 +44,13 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   assert.match(main, /VCT_AUTOMATION_TOKEN: automationToken\(\)/);
   for (const channel of ["automation:status", "automation:copy-token", "automation:regenerate-token"]) assert.match(main, new RegExp(`ipcMain\\.handle\\("${channel}`));
   assert.match(preload, /copyAutomationToken/);
+  assert.match(preload, /restartServer/);
 });
 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
-  for (const id of ["remote-content", "pairing-regenerate", "sessions-revoke", "automation-state", "automation-copy", "automation-regenerate", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["restart", "server-result", "remote-content", "pairing-regenerate", "sessions-revoke", "automation-state", "automation-copy", "automation-regenerate", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /data-path="userAssetsDir"/);
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
@@ -74,4 +75,6 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   assert.match(app, /info\.server\.state === "running" && health\?\.ok === true/);
   assert.match(app, /window\.vct\.copyAutomationToken\(\)/);
   assert.match(app, /window\.vct\.regenerateAutomationToken\(\)/);
+  assert.match(app, /window\.vct\.restartServer\(\)/);
+  assert.match(app, /再起動しました/);
 });

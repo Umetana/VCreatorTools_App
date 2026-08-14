@@ -86,6 +86,7 @@
   </main>
 
   <script src="../../__shared/js/vct-runtime.js"></script>
+  <script src="../../__shared/js/vct-runtime.js"></script>
   <script>
     (() => {
       'use strict';
@@ -95,8 +96,11 @@
       const DIRECTORY_KEY = 'material_extra_directory';
       const VIEWER_EXTRA_STORAGE_KEY = 'material_view_extra_catalog_v1';
       const SYNC_CHANNEL_NAME = 'material_view_sync_v1';
+      const serverMode = window.VCTRuntime?.mode === 'server';
       let items = loadItems();
       let editingId = null;
+      let catalogRevision = null;
+      let serverCatalogLoaded = !serverMode;
       const elements = Object.fromEntries(['editorForm','formTitle','title','category','fact','reaction','tips','cancelEditButton','itemList','itemCount','chooseDirectoryButton','downloadButton','directSaveButton','backupButton','restoreButton','restoreInput','clearDraftsButton','saveStatus'].map(id => [id, document.getElementById(id)]));
 
       elements.editorForm.addEventListener('submit', saveItem);
@@ -108,8 +112,31 @@
       elements.restoreButton.addEventListener('click', () => elements.restoreInput.click());
       elements.restoreInput.addEventListener('change', importDraftBackup);
       elements.clearDraftsButton.addEventListener('click', clearDrafts);
-      render();
-      refreshDirectoryStatus();
+      elements.directSaveButton.disabled = true;
+      initializeEditor();
+
+      async function initializeEditor() {
+        if (serverMode) await loadExtraCatalogFromServer();
+        render();
+        await refreshDirectoryStatus();
+      }
+
+      async function loadExtraCatalogFromServer() {
+        try {
+          const response = await fetch('/api/material-view/extra-catalog', { cache: 'no-store' });
+          if (!response.ok) throw new Error(`server_${response.status}`);
+          const catalog = await response.json();
+          if (catalog?.schemaVersion !== '1.0' || catalog.source !== 'material-editor' || catalog.deliveryMode !== 'replace' || !Array.isArray(catalog.items) || !Number.isInteger(catalog.catalogRevision)) throw new Error('invalid_catalog');
+          items = catalog.items.filter(item => item?.id && item?.title && item?.fact).map(({ dataSource: _dataSource, ...item }) => ({ ...item, id: item.id.startsWith('extra:') ? item.id.slice('extra:'.length) : item.id }));
+          catalogRevision = catalog.catalogRevision;
+          serverCatalogLoaded = true;
+          persistItems();
+        } catch (error) {
+          console.error(error);
+          serverCatalogLoaded = false;
+          setStatus('Serverの案内カタログを取得できないため、保存を停止しています');
+        }
+      }
 
       function loadItems() {
         try { const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
@@ -149,7 +176,7 @@
       function downloadExtraMaterial() { const blob = new Blob([buildScript()], { type: 'text/javascript;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'extra_material.js'; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
       function downloadJson(filename, value) { const blob = new Blob([`${JSON.stringify(value, null, 2)}\n`], { type: 'application/json;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
       function exportDraftBackup() { downloadJson(`material_editor_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`, { format: 'material-editor-backup', version: 1, exportedAt: new Date().toISOString(), items }); setStatus(`下書き ${items.length}件をバックアップしました`); }
-      async function importDraftBackup(event) { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; try { const backup = JSON.parse(await file.text()); if (backup?.format !== 'material-editor-backup' || backup.version !== 1 || !Array.isArray(backup.items)) throw new Error('unsupported'); if (!window.confirm(`現在の下書きをバックアップ ${backup.items.length}件で置き換えます。よろしいですか？`)) return; items = backup.items.filter(item => item?.id && item?.title && item?.fact); persistItems(); resetForm(); render(); setStatus(`下書き ${items.length}件を復元しました`); } catch (error) { setStatus('対応する下書きバックアップを読み込めませんでした'); } }
+      async function importDraftBackup(event) { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; try { const backup = JSON.parse(await file.text()); let restoredItems; let sourceLabel; if (backup?.format === 'material-editor-backup' && backup.version === 1 && Array.isArray(backup.items)) { restoredItems = backup.items; sourceLabel = 'Editor'; } else if (backup?.format === 'material-view-backup' && backup.version === 1 && Array.isArray(backup.data?.extraCatalog)) { restoredItems = backup.data.extraCatalog; sourceLabel = 'Material View'; } else throw new Error('unsupported'); const normalized = restoredItems.filter(item => item?.id && item?.title && item?.fact).map(({ dataSource: _dataSource, ...item }) => ({ ...item, id: item.id.startsWith('extra:') ? item.id.slice('extra:'.length) : item.id })); if (!window.confirm(`現在の下書きを${sourceLabel}バックアップ ${normalized.length}件で置き換えます。よろしいですか？`)) return; items = normalized; persistItems(); resetForm(); render(); setStatus(`${sourceLabel}バックアップから下書き ${items.length}件を復元しました。Serverへ反映するには保存してください`); } catch (error) { setStatus('対応するEditor／Material Viewバックアップを読み込めませんでした'); } }
       function clearDrafts() { if (!window.confirm(`案内記事の下書き ${items.length}件をすべて削除します。書き出し済みのextra_material.jsは変更しません。`)) return; items = []; persistItems(); resetForm(); render(); setStatus('下書きを初期化しました'); }
       function publishToViewer(data) { try { localStorage.setItem(VIEWER_EXTRA_STORAGE_KEY, JSON.stringify(data.items)); if ('BroadcastChannel' in window) { const channel = new BroadcastChannel(SYNC_CHANNEL_NAME); channel.postMessage({ type: 'extra-updated', senderId: 'material-editor', revision: Date.now() }); channel.close(); } } catch (error) { console.warn('Viewer catalog could not be updated.', error); } }
       function openDatabase() { return new Promise((resolve, reject) => { const request = indexedDB.open(DB_NAME, 1); request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
@@ -157,8 +184,9 @@
       async function getHandle() { const db = await openDatabase(); const handle = await new Promise((resolve, reject) => { const request = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(DIRECTORY_KEY); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); db.close(); return handle; }
       async function chooseDirectory() { if (!window.showDirectoryPicker) return setStatus('直接保存非対応。ダウンロードを利用してください。'); try { const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'material-extra-output' }); await storeHandle(handle); await refreshDirectoryStatus(); } catch (error) { if (error.name !== 'AbortError') setStatus('保存先を設定できませんでした'); } }
       async function ensurePermission(handle) { const options = { mode: 'readwrite' }; if (await handle.queryPermission(options) === 'granted') return true; return await handle.requestPermission(options) === 'granted'; }
-      async function refreshDirectoryStatus() { if (!window.showDirectoryPicker) { elements.directSaveButton.disabled = true; return setStatus('直接保存非対応（ダウンロードは利用可能）'); } try { const handle = await getHandle(); elements.directSaveButton.disabled = !handle; setStatus(handle ? `保存先: ${handle.name}` : '保存先未設定'); } catch (error) { elements.directSaveButton.disabled = true; setStatus('保存先を確認できませんでした'); } }
-      async function saveExtraMaterialDirectly() { try { const handle = await getHandle(); if (!handle) return setStatus('先に保存先フォルダを選択してください'); if (!await ensurePermission(handle)) return setStatus('保存先への書き込みが許可されませんでした'); const data = buildData(); const file = await handle.getFileHandle('extra_material.js', { create: true }); const writable = await file.createWritable(); await writable.write(buildScript(data)); await writable.close(); publishToViewer(data); setStatus(`extra_material.js を保存しました（${items.length}件）`); } catch (error) { console.error(error); setStatus('extra_material.js を保存できませんでした'); } }
+      async function refreshDirectoryStatus() { if (serverMode) { elements.directSaveButton.disabled = !serverCatalogLoaded; elements.directSaveButton.textContent = 'ServerのViewerへ保存'; return setStatus(serverCatalogLoaded ? `Serverから案内記事 ${items.length}件を読み込みました` : 'Serverの案内カタログを取得できないため、保存を停止しています'); } if (!window.showDirectoryPicker) { elements.directSaveButton.disabled = true; return setStatus('直接保存非対応（ダウンロードは利用可能）'); } try { const handle = await getHandle(); elements.directSaveButton.disabled = !handle; setStatus(handle ? `保存先: ${handle.name}` : '保存先未設定'); } catch (error) { elements.directSaveButton.disabled = true; setStatus('保存先を確認できませんでした'); } }
+      async function saveExtraCatalogToServer() { if (!serverCatalogLoaded || !Number.isInteger(catalogRevision)) throw new Error('server_catalog_not_loaded'); const data = { ...buildData(), catalogRevision }; const response = await fetch('/api/material-view/extra-catalog', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) }); const result = await response.json().catch(() => ({})); if (response.status === 409) { serverCatalogLoaded = false; elements.directSaveButton.disabled = true; throw new Error('revision_conflict'); } if (!response.ok) throw new Error(result.error || `server_${response.status}`); catalogRevision = result.state.extraCatalogRevision; setStatus(`ServerのViewerへ案内記事 ${items.length}件を保存しました`); }
+      async function saveExtraMaterialDirectly() { try { if (serverMode) return await saveExtraCatalogToServer(); const handle = await getHandle(); if (!handle) return setStatus('先に保存先フォルダを選択してください'); if (!await ensurePermission(handle)) return setStatus('保存先への書き込みが許可されませんでした'); const data = buildData(); const file = await handle.getFileHandle('extra_material.js', { create: true }); const writable = await file.createWritable(); await writable.write(buildScript(data)); await writable.close(); publishToViewer(data); setStatus(`extra_material.js を保存しました（${items.length}件）`); } catch (error) { console.error(error); if (serverMode && error.message === 'revision_conflict') return setStatus('Server側が更新されています。Editorを再読み込みしてから編集し直してください'); setStatus(serverMode ? 'Serverへ案内カタログを保存できませんでした' : 'extra_material.js を保存できませんでした'); } }
       function setStatus(message) { elements.saveStatus.textContent = message; }
     })();
   </script>

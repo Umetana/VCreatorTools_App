@@ -229,6 +229,28 @@ async function refreshCycle(forceGadgets = false) {
 
 document.getElementById("start").onclick = async () => { await window.vct.startServer(); setTimeout(() => refreshCycle(true), 500); };
 document.getElementById("stop").onclick = async () => { await window.vct.stopServer(); gadgetsLoaded = false; refreshCycle(); };
+document.getElementById("restart").onclick = async () => {
+  const button = document.getElementById("restart");
+  const result = document.getElementById("server-result");
+  button.disabled = true;
+  result.className = "";
+  result.textContent = "再起動中…";
+  try {
+    const server = await window.vct.restartServer();
+    if (server.state !== "running") throw new Error(server.error || "Serverを起動できませんでした");
+    serverConnected = false;
+    gadgetsLoaded = false;
+    result.className = "success";
+    result.textContent = "再起動しました";
+    await refreshCycle(true);
+  } catch (error) {
+    result.className = "error";
+    result.textContent = error.message;
+    await refreshCycle();
+  } finally {
+    button.disabled = false;
+  }
+};
 document.getElementById("home").onclick = () => window.vct.openServerPage("home");
 document.getElementById("admin").onclick = () => window.vct.openServerPage("admin");
 document.getElementById("settings").onsubmit = async (event) => {

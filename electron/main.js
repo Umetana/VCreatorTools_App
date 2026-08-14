@@ -87,6 +87,12 @@ function ensureRuntime() {
       logging: { directory: current.logsDir, maxBytes: 1048576, keepFiles: 14 }
     };
     fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  } else {
+    const config = JSON.parse(fs.readFileSync(current.configFile, "utf8"));
+    if (!config.eventHubDataFile) {
+      config.eventHubDataFile = path.join(current.dataDir, "event-hub-v1.json");
+      fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+    }
   }
   if (!fs.existsSync(current.automationTokenFile)) fs.writeFileSync(current.automationTokenFile, `${crypto.randomBytes(32).toString("base64url")}\n`, { encoding: "utf8", mode: 0o600 });
   return current;
@@ -254,6 +260,11 @@ async function stopServer() {
   return serverStatus;
 }
 
+async function restartServer() {
+  await stopServer();
+  return startServer();
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 960,
@@ -299,6 +310,7 @@ ipcMain.handle("remote:qr", async (_event, index) => {
 });
 ipcMain.handle("server:start", () => startServer());
 ipcMain.handle("server:stop", () => stopServer());
+ipcMain.handle("server:restart", () => restartServer());
 ipcMain.handle("server:health", async () => {
   try {
     const response = await fetch(`${mainBaseUrl()}/health`, { signal: AbortSignal.timeout(1500) });

@@ -4,15 +4,19 @@ Gemini APIを利用して配信用の話題を調査・記事化し、OBSのブ�
 
 初期配布ではローカルファイルでの運用を基本とします。ローカルサーバーから開くと、同一originのMaterial View間で設定や表示操作を即時同期できます。
 
-運用モードはStandard（ローカルファイル）、Sync（ローカルサーバー＋ブラウザー保存）、Server（サーバー正本）の3段階です。現在の正式対応はStandardとSyncで、Material Viewは共通`vct-runtime.js`を使って環境判定と同期通知を行います。
+運用モードはStandard（ローカルファイル）、Sync（ローカルサーバー＋ブラウザー保存）、Server（サーバー正本）の3段階です。Material ViewとMaterial Editorは共通`vct-runtime.js`を使って環境判定を行います。
 
-モード対応の中心はMaterial Viewです。Material HubのGemini設定、APIキー、調査履歴、記事ストックと、Material Editorの下書きは、ローカルサーバーから開いた場合も各ブラウザーの保存領域で管理します。Electron／Serverの一覧ではHubとEditorをブラウザー保存型Web App、Viewer系ページをSync／Server対応として区別します。
+Material HubのGemini設定、APIキー、調査履歴、記事ストックと、Material Editorの下書きは、ローカルサーバーから開いた場合も各ブラウザーの保存領域で管理します。Serverモードでは、Editorから確定した案内カタログだけをサーバーへ直接保存できます。
 
 ローカルサーバー運用時にURLへ`vctDebug=1`を加えると、画面右下へ動作モードと同期機能の診断結果を表示します。例: `material_view.html?mode=view&vctDebug=1`
 
 ## Serverモード（試験実装）
 
 `material_view.html?mode=view&vctMode=server`のように`vctMode=server`を指定すると、記事・表示順・選択・共有設定を統合サーバーへ保存します。ChromeとOBSは同じサーバー状態を取得し、更新はWebSocketで反映されます。サーバーへ接続できない場合は、そのブラウザーのlocalStorageキャッシュで動作を継続します。
+
+`material_editor.html?vctMode=server`は起動時にサーバー正本の案内カタログを取得して編集欄へ読み込みます。「ServerのViewerへ保存」を押すと、案内カタログ全体をサーバーへ直接送信します。追加・編集は即時反映され、Editorで削除した記事はViewerの案内カタログ、表示順、表示対象からも除去されます。取得に失敗した場合は空または古い下書きによる上書きを防ぐため、Server保存を無効にします。競合判定は案内カタログ専用revisionを使用するため、Viewer側の通常操作では編集中の記事保存を妨げません。
+
+Editorの「下書きを復元」はEditorバックアップに加え、Material Viewバックアップ内の`extraCatalog`も読み込めます。Server障害や誤置換から案内カタログを戻す場合は、ViewバックアップをEditorへ読み込み、内容を確認してから「ServerのViewerへ保存」を実行します。
 
 設定画面例: `material_view.html?mode=settings&vctMode=server&vctDebug=1`
 
@@ -64,6 +68,8 @@ Material HubはGemini APIと外部ライブラリを利用するため、ロー�
 2. タイトル、カテゴリ、本文などを入力して下書きへ保存します。
 3. `extra_material.js`を書き出し、Material Viewと同じフォルダへ配置します。
 4. Material Viewの設定で「案内・紹介」または「両方を混在」を選びます。
+
+Serverモードでは、手順3の代わりにEditorの「ServerのViewerへ保存」を使用します。`extra_material.js`の配置やViewの起動状態に依存せず、サーバー正本へカタログ全体を反映します。
 
 ## Material Viewの画面モード
 

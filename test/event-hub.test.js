@@ -23,6 +23,20 @@ test("Event Hub schema only accepts fixed fields, operators and one action", () 
   assert.throws(() => Schema.validateDocument(document([rule({ action: [{ type: "counter.command" }] })])), /invalid_action/);
 });
 
+test("containsAny normalizes multiple words and matches one action once", async () => {
+  const calls = [];
+  const anyRule = rule({ condition: { operator: "containsAny", value: [" 初見 ", "はじめまして", "おはつ", "初見"] }, action: counterAction("counter2") });
+  const validated = Schema.validateDocument(document([anyRule]));
+  assert.deepEqual(validated.rules[0].condition.value, ["初見", "はじめまして", "おはつ"]);
+  assert.equal(Schema.matches("containsAny", "初見です、はじめまして", validated.rules[0].condition.value), true);
+  const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
+  service.replaceRules(document([anyRule]));
+  service.accept(bridge("comment", { raw: { data: { id: "comment-any", comment: "初見です、はじめまして" } } }));
+  await service.idle();
+  assert.equal(calls.length, 1);
+  assert.throws(() => Schema.validateDocument(document([rule({ condition: { operator: "containsAny", value: [] } })])), /invalid_string_values/);
+});
+
 test("Event Hub repository persists revisions and rejects stale replacement", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vct-event-hub-repository-"));
   try {
@@ -40,13 +54,35 @@ test("Comment rules execute once per stable event id and do not retain comment t
   const calls = [];
   const service = createEventHubService({ dataFile: null, actions: { execute(action, context) { calls.push({ action, context }); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([rule()]));
-  const event = bridge("comment", { raw: { id: "comment-1" }, normalized: { text: "おはようございます", user: "private-name" } });
+  const event = bridge("comment", { raw: { id: "bridge-source", data: { id: "comment-1" } }, normalized: { text: "おはようございます", user: "private-name" } });
   service.accept(event); service.accept(event); await service.idle();
   assert.equal(calls.length, 1);
   assert.equal(calls[0].context.ruleId, "rule_greeting");
   const serializedStatus = JSON.stringify(service.status());
   assert.doesNotMatch(serializedStatus, /おはよう|private-name/);
   assert.equal(service.status().runtime.duplicateComments, 1);
+});
+
+test("Bridge source raw.id shared by different comments is not treated as a comment id", async () => {
+  const calls = [];
+  const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
+  service.replaceRules(document([rule()]));
+  service.accept(bridge("comment", { raw: { id: "shared-source", data: { id: "comment-a", comment: "おはA" } } }));
+  service.accept(bridge("comment", { raw: { id: "shared-source", data: { id: "comment-b", comment: "おはB" } } }));
+  await service.idle();
+  assert.equal(calls.length, 2);
+  assert.equal(service.status().runtime.duplicateComments, 0);
+});
+
+test("Comment matching prefers displayed comment over pronunciation speechText", async () => {
+  const calls = [];
+  const firstVisitRule = rule({ id: "rule_first_visit", label: "初見", condition: { operator: "contains", value: "初見" }, action: counterAction("counter2") });
+  const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
+  service.replaceRules(document([firstVisitRule]));
+  service.accept(bridge("comment", { raw: { data: { id: "comment-first", comment: "初見です", speechText: "しょけんです" } } }));
+  await service.idle();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].counterId, "counter2");
 });
 
 test("Meta rules baseline first value and only trigger on false to true edges", async () => {
@@ -90,6 +126,8 @@ test("Event Hub has an independent management UI while TOC only links and report
   const tocScript = fs.readFileSync(path.join(root, "Total_Operations_Console_v2", "toc.js"), "utf8");
   assert.match(page, /1 Event \/ 1 Condition \/ 1 Action/);
   assert.match(script, /\/api\/event-hub\/v1\/rules/);
+  assert.match(script, /containsAny/);
+  assert.match(script, /split\(\/\[\\r\\n,，、\]\+\//);
   assert.match(tocPage, /Event_Hub\/index\.html/);
   assert.match(tocScript, /\/api\/event-hub\/v1\/status/);
   assert.doesNotMatch(tocScript, /\/api\/event-hub\/v1\/rules/);

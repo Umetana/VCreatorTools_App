@@ -6,12 +6,12 @@ const SCHEMA = "vct.event-hub.rules.v1";
 const SCHEMA_VERSION = 1;
 const MAX_RULES = 500;
 const FIELD_DEFINITIONS = Object.freeze({
-  "comment.text": { eventType: "comment", type: "string", operators: ["equals", "contains"] },
+  "comment.text": { eventType: "comment", type: "string", operators: ["equals", "contains", "containsAny"] },
   "comment.firstComment": { eventType: "comment", type: "boolean", operators: ["equals"] },
   "meta.viewerCount": { eventType: "meta", type: "number", operators: ["eq", "gte", "lte", "gt", "lt"] },
   "meta.likeCount": { eventType: "meta", type: "number", operators: ["eq", "gte", "lte", "gt", "lt"] },
   "meta.subscriberCount": { eventType: "meta", type: "number", operators: ["eq", "gte", "lte", "gt", "lt"] },
-  "meta.platform": { eventType: "meta", type: "string", operators: ["equals", "contains"] },
+  "meta.platform": { eventType: "meta", type: "string", operators: ["equals", "contains", "containsAny"] },
 });
 
 function emptyDocument() {
@@ -39,7 +39,7 @@ function validateRule(input, index = 0, ids = new Set()) {
   const definition = FIELD_DEFINITIONS[input.event.field];
   if (!definition || input.event.type !== definition.eventType) throw validationError(`rules[${index}]_unsupported_event_field`);
   if (!isObject(input.condition) || !definition.operators.includes(input.condition.operator)) throw validationError(`rules[${index}]_unsupported_operator`);
-  const value = normalizeConditionValue(input.condition.value, definition.type, index);
+  const value = normalizeConditionValue(input.condition.value, definition.type, index, input.condition.operator);
   const action = validateAction(input.action, index);
   return { id, label: input.label.trim(), enabled: input.enabled, event: { type: definition.eventType, field: input.event.field }, condition: { operator: input.condition.operator, value }, action };
 }
@@ -70,7 +70,7 @@ function normalizeBridgeEvent(event) {
   const { raw, normalized } = normalizedPair(event.payload);
   const data = isObject(raw.data) ? raw.data : {};
   if (event.eventType === "comment") {
-    const text = first(normalized.text, data.speechText, stripHtml(data.comment));
+    const text = first(normalized.text, stripHtml(data.comment), data.speechText);
     const firstComment = first(normalized.firstComment, normalized.isFirstComment, data.firstComment, data.isFirstComment);
     return { type: "comment", values: { "comment.text": asString(text), "comment.firstComment": asBoolean(firstComment) }, eventKey: commentEventKey(event, raw, normalized) };
   }
@@ -86,6 +86,7 @@ function matches(operator, actual, expected) {
   if (actual === null || actual === undefined) return false;
   if (operator === "equals") return typeof actual === "string" ? actual === expected : actual === expected;
   if (operator === "contains") return typeof actual === "string" && actual.includes(expected);
+  if (operator === "containsAny") return typeof actual === "string" && Array.isArray(expected) && expected.some(value => actual.includes(value));
   if (operator === "eq") return actual === expected;
   if (operator === "gte") return actual >= expected;
   if (operator === "lte") return actual <= expected;
@@ -95,7 +96,11 @@ function matches(operator, actual, expected) {
 }
 
 function commentEventKey(event, raw, normalized) {
-  const stable = first(raw.id, raw.commentId, normalized.id, normalized.commentId, event.id, event.eventId);
+  const data = isObject(raw.data) ? raw.data : {};
+  // raw.id identifies the Bridge/source in some Ms.Bridge payloads and is not
+  // necessarily unique per comment. Only use identifiers owned by the comment
+  // body or explicitly named as comment/message/event identifiers.
+  const stable = first(data.id, data.commentId, data.messageId, data.chatId, raw.commentId, raw.messageId, normalized.commentId, normalized.messageId, event.eventId);
   if (stable !== undefined && stable !== null && String(stable)) return `id:${String(stable).slice(0, 500)}`;
   const material = JSON.stringify([event.source?.app ?? null, event.sequence ?? null, event.sentAt ?? null, normalized.text ?? raw.data?.comment ?? raw.data?.speechText ?? null, normalized.user ?? raw.data?.displayName ?? null]);
   return `hash:${crypto.createHash("sha256").update(material).digest("hex")}`;
@@ -107,7 +112,18 @@ function stripHtml(value) { return typeof value === "string" ? value.replace(/<[
 function asString(value) { return value === undefined || value === null ? null : String(value); }
 function asNumber(value) { if (value === undefined || value === null || value === "") return null; const number = Number(value); return Number.isFinite(number) ? number : null; }
 function asBoolean(value) { if (value === true || value === false) return value; if (value === "true" || value === 1 || value === "1") return true; if (value === "false" || value === 0 || value === "0") return false; return null; }
-function normalizeConditionValue(value, type, index) { if (type === "string") { if (typeof value !== "string" || !value || value.length > 500) throw validationError(`rules[${index}]_invalid_string_value`); return value; } if (type === "boolean") { if (typeof value !== "boolean") throw validationError(`rules[${index}]_invalid_boolean_value`); return value; } if (typeof value !== "number" || !Number.isFinite(value)) throw validationError(`rules[${index}]_invalid_number_value`); return value; }
+function normalizeConditionValue(value, type, index, operator) {
+  if (type === "string" && operator === "containsAny") {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 50) throw validationError(`rules[${index}]_invalid_string_values`);
+    const values = [...new Set(value.map(item => typeof item === "string" ? item.trim() : ""))];
+    if (values.some(item => !item || item.length > 500)) throw validationError(`rules[${index}]_invalid_string_values`);
+    return values;
+  }
+  if (type === "string") { if (typeof value !== "string" || !value || value.length > 500) throw validationError(`rules[${index}]_invalid_string_value`); return value; }
+  if (type === "boolean") { if (typeof value !== "boolean") throw validationError(`rules[${index}]_invalid_boolean_value`); return value; }
+  if (typeof value !== "number" || !Number.isFinite(value)) throw validationError(`rules[${index}]_invalid_number_value`);
+  return value;
+}
 function validId(value, error) { if (typeof value !== "string" || value.length < 1 || value.length > 128 || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(value)) throw validationError(error); return value; }
 function validationError(message) { const error = new TypeError(message); error.status = 400; return error; }
 function isObject(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }

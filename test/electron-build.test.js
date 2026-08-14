@@ -56,6 +56,12 @@ test("Electron UI reads the App version from package metadata", () => {
   assert.doesNotMatch(renderer, /0\.1\.0-dev/);
 });
 
+test("Electron migrates existing config to the Event Hub user data file", () => {
+  const main = fs.readFileSync(path.join(root, "electron", "main.js"), "utf8");
+  assert.match(main, /if \(!config\.eventHubDataFile\)/);
+  assert.match(main, /config\.eventHubDataFile = path\.join\(current\.dataDir, "event-hub-v1\.json"\)/);
+});
+
 test("Event Hub roadmap keeps rule editing outside TOC", () => {
   const roadmap = fs.readFileSync(path.join(root, "EVENT_HUB_ROADMAP.md"), "utf8");
   assert.match(roadmap, /独立したEvent Hub管理UI/);

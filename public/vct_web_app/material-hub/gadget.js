@@ -8,6 +8,7 @@
   const IMPORTED_BATCHES_STORAGE_KEY = 'material_view_imported_batches_v1';
   const SYNC_CHANNEL_NAME = 'material_view_sync_v1';
   const VALID_VIEW_MODES = new Set(['view', 'settings', 'all']);
+  const SERVER_PERSISTED_UPDATE_TYPES = new Set(['settings-updated', 'queue-updated', 'extra-updated', 'order-updated']);
   const requestedMode = new URLSearchParams(window.location.search).get('mode') || 'view';
   const viewMode = VALID_VIEW_MODES.has(requestedMode) ? requestedMode : 'view';
   const instanceId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -320,6 +321,7 @@
   }
 
   function handleSharedUpdate(type, payload = {}) {
+    if (serverMode && SERVER_PERSISTED_UPDATE_TYPES.has(type)) return;
     if (type === 'settings-updated') {
       settings = loadSettings();
       if (viewMode === 'settings') settingsBeforeEdit = cloneSettings(settings);

@@ -20,7 +20,7 @@
       "type": "control",
       "role": "editor",
       "obs": false,
-      "modes": ["standalone"]
+      "modes": ["standalone", "server"]
     },
     {
       "name": "Material Viewer",

@@ -14,7 +14,9 @@
 - Server常駐のVCT Event Hub
 - Comment／Meta条件からCounterまたは登録済みEffect Buttonを実行するRule
 - revision付きRule保存、Comment重複防止、Metaエッジ発火
+- `containsAny`による複数ワードのいずれか一致
 - 独立Event Hub管理UIとTOC2の状態表示・管理UI導線
+- Electron管理画面から設定を変更せずに内蔵Serverを再起動する操作
 
 ## 既知事項
 

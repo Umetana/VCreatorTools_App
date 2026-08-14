@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("vct", {
   info: () => ipcRenderer.invoke("app:info"),
   startServer: () => ipcRenderer.invoke("server:start"),
   stopServer: () => ipcRenderer.invoke("server:stop"),
+  restartServer: () => ipcRenderer.invoke("server:restart"),
   health: () => ipcRenderer.invoke("server:health"),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (value) => ipcRenderer.invoke("settings:save", value),

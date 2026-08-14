@@ -28,6 +28,7 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 
 - Rule repository、schema検証、revisionによる競合防止
 - 有効／無効、Event field、operator、比較値、Action target
+- 文字列Conditionの`containsAny`（最大50語、1つのActionを1回実行）
 - Bridge検証成功後にEvent Hubへ渡す内部購読点
 - Counter／Effect Action adapter
 - Commentの重複防止
@@ -58,7 +59,7 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 
 ### Comment
 
-1つのBridge Eventにつき、各Ruleは最大1回だけ評価・実行する。`raw.id`等の安定IDを優先し、なければEventのsequenceと受信情報から短期dedupe keyを作る。再接続による同一コメント再送でActionを重複させない。
+1つのBridge Eventにつき、各Ruleは最大1回だけ評価・実行する。`raw.data.id`、`commentId`等のコメント本体に属する安定IDを優先し、なければEventのsequenceと受信情報から短期dedupe keyを作る。Bridge/sourceを表す場合がある`raw.id`単独はコメントIDとして扱わない。再接続による同一コメント再送でActionを重複させない。
 
 ### Meta
 
