@@ -1,7 +1,7 @@
 {
   "id": "GP_multi_counter_v2",
   "schemaVersion": 1,
-  "version": "2.0.0",
+  "version": "2.0.2",
   "name": "GP_MULTI_COUNTER_V2",
   "status": "release",
   "modes": ["sync", "server"],

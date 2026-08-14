@@ -44,12 +44,36 @@
             text-align: center;
         }
 
+        .status-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 7px;
+            font-size: 10px;
+        }
+        .status-badge {
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #444;
+            color: #ccc;
+        }
+        .status-badge.dirty { background: #705314; color: #ffd978; }
+        .status-badge.saved { background: #214c35; color: #8ce0ad; }
+        .status-badge.error { background: #682d2a; color: #ffaaa3; }
+
+        .counter-nav {
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
         .tab-wrapper {
             display: flex;
+            flex: 1;
             gap: 4px;
             overflow-x: auto;
             padding-bottom: 4px;
-            margin-bottom: 8px;
         }
         .tab-btn {
             background: #444;
@@ -65,6 +89,21 @@
         .tab-btn.active {
             background: var(--primary);
             color: white;
+        }
+        .counter-select { display: none; flex: 1; min-width: 0; box-sizing: border-box; }
+        .tab-dirty { color: #ffd978; margin-left: 4px; }
+        .btn-add-counter {
+            flex: 0 0 auto;
+            align-self: flex-start;
+            min-height: 32px;
+            padding: 7px 11px;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
         }
 
         .action-bar {
@@ -90,9 +129,22 @@
             padding: 5px;
             flex: 1;
             border-radius: 4px;
-            font-size: 10px;
+            font-size: 11px;
             cursor: pointer;
         }
+
+        .notice {
+            display: none;
+            margin-top: 6px;
+            padding: 7px 9px;
+            border-radius: 4px;
+            background: #214c35;
+            color: #b9f3ce;
+            font-size: 11px;
+            text-align: center;
+        }
+        .notice.show { display: block; }
+        .notice.error { background: #682d2a; color: #ffd0cc; }
 
         .scroll-content {
             flex-grow: 1;
@@ -156,9 +208,10 @@
             gap: 8px;
             margin-bottom: 8px;
         }
-        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; grid-column: span 2; }
         .btn-reset-settings { background: var(--warning); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+        .manage-note { margin: 4px 0 0; color: #999; font-size: 10px; }
 
         .footer-area {
             flex-shrink: 0;
@@ -182,6 +235,7 @@
         .confirm-actions { display: flex; gap: 10px; }
         .confirm-actions button { flex: 1; padding: 11px; }
         textarea { width: 100%; height: 150px; background: #000; color: #0f0; padding: 10px; box-sizing: border-box; }
+        .transfer-feedback { min-height: 16px; margin: 8px 0 0; color: #ffaaa3; font-size: 11px; }
         @media (max-width: 520px) {
             body { font-size: 13px; }
             .fixed-header { padding: 6px; }
@@ -191,18 +245,30 @@
             .hex-input { width: min(170px, 65vw); }
             .acc-body { padding: 9px; }
             .modal-content { width: calc(100% - 24px); padding: 12px; box-sizing: border-box; }
+            .tab-wrapper { display: none; }
+            .counter-select { display: block; }
+            .btn-add-counter { padding-inline: 10px; }
         }
     </style>
 </head>
 <body>
     <div class="fixed-header">
         <div class="app-title">GP MULTI COUNTER</div>
-        <div id="tab-list" class="tab-wrapper"></div>
-        <div class="action-bar">
-            <button onclick="applyCurrentTab()" class="btn-apply-global">今の設定を保存適用</button>
-            <button onclick="exportSettings()" class="btn-tool-mini">書出</button>
-            <button onclick="importSettings()" class="btn-tool-mini">読込</button>
+        <div class="status-row">
+            <span id="modeBadge" class="status-badge"></span>
+            <span id="saveStatus" class="status-badge saved">保存済み</span>
         </div>
+        <div class="counter-nav">
+            <div id="tab-list" class="tab-wrapper"></div>
+            <select id="counterSelect" class="counter-select" aria-label="編集するカウンター" onchange="switchTab(this.value)"></select>
+            <button type="button" onclick="addNewCounter()" class="btn-add-counter" aria-label="新規カウンターを追加">＋ 追加</button>
+        </div>
+        <div class="action-bar">
+            <button id="saveButton" onclick="applyCurrentTab()" class="btn-apply-global">変更を保存</button>
+            <button onclick="exportSettings()" class="btn-tool-mini">バックアップ</button>
+            <button onclick="importSettings()" class="btn-tool-mini">復元</button>
+        </div>
+        <div id="saveNotice" class="notice" role="status" aria-live="polite"></div>
     </div>
 
     <div id="content-root" class="scroll-content"></div>
@@ -215,6 +281,7 @@
         <div class="modal-content">
             <h3 id="modalTitle" style="margin:0 0 10px 0;">移行</h3>
             <textarea id="transferArea"></textarea>
+            <p id="transferFeedback" class="transfer-feedback" role="alert"></p>
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button onclick="closeModal()" style="flex:1; padding:10px;">閉じる</button>
                 <button id="modalActionBtn" style="flex:1; padding:10px; background:var(--primary); color:white; display:none;"></button>
@@ -247,9 +314,52 @@
         const counterClient = new CounterClient({ role: 'settings', repository });
         let allData = [];
         let activeId = 'counter1';
-        let formDirty = false;
-        const dirtyFields = new Set();
+        const drafts = new Map();
+        const dirtyFieldsById = new Map();
         let resolveConfirmation = null;
+        let noticeTimer = null;
+        const fontPresetValues = [
+            'sans-serif',
+            'serif',
+            "'Meiryo', sans-serif",
+            "'Yu Gothic', 'YuGothic', sans-serif",
+            "'MS PGothic', sans-serif",
+            "'Hiragino Kaku Gothic ProN', sans-serif",
+            "'Hiragino Maru Gothic ProN', sans-serif"
+        ];
+
+        document.getElementById('modeBadge').textContent = `${String(VCTRuntime.mode || 'standard').toUpperCase()} MODE`;
+
+        function hasDirtyDrafts() {
+            return drafts.size > 0;
+        }
+
+        function dirtyFieldsFor(id) {
+            if (!dirtyFieldsById.has(id)) dirtyFieldsById.set(id, new Set());
+            return dirtyFieldsById.get(id);
+        }
+
+        function updateSaveStatus(state = hasDirtyDrafts() ? 'dirty' : 'saved') {
+            const status = document.getElementById('saveStatus');
+            status.className = `status-badge ${state}`;
+            status.textContent = state === 'error' ? '保存失敗' : state === 'dirty' ? '未保存' : '保存済み';
+            document.getElementById('saveButton').textContent = hasDirtyDrafts() ? '変更を保存' : '保存済み';
+        }
+
+        function showNotice(message, isError = false) {
+            const notice = document.getElementById('saveNotice');
+            clearTimeout(noticeTimer);
+            notice.textContent = message;
+            notice.className = `notice show${isError ? ' error' : ''}`;
+            noticeTimer = setTimeout(() => { notice.className = 'notice'; }, 3000);
+        }
+
+        function mergeDraftsIntoData(options = {}) {
+            allData = allData.map(item => {
+                if (options.excludeId === item.id) return item;
+                return drafts.get(item.id) || item;
+            });
+        }
 
         function askConfirmation(message, options = {}) {
             if (resolveConfirmation) resolveConfirmation(false);
@@ -288,12 +398,13 @@
                 const accepted = repository.accept(serverState, { force: true });
                 allData = accepted ? repository.getState().counters : nextData;
                 if (!allData.some(counter => counter.id === activeId)) activeId = allData[0].id;
-                if (formDirty && !dirtyFields.has('f-count')) {
+                const activeDraft = drafts.get(activeId);
+                if (activeDraft && !dirtyFieldsFor(activeId).has('f-count')) {
                     const activeCounter = allData.find(counter => counter.id === activeId);
-                    const countInput = document.getElementById('f-count');
-                    if (activeCounter && countInput) countInput.value = activeCounter.count;
+                    if (activeCounter) activeDraft.count = activeCounter.count;
                 }
-                if (!formDirty) render();
+                if (!hasDirtyDrafts()) render();
+                else renderTabs();
                 } catch (error) {
                     console.warn('Invalid GP Counter Server state was ignored.', error);
                 }
@@ -311,6 +422,7 @@
                 if (!allData.find(c => c.id === activeId)) activeId = allData[0].id;
             } catch (e) { allData = [createDefaultCounter('counter1')]; }
             render();
+            updateSaveStatus('saved');
             if (counterServer.enabled) {
                 try {
                     await counterServer.initialize(allData);
@@ -327,20 +439,23 @@
             if (!counterServer.enabled) {
                 const result = counterClient.commit(allData, { cause: 'settings', defaultOperation: 'replace' });
                 allData = result.state.counters;
-                formDirty = false;
-                dirtyFields.clear();
+                drafts.clear();
+                dirtyFieldsById.clear();
+                updateSaveStatus('saved');
                 return true;
             }
             try {
                 await counterServer.replaceCounters(allData);
-                formDirty = false;
-                dirtyFields.clear();
+                drafts.clear();
+                dirtyFieldsById.clear();
+                updateSaveStatus('saved');
                 return true;
             } catch (error) {
                 console.warn('GP Counter Server settings update failed.', error);
-                alert(error.message === 'revision_conflict'
+                updateSaveStatus('error');
+                showNotice(error.message === 'revision_conflict'
                     ? '別画面で更新されたため、サーバーの最新設定を読み直しました。変更内容を確認して再度保存してください。'
-                    : 'サーバーへ設定を保存できませんでした。');
+                    : 'サーバーへ設定を保存できませんでした。', true);
                 return false;
             }
         }
@@ -354,21 +469,24 @@
             const list = document.getElementById('tab-list');
             list.innerHTML = allData.map(c => `
                 <button class="tab-btn ${c.id === activeId ? 'active' : ''}" onclick="switchTab('${c.id}')">
-                    ${esc(c.label || c.id)}
+                    ${esc(drafts.get(c.id)?.label || c.label || c.id)}${drafts.has(c.id) ? '<span class="tab-dirty" aria-label="未保存">●</span>' : ''}
                 </button>
             `).join('');
+            const select = document.getElementById('counterSelect');
+            select.innerHTML = allData.map(c => {
+                const label = drafts.get(c.id)?.label || c.label || c.id;
+                return `<option value="${esc(c.id)}" ${c.id === activeId ? 'selected' : ''}>${esc(label)}${drafts.has(c.id) ? ' ●' : ''}</option>`;
+            }).join('');
         }
 
         function switchTab(id) {
             activeId = id;
-            formDirty = false;
-            dirtyFields.clear();
             render();
         }
 
         function renderContent() {
             const root = document.getElementById('content-root');
-            const c = allData.find(item => item.id === activeId);
+            const c = drafts.get(activeId) || allData.find(item => item.id === activeId);
             if (!c) return;
 
             root.innerHTML = `
@@ -395,7 +513,7 @@
                     <div class="acc-body">
                         <div class="row">
                             <label>フォント</label>
-                            <select id="f-fontSelect" onchange="document.getElementById('f-fontInput').value = this.value !== 'custom' ? this.value : document.getElementById('f-fontInput').value">
+                            <select id="f-fontSelect" onchange="handleFontSelect(this)">
                                 <optgroup label="標準フォント">
                                     <option value="sans-serif" ${c.fontFamily === 'sans-serif' ? 'selected' : ''}>標準ゴシック (sans-serif)</option>
                                     <option value="serif" ${c.fontFamily === 'serif' ? 'selected' : ''}>標準明朝 (serif)</option>
@@ -409,14 +527,14 @@
                                     <option value="'Hiragino Kaku Gothic ProN', sans-serif" ${c.fontFamily?.includes('Kaku Gothic') ? 'selected' : ''}>ヒラギノ角ゴ</option>
                                     <option value="'Hiragino Maru Gothic ProN', sans-serif" ${c.fontFamily?.includes('Maru') ? 'selected' : ''}>ヒラギノ丸ゴ</option>
                                 </optgroup>
-                                <option value="custom" ${!['sans-serif','serif'].some(s=>c.fontFamily===s) ? 'selected' : ''}>手入力で指定する...</option>
+                                <option value="custom" ${!fontPresetValues.includes(c.fontFamily) ? 'selected' : ''}>手入力で指定する...</option>
                             </select>
                         </div>
                         <div class="row"><label></label><input type="text" id="f-fontInput" value="${esc(c.fontFamily)}" placeholder="フォント名（手入力）"></div>
                         <div class="row">
                             <label>サイズ</label>
-                            ラベル <input type="number" id="f-lSize" class="num-input" value="${parseInt(c.labelSize)}">
-                            数字 <input type="number" id="f-cSize" class="num-input" value="${parseInt(c.countSize)}">
+                            ラベル <input type="number" id="f-lSize" class="num-input" min="1" value="${parseInt(c.labelSize)}"> px
+                            数字 <input type="number" id="f-cSize" class="num-input" min="1" value="${parseInt(c.countSize)}"> px
                         </div>
                         <div class="checkbox-group">
                             <label><input type="checkbox" id="f-bold" ${c.isBold ? 'checked' : ''}> 太字</label>
@@ -450,13 +568,13 @@
                 </div>
 
                 <div class="accordion" style="border-color: #666; margin-top: 20px;">
-                    <div class="acc-header" onclick="toggleAcc(this)">⚙ システム管理</div>
+                    <div class="acc-header" onclick="toggleAcc(this)">⚠ カウンター管理</div>
                     <div class="acc-body">
                         <div class="manage-btns">
-                            <button onclick="addNewCounter()" class="btn-add">＋ 新規カウンターを追加</button>
-                            <button onclick="resetSettingsOnly()" class="btn-reset-settings">このタブの設定を初期化</button>
-                            <button onclick="deleteCurrentCounter()" class="btn-danger">このタブを削除</button>
+                            <button onclick="resetSettingsOnly()" class="btn-reset-settings">表示設定を初期化</button>
+                            <button onclick="deleteCurrentCounter()" class="btn-danger" ${allData.length <= 1 ? 'disabled' : ''}>カウンターを削除</button>
                         </div>
+                        <p class="manage-note">初期化では現在のカウント値を維持します。最後の1件は削除できません。</p>
                     </div>
                 </div>
             `;
@@ -488,6 +606,12 @@
             document.getElementById(textInputId).value = applyAlpha(pickerEl.value, alpha);
         };
 
+        window.handleFontSelect = function(selectEl) {
+            const input = document.getElementById('f-fontInput');
+            if (selectEl.value !== 'custom') input.value = selectEl.value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
         function applyAlpha(color, alpha) {
             const hex = toHex(color);
             return `rgba(${parseInt(hex.slice(1,3), 16)}, ${parseInt(hex.slice(3,5), 16)}, ${parseInt(hex.slice(5,7), 16)}, ${alpha})`;
@@ -513,46 +637,66 @@
             header.nextElementSibling.classList.toggle('open');
         };
 
-        window.applyCurrentTab = async function() {
-            const item = allData.find(i => i.id === activeId);
-            if (!item) return;
-
+        function captureActiveDraft(fieldId = '') {
+            const source = drafts.get(activeId) || allData.find(i => i.id === activeId);
+            if (!source || !document.getElementById('f-label')) return;
+            const item = { ...source };
             item.label = document.getElementById('f-label').value;
-            if (!counterServer.enabled || dirtyFields.has('f-count')) {
+            if (!counterServer.enabled || fieldId === 'f-count' || dirtyFieldsFor(activeId).has('f-count')) {
                 item.count = parseInt(document.getElementById('f-count').value) || 0;
             }
             item.unit = document.getElementById('f-unit').value;
             item.goalCount = parseInt(document.getElementById('f-goalCount').value) || 0;
             item.showGoal = document.getElementById('f-showGoal').checked;
             item.fontFamily = document.getElementById('f-fontInput').value;
-            item.labelSize = document.getElementById('f-lSize').value + "px";
-            item.countSize = document.getElementById('f-cSize').value + "px";
+            if (fieldId === 'f-fontInput') {
+                document.getElementById('f-fontSelect').value = fontPresetValues.includes(item.fontFamily) ? item.fontFamily : 'custom';
+            }
+            item.labelSize = (parseInt(document.getElementById('f-lSize').value) || 1) + 'px';
+            item.countSize = (parseInt(document.getElementById('f-cSize').value) || 1) + 'px';
             item.isBold = document.getElementById('f-bold').checked;
             item.isShadow = document.getElementById('f-shadow').checked;
-            
-            // 入力欄の文字列をそのまま保存
             item.textColor = document.getElementById('f-textColor').value;
             item.bgColor = document.getElementById('f-bgColor').value;
             item.borderColor = document.getElementById('f-bdColor').value;
-
-            await saveAndSync();
+            drafts.set(activeId, item);
+            if (fieldId) dirtyFieldsFor(activeId).add(fieldId);
+            updateSaveStatus('dirty');
             renderTabs();
+        }
+
+        window.applyCurrentTab = async function() {
+            if (!hasDirtyDrafts()) {
+                showNotice('変更はありません。');
+                return;
+            }
+            mergeDraftsIntoData();
+            if (await saveAndSync()) {
+                render();
+                showNotice('設定を保存しました。');
+            }
         };
 
         window.resetSettingsOnly = async function() {
-            if (!await askConfirmation("このタブのデザイン設定をデフォルトに戻しますか？", {
+            if (!await askConfirmation("このカウンターの表示名・単位・目標値・デザインを初期値に戻しますか？\n現在のカウント値は維持されます。", {
                 title: '設定の初期化', acceptLabel: '初期化する'
             })) return;
             const index = allData.findIndex(i => i.id === activeId);
-            const currentCount = allData[index].count;
+            const currentCount = (drafts.get(activeId) || allData[index]).count;
+            mergeDraftsIntoData({ excludeId: activeId });
             const defaultObj = createDefaultCounter(activeId);
             defaultObj.count = currentCount;
             allData[index] = defaultObj;
-            await saveAndSync();
-            render();
+            drafts.delete(activeId);
+            dirtyFieldsById.delete(activeId);
+            if (await saveAndSync()) {
+                render();
+                showNotice('表示設定を初期化しました。');
+            }
         };
 
         window.addNewCounter = async function() {
+            mergeDraftsIntoData();
             let maxNum = 0;
             allData.forEach(c => {
                 const num = parseInt(c.id.replace('counter', ''));
@@ -561,8 +705,10 @@
             const newId = 'counter' + (maxNum + 1);
             allData.push(createDefaultCounter(newId));
             activeId = newId;
-            await saveAndSync();
-            render();
+            if (await saveAndSync()) {
+                render();
+                showNotice('カウンターを追加しました。');
+            }
         };
 
         window.deleteCurrentCounter = async function() {
@@ -571,15 +717,22 @@
             if (!await askConfirmation(`「${target?.label || activeId}」を削除しますか？\nこの操作は元に戻せません。`, {
                 title: 'カウンターの削除', acceptLabel: '削除する'
             })) return;
+            mergeDraftsIntoData({ excludeId: activeId });
             allData = allData.filter(c => c.id !== activeId);
+            drafts.delete(activeId);
+            dirtyFieldsById.delete(activeId);
             activeId = allData[0].id;
-            await saveAndSync();
-            render();
+            if (await saveAndSync()) {
+                render();
+                showNotice('カウンターを削除しました。');
+            }
         };
 
         window.exportSettings = function() {
+            mergeDraftsIntoData();
             document.getElementById('modalTitle').textContent = "全データ書出 (バックアップ)";
-            document.getElementById('transferArea').value = JSON.stringify(allData);
+            document.getElementById('transferArea').value = JSON.stringify(allData, null, 2);
+            document.getElementById('transferFeedback').textContent = '';
             document.getElementById('modalActionBtn').style.display = "none";
             document.getElementById('transferModal').style.display = "flex";
         };
@@ -587,39 +740,70 @@
         window.importSettings = function() {
             document.getElementById('modalTitle').textContent = "全データ読込 (復元)";
             document.getElementById('transferArea').value = "";
+            document.getElementById('transferFeedback').textContent = '';
             const btn = document.getElementById('modalActionBtn');
             btn.style.display = "block"; btn.textContent = "インポートを実行する";
             btn.onclick = async () => {
                 try {
-                    allData = Core.parseCounters(document.getElementById('transferArea').value);
+                    const imported = Core.parseCounters(document.getElementById('transferArea').value);
+                    if (!await askConfirmation(`${imported.length}件のカウンターを復元しますか？\n現在の設定は上書きされます。`, {
+                        title: 'バックアップの復元', acceptLabel: '復元する'
+                    })) return;
+                    const previousData = allData;
+                    const previousActiveId = activeId;
+                    const previousDrafts = new Map(drafts);
+                    const previousDirtyFields = new Map([...dirtyFieldsById].map(([id, fields]) => [id, new Set(fields)]));
+                    allData = imported;
+                    drafts.clear();
+                    dirtyFieldsById.clear();
                     activeId = allData[0].id;
-                    await saveAndSync(); render(); closeModal();
-                } catch(e) { alert("データの形式が正しくありません"); }
+                    if (await saveAndSync()) {
+                        render();
+                        closeModal();
+                        showNotice('バックアップを復元しました。');
+                    } else {
+                        allData = previousData;
+                        activeId = previousActiveId;
+                        previousDrafts.forEach((value, key) => drafts.set(key, value));
+                        previousDirtyFields.forEach((value, key) => dirtyFieldsById.set(key, value));
+                        updateSaveStatus(hasDirtyDrafts() ? 'dirty' : 'saved');
+                    }
+                } catch(e) {
+                    document.getElementById('transferFeedback').textContent = 'データの形式が正しくありません。JSON全体を確認してください。';
+                }
             };
             document.getElementById('transferModal').style.display = "flex";
         };
 
-        window.closeModal = () => document.getElementById('transferModal').style.display = "none";
+        window.closeModal = () => {
+            document.getElementById('transferModal').style.display = "none";
+            document.getElementById('transferFeedback').textContent = '';
+        };
 
         document.getElementById('content-root').addEventListener('input', event => {
-            formDirty = true;
-            if (event.target.id) dirtyFields.add(event.target.id);
+            captureActiveDraft(event.target.id);
         });
         document.getElementById('content-root').addEventListener('change', event => {
-            formDirty = true;
-            if (event.target.id) dirtyFields.add(event.target.id);
+            captureActiveDraft(event.target.id);
         });
         load();
         counterClient.subscribe(event => {
             if (counterServer.enabled || !event.state) return;
             allData = event.state.counters;
             if (!allData.some(counter => counter.id === activeId) && allData[0]) activeId = allData[0].id;
-            if (!formDirty) render();
-            else if (!dirtyFields.has('f-count')) {
+            if (!hasDirtyDrafts()) render();
+            else if (!dirtyFieldsFor(activeId).has('f-count')) {
                 const activeCounter = allData.find(counter => counter.id === activeId);
                 const countInput = document.getElementById('f-count');
+                const activeDraft = drafts.get(activeId);
+                if (activeCounter && activeDraft) activeDraft.count = activeCounter.count;
                 if (activeCounter && countInput) countInput.value = activeCounter.count;
             }
+        });
+        window.addEventListener('beforeunload', event => {
+            if (!hasDirtyDrafts()) return;
+            event.preventDefault();
+            event.returnValue = '';
         });
         if (!counterServer.enabled) counterClient.start({ knownRevision: repository.getState().revision });
     </script>

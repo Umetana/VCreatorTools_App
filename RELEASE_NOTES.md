@@ -1,6 +1,6 @@
 # VCreatorTools App 0.2.0-beta.1
 
-利用者テスト用の最初のBeta版です。正式版ではなく、更新前のBackupと既知事項の確認を推奨します。
+Event Hubを導入する利用者テスト用Beta版です。正式版ではなく、更新前のBackupと既知事項の確認を推奨します。
 
 ## 含まれる機能
 
@@ -17,6 +17,9 @@
 - `containsAny`による複数ワードのいずれか一致
 - 独立Event Hub管理UIとTOC2の状態表示・管理UI導線
 - Electron管理画面から設定を変更せずに内蔵Serverを再起動する操作
+- GP Multi Counter V2 `2.0.2`の設定UI改善
+- Total Operations Console V2 `2.1.0-beta.1`のEvent Hub状態表示と管理UI導線
+- Material Hub `1.1.0-beta.1`のEditor Serverモードと案内カタログ専用API
 
 ## 既知事項
 

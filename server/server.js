@@ -110,8 +110,38 @@ function validateMaterialState(value) {
   return null;
 }
 
+function validateExtraCatalog(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "body_must_be_object";
+  if (value.schemaVersion !== "1.0") return "unsupported_schema";
+  if (value.source !== "material-editor") return "unsupported_source";
+  if (value.deliveryMode !== "replace") return "unsupported_delivery_mode";
+  if (!Array.isArray(value.items)) return "items_must_be_array";
+  const ids = new Set();
+  for (const item of value.items) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return "item_must_be_object";
+    if (typeof item.id !== "string" || !item.id.trim()) return "item_id_must_be_nonempty_string";
+    const id = item.id.startsWith("extra:") ? item.id : `extra:${item.id}`;
+    if (ids.has(id)) return "item_ids_must_be_unique";
+    if (typeof item.title !== "string" || !item.title.trim()) return "item_title_must_be_nonempty_string";
+    if (typeof item.fact !== "string" || !item.fact.trim()) return "item_fact_must_be_nonempty_string";
+    for (const key of ["category", "reaction", "tips"]) {
+      if (item[key] != null && typeof item[key] !== "string") return `item_${key}_must_be_string`;
+    }
+    ids.add(id);
+  }
+  return null;
+}
+
+function normalizeExtraCatalog(items) {
+  return items.map((item) => ({
+    ...item,
+    id: item.id.startsWith("extra:") ? item.id : `extra:${item.id}`,
+    dataSource: "extra",
+  }));
+}
+
 function emptyMaterialState() {
-  return { schema: MATERIAL_STATE_SCHEMA, revision: 0, updatedAt: null, articles: [], extraCatalog: [], displayOrder: [], selectedIds: [], currentId: null, sharedSettings: {}, importedBatches: [] };
+  return { schema: MATERIAL_STATE_SCHEMA, revision: 0, extraCatalogRevision: 0, updatedAt: null, articles: [], extraCatalog: [], displayOrder: [], selectedIds: [], currentId: null, sharedSettings: {}, importedBatches: [] };
 }
 
 function validateGpCounterState(value) {
@@ -442,16 +472,88 @@ function createUnifiedServer(options = {}) {
 
   app.get("/api/material-view/state", (_req, res) => res.json(materialState));
 
+  app.get("/api/material-view/extra-catalog", (_req, res) => {
+    res.json({
+      schemaVersion: "1.0",
+      collectionId: "default",
+      updatedAt: materialState.updatedAt,
+      catalogRevision: materialState.extraCatalogRevision || 0,
+      source: "material-editor",
+      deliveryMode: "replace",
+      items: materialState.extraCatalog.map(({ dataSource: _dataSource, ...item }) => ({
+        ...item,
+        id: item.id.startsWith("extra:") ? item.id.slice("extra:".length) : item.id,
+      })),
+    });
+  });
+
   app.put("/api/material-view/state", (req, res) => {
     const validationError = validateMaterialState(req.body);
     if (validationError) return res.status(400).json({ ok: false, error: validationError });
     if (req.body.revision !== materialState.revision) {
       return res.status(409).json({ ok: false, error: "revision_conflict", state: materialState });
     }
-    materialState = { ...req.body, revision: materialState.revision + 1, updatedAt: new Date().toISOString() };
+    const extraCatalogChanged = JSON.stringify(req.body.extraCatalog) !== JSON.stringify(materialState.extraCatalog);
+    materialState = {
+      ...req.body,
+      revision: materialState.revision + 1,
+      extraCatalogRevision: (materialState.extraCatalogRevision || 0) + (extraCatalogChanged ? 1 : 0),
+      updatedAt: new Date().toISOString(),
+    };
     counters.materialUpdates += 1;
     persistMaterialState();
     const event = { schema: MATERIAL_SCHEMA, eventType: "state", sentAt: materialState.updatedAt, payload: materialState };
+    const delivered = broadcast(event);
+    return res.json({ ok: true, delivered, state: materialState });
+  });
+
+  app.put("/api/material-view/extra-catalog", (req, res) => {
+    const validationError = validateExtraCatalog(req.body);
+    if (validationError) return res.status(400).json({ ok: false, error: validationError });
+    if (!Number.isInteger(req.body.catalogRevision) || req.body.catalogRevision < 0) {
+      return res.status(400).json({ ok: false, error: "catalog_revision_must_be_nonnegative_integer" });
+    }
+    if (req.body.catalogRevision !== (materialState.extraCatalogRevision || 0)) {
+      return res.status(409).json({ ok: false, error: "revision_conflict", catalogRevision: materialState.extraCatalogRevision || 0 });
+    }
+
+    const previousExtraIds = new Set(materialState.extraCatalog.map((item) => item.id));
+    const extraCatalog = normalizeExtraCatalog(req.body.items);
+    const availableIds = new Set([
+      ...materialState.articles.map((item) => item.id),
+      ...extraCatalog.map((item) => item.id),
+    ]);
+    const displayOrder = materialState.displayOrder.filter((id) => availableIds.has(id));
+    const orderedIds = new Set(displayOrder);
+    for (const item of extraCatalog) {
+      if (!orderedIds.has(item.id)) {
+        displayOrder.push(item.id);
+        orderedIds.add(item.id);
+      }
+    }
+    const selectedIds = materialState.selectedIds.filter((id) => availableIds.has(id));
+    const selected = new Set(selectedIds);
+    for (const item of extraCatalog) {
+      if (!previousExtraIds.has(item.id) && !selected.has(item.id)) {
+        selectedIds.push(item.id);
+        selected.add(item.id);
+      }
+    }
+
+    const updatedAt = new Date().toISOString();
+    materialState = {
+      ...materialState,
+      revision: materialState.revision + 1,
+      extraCatalogRevision: (materialState.extraCatalogRevision || 0) + 1,
+      updatedAt,
+      extraCatalog,
+      displayOrder,
+      selectedIds,
+      currentId: materialState.currentId && availableIds.has(materialState.currentId) ? materialState.currentId : null,
+    };
+    counters.materialUpdates += 1;
+    persistMaterialState();
+    const event = { schema: MATERIAL_SCHEMA, eventType: "state", sentAt: updatedAt, payload: materialState };
     const delivered = broadcast(event);
     return res.json({ ok: true, delivered, state: materialState });
   });
@@ -678,4 +780,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createUnifiedServer, validateBridgeEvent, validateMaterialState, publicGpCounterState, loadConfig, createFileLogger };
+module.exports = { createUnifiedServer, validateBridgeEvent, validateMaterialState, validateExtraCatalog, publicGpCounterState, loadConfig, createFileLogger };
