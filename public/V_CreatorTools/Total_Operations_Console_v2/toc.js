@@ -162,10 +162,13 @@
   }
 
   function normalizedPair(payload) { return payload?.raw || payload?.normalized ? { raw: payload.raw || {}, normalized: payload.normalized || {} } : { raw: payload || {}, normalized: {} }; }
+  function inertHtmlText(value) {
+    const document = new DOMParser().parseFromString(String(value || ''), 'text/html');
+    return document.body.textContent || '';
+  }
   function commentData(event) {
     const { raw, normalized } = normalizedPair(event.payload); const data = raw.data || {};
-    const html = String(data.comment || ''); const box = document.createElement('div'); box.innerHTML = html;
-    return { text: String(normalized.text || box.textContent || data.speechText || ''), user: String(normalized.user || data.displayName || data.name || '') };
+    return { text: String(normalized.text || inertHtmlText(data.comment) || data.speechText || ''), user: String(normalized.user || data.displayName || data.name || '') };
   }
   function first(...values) { return values.find(value => value !== undefined && value !== null && value !== '') ?? null; }
   function formatMeta(value) { if (value === null) return '---'; const number = Number(value); return Number.isFinite(number) ? number.toLocaleString('ja-JP') : String(value); }

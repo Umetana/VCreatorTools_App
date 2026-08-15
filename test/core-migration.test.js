@@ -115,4 +115,6 @@ test("TOC separates Server WebSocket connectivity from Bridge event reception", 
   assert.match(script, /setBridgeReception/);
   assert.match(style, /--warn:#facc15/);
   assert.match(style, /\.badge\.waiting\{color:var\(--warn\)/);
+  assert.match(script, /new DOMParser\(\)\.parseFromString\(String\(value \|\| ''\), 'text\/html'\)/);
+  assert.doesNotMatch(script, /innerHTML\s*=\s*html/);
 });

@@ -1,6 +1,6 @@
 # VCreatorTools App
 
-Electron版の開発Repositoryです。App versionは`0.1.0-beta.1`、内蔵Serverは独立して`1.0.0`です。
+Electron版の開発Repositoryです。App versionは`0.1.0-beta.2`、内蔵Serverは独立して`1.0.1`です。
 
 ## 開発起動
 
