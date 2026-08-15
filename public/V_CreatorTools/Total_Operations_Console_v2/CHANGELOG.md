@@ -4,6 +4,7 @@
 
 - VCT Event Hubの稼働状態をSystem画面と接続バッジへ追加
 - 独立したEvent Hub管理UIへの導線を追加
+- 視聴者コメントのHTML文字列を不活性Documentでテキスト化し、イベント属性を実行しないよう修正
 
 ## 2.0.0-beta.1
 

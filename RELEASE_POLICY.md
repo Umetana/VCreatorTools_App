@@ -9,7 +9,7 @@ VCreatorTools App、内蔵Server、通信Protocolは別々にversionを管理す
 
 ```text
 VCreatorTools App: 0.x-dev -> 0.x-beta -> 1.0.0
-Bundled Server:    独立version（現行1.0.0）
+Bundled Server:    独立version（現行1.0.1）
 Protocol:          schema名／major versionごとに互換性管理
 ```
 

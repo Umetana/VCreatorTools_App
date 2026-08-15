@@ -20,6 +20,8 @@ Event Hubを導入する利用者テスト用Beta版です。正式版ではな�
 - GP Multi Counter V2 `2.0.2`の設定UI改善
 - Total Operations Console V2 `2.1.0-beta.1`のEvent Hub状態表示と管理UI導線
 - Material Hub `1.1.0-beta.1`のEditor Serverモードと案内カタログ専用API
+- TOC2の視聴者コメントHTML処理を安全な不活性Document解析へ変更
+- 内蔵Server `1.0.1`でBridgeトークン比較を定数時間比較へ統一
 
 ## 既知事項
 

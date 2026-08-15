@@ -97,9 +97,10 @@ test("Meta rules baseline first value and only trigger on false to true edges", 
 
 test("Unified Server exposes protected Event Hub management and executes Bridge rules through existing Counter service", async (t) => {
   const adminToken = "event-hub-admin-token";
+  const bridgeToken = "event-hub-bridge-token";
   const userAssetsDir = fs.mkdtempSync(path.join(os.tmpdir(), "vct-event-hub-assets-"));
   t.after(() => fs.rmSync(userAssetsDir, { recursive: true, force: true }));
-  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userAssetsDir, dataFile: null, eventHubDataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, adminToken, remote: { enabled: false }, logger: { info() {}, error() {} } });
+  const instance = createUnifiedServer({ host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userAssetsDir, dataFile: null, eventHubDataFile: null, remoteSessionFile: null, remoteEffectCatalogFile: null, adminToken, bridgeToken, remote: { enabled: false }, logger: { info() {}, error() {} } });
   try {
     await instance.start();
     const base = `http://127.0.0.1:${instance.server.address().port}`;
@@ -110,7 +111,10 @@ test("Unified Server exposes protected Event Hub management and executes Bridge 
     instance.services.gpCounterV2.commit([counter("greeting")], { cause: "test" });
     const saved = await fetch(`${base}/api/event-hub/v1/rules`, { method: "PUT", headers, body: JSON.stringify(document([rule()])) });
     assert.equal(saved.status, 200);
-    const bridgeResponse = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(bridge("comment", { raw: { id: "integration-comment" }, normalized: { text: "おは！" } })) });
+    const bridgeBody = JSON.stringify(bridge("comment", { raw: { id: "integration-comment" }, normalized: { text: "おは！" } }));
+    const deniedBridge = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json", "x-bridge-token": "wrong" }, body: bridgeBody });
+    assert.equal(deniedBridge.status, 401);
+    const bridgeResponse = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json", "x-bridge-token": bridgeToken }, body: bridgeBody });
     assert.equal(bridgeResponse.status, 200);
     await instance.services.eventHub.idle();
     assert.equal(instance.services.gpCounterV2.getState().counters[0].count, 1);

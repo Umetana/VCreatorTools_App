@@ -18,7 +18,13 @@ const { createEventHubService } = require("./event-hub-service");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
-const SERVICE_VERSION = "1.0.0";
+const SERVICE_VERSION = "1.0.1";
+
+function timingSafeStringEqual(expected, supplied) {
+  const expectedBuffer = Buffer.from(String(expected));
+  const suppliedBuffer = Buffer.from(String(supplied));
+  return expectedBuffer.length === suppliedBuffer.length && crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+}
 const BRIDGE_SCHEMA = "msbridge.event.v1";
 const MATERIAL_SCHEMA = "material-hub.event.v1";
 const MATERIAL_STATE_SCHEMA = "material-view.state.v1";
@@ -217,9 +223,7 @@ function createUnifiedServer(options = {}) {
   function isAdminRequest(req) {
     if (!adminToken) return true;
     const supplied = req.get("X-VCT-Admin-Token") || "";
-    const expectedBuffer = Buffer.from(adminToken);
-    const suppliedBuffer = Buffer.from(supplied);
-    return expectedBuffer.length === suppliedBuffer.length && crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+    return timingSafeStringEqual(adminToken, supplied);
   }
 
   function requireAdmin(req, res, next) {
@@ -341,7 +345,7 @@ function createUnifiedServer(options = {}) {
   app.post("/bridge", (req, res) => {
     if (bridgeToken) {
       const token = req.get("x-bridge-token") || req.body?.token || "";
-      if (token !== bridgeToken) return res.status(401).json({ ok: false, error: "bad_token" });
+      if (!timingSafeStringEqual(bridgeToken, token)) return res.status(401).json({ ok: false, error: "bad_token" });
     }
     const validationError = validateBridgeEvent(req.body);
     if (validationError) return res.status(400).json({ ok: false, error: validationError });
