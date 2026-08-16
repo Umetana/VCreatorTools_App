@@ -112,6 +112,14 @@ test("Unified Server exposes protected Event Hub management and executes Bridge 
     instance.services.gpCounterV2.commit([counter("greeting")], { cause: "test" });
     const saved = await fetch(`${base}/api/event-hub/v1/rules`, { method: "PUT", headers, body: JSON.stringify(document([rule()])) });
     assert.equal(saved.status, 200);
+    const dryRunResponse = await fetch(`${base}/api/event-hub/v1/test`, { method: "POST", headers, body: JSON.stringify({ rule: rule(), event: bridge("comment", { normalized: normalizedComment("dry-run-comment", "おは dry run") }) }) });
+    assert.equal(dryRunResponse.status, 200);
+    const dryRun = await dryRunResponse.json();
+    assert.equal(dryRun.dryRun, true);
+    assert.equal(dryRun.matched, true);
+    assert.equal(dryRun.normalized.values["comment.text"], "おは dry run");
+    assert.equal(instance.services.gpCounterV2.getState().counters[0].count, 0);
+    assert.equal(instance.services.eventHub.status().runtime.executedActions, 0);
     const bridgeBody = JSON.stringify(bridge("comment", { normalized: normalizedComment("integration-comment", "おは！") }));
     const deniedBridge = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json", "x-bridge-token": "wrong" }, body: bridgeBody });
     assert.equal(deniedBridge.status, 401);
@@ -151,6 +159,11 @@ test("Event Hub has an independent management UI while TOC only links and report
   const tocScript = fs.readFileSync(path.join(root, "Total_Operations_Console_v2", "toc.js"), "utf8");
   assert.match(page, /1 Event \/ 1 Condition \/ 1 Action/);
   assert.match(script, /\/api\/event-hub\/v1\/rules/);
+  assert.match(script, /\/api\/event-hub\/v1\/test/);
+  assert.match(script, /Actionは実行していません/);
+  assert.match(script, /enabled: true/);
+  assert.match(script, /commentProcessingMode === "raw"/);
+  assert.match(page, /Sample event value/);
   assert.match(script, /containsAny/);
   assert.match(script, /split\(\/\[\\r\\n,，、\]\+\//);
   assert.match(tocPage, /Event_Hub\/index\.html/);

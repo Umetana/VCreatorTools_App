@@ -41,6 +41,13 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 - 最終一致時刻、最終実行結果、エラー表示
 - TOC2へ稼働状態、Rule件数、最終実行結果、管理UIへの導線を追加
 
+### beta.2前の基盤仕上げ
+
+- 編集中RuleへサンプルEvent値を入力するdry-run UI
+- 一致／不一致とServer解釈値を表示し、Actionは実行しない
+- Event Hub管理UIへ現在のコメント処理モードを表示
+- dry-run結果とサンプルEventは保存しない
+
 ## beta.2 — 運用調整
 
 - JSON Import／Export
