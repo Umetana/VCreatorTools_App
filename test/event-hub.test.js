@@ -164,6 +164,9 @@ test("Event Hub has an independent management UI while TOC only links and report
   assert.match(script, /enabled: true/);
   assert.match(script, /commentProcessingMode === "raw"/);
   assert.match(page, /Sample event value/);
+  for (const id of ["accepted-events", "matched-rules", "executed-actions", "failed-actions", "duplicate-comments", "last-event"]) assert.match(page, new RegExp(`id="${id}"`));
+  assert.match(script, /runtime\.acceptedEvents/);
+  assert.match(script, /runtime\.duplicateComments/);
   assert.match(script, /containsAny/);
   assert.match(script, /split\(\/\[\\r\\n,，、\]\+\//);
   assert.match(tocPage, /Event_Hub\/index\.html/);

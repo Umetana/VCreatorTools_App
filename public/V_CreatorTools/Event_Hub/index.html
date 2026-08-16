@@ -5,6 +5,7 @@
 <header><div><p class="eyebrow">VCreatorTools / Server</p><h1>Event Hub</h1><p>イベント、条件、操作を小さなRuleとして組み合わせます。</p></div><div id="runtime-badge" class="badge">接続確認中</div></header>
 <main>
   <section class="summary" aria-label="稼働状況"><article><span>Rules</span><strong id="rule-count">—</strong></article><article><span>Enabled</span><strong id="enabled-count">—</strong></article><article><span>Last action</span><strong id="last-action">—</strong></article></section>
+  <section class="diagnostics" aria-label="Event Hub診断"><div><span>Accepted events</span><strong id="accepted-events">—</strong></div><div><span>Matched rules</span><strong id="matched-rules">—</strong></div><div><span>Actions</span><strong id="executed-actions">—</strong></div><div><span>Failed</span><strong id="failed-actions">—</strong></div><div><span>Duplicates</span><strong id="duplicate-comments">—</strong></div><div><span>Last event</span><strong id="last-event">—</strong></div></section>
   <section class="toolbar"><div><h2>Rules</h2><p>1 Event / 1 Condition / 1 Action</p></div><div><button id="reload" class="secondary">再読込</button><button id="add">＋ Rule追加</button><button id="save">保存</button></div></section>
   <div id="notice" role="status"></div>
   <section id="rules" class="rules"></section>

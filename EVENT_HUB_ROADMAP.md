@@ -46,6 +46,7 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 - 編集中RuleへサンプルEvent値を入力するdry-run UI
 - 一致／不一致とServer解釈値を表示し、Actionは実行しない
 - Event Hub管理UIへ現在のコメント処理モードを表示
+- Event Hub管理UIへ受理、一致、Action、失敗、重複除外、最終Eventの非永続診断を表示
 - dry-run結果とサンプルEventは保存しない
 
 ## beta.2 — 運用調整
