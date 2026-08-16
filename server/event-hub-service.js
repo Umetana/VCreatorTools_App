@@ -11,13 +11,14 @@ function createEventHubService(options = {}) {
   const actions = options.actions || createEventHubActionService({ services: options.services });
   const dedupeTtlMs = options.dedupeTtlMs || 5 * 60 * 1000;
   const dedupeLimit = options.dedupeLimit || 5000;
+  const commentProcessingMode = Schema.normalizeCommentProcessingMode(options.commentProcessingMode);
   const seenComments = new Map();
   const metaMatches = new Map();
   let queue = Promise.resolve();
   let runtime = { acceptedEvents: 0, matchedRules: 0, executedActions: 0, failedActions: 0, duplicateComments: 0, lastEventAt: null, lastMatchAt: null, lastResult: null };
 
   function accept(event) {
-    const normalized = Schema.normalizeBridgeEvent(event);
+    const normalized = Schema.normalizeBridgeEvent(event, { commentProcessingMode });
     if (!normalized) return false;
     queue = queue.then(() => processEvent(normalized)).catch(error => logger.error?.(`[event-hub] event processing failed: ${error.message}`));
     return true;
@@ -70,7 +71,7 @@ function createEventHubService(options = {}) {
 
   function status() {
     const state = repository.getState();
-    return { ok: true, schema: "vct.event-hub.status.v1", running: true, revision: state.revision, ruleCount: state.rules.length, enabledRuleCount: state.rules.filter(rule => rule.enabled).length, runtime: Schema.clone(runtime) };
+    return { ok: true, schema: "vct.event-hub.status.v1", running: true, commentProcessingMode, revision: state.revision, ruleCount: state.rules.length, enabledRuleCount: state.rules.filter(rule => rule.enabled).length, runtime: Schema.clone(runtime) };
   }
 
   function catalog() {
@@ -81,7 +82,7 @@ function createEventHubService(options = {}) {
 
   function testRule(input) {
     const rule = Schema.validateRule(input?.rule, 0, new Set());
-    const normalized = Schema.normalizeBridgeEvent(input?.event);
+    const normalized = Schema.normalizeBridgeEvent(input?.event, { commentProcessingMode });
     if (!normalized) { const error = new Error("invalid_test_event"); error.status = 400; throw error; }
     return { ok: true, dryRun: true, matched: rule.enabled && rule.event.type === normalized.type && Schema.matches(rule.condition.operator, normalized.values[rule.event.field], rule.condition.value), normalized: { type: normalized.type, values: normalized.values } };
   }

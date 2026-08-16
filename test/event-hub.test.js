@@ -14,6 +14,7 @@ function document(rules, revision = 0) { return { schema: Schema.SCHEMA, schemaV
 function counterAction(counterId = "greeting") { return { type: "counter.command", counterId, operation: "increment", delta: 1 }; }
 function rule(overrides = {}) { return { id: "rule_greeting", label: "挨拶", enabled: true, event: { type: "comment", field: "comment.text" }, condition: { operator: "contains", value: "おは" }, action: counterAction(), ...overrides }; }
 function bridge(eventType, payload, extra = {}) { return { schema: "msbridge.event.v1", eventType, source: { app: "onecomme" }, payload, ...extra }; }
+function normalizedComment(id, text, options = {}) { return { id, message: { text }, user: { id: options.userId || "", displayName: options.displayName || "Anonymous", traits: { firstTime: options.firstTime === true } } }; }
 function counter(id, count = 0) { return { id, label: id, count, unit: "回", goalCount: 10, showGoal: true, bgColor: "#000", borderColor: "#fff", textColor: "#fff", labelSize: "20px", countSize: "36px", isBold: true, isShadow: false, fontFamily: "sans-serif" }; }
 
 test("Event Hub schema only accepts fixed fields, operators and one action", () => {
@@ -31,7 +32,7 @@ test("containsAny normalizes multiple words and matches one action once", async 
   assert.equal(Schema.matches("containsAny", "初見です、はじめまして", validated.rules[0].condition.value), true);
   const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([anyRule]));
-  service.accept(bridge("comment", { raw: { data: { id: "comment-any", comment: "初見です、はじめまして" } } }));
+  service.accept(bridge("comment", { normalized: normalizedComment("comment-any", "初見です、はじめまして") }));
   await service.idle();
   assert.equal(calls.length, 1);
   assert.throws(() => Schema.validateDocument(document([rule({ condition: { operator: "containsAny", value: [] } })])), /invalid_string_values/);
@@ -54,7 +55,7 @@ test("Comment rules execute once per stable event id and do not retain comment t
   const calls = [];
   const service = createEventHubService({ dataFile: null, actions: { execute(action, context) { calls.push({ action, context }); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([rule()]));
-  const event = bridge("comment", { raw: { id: "bridge-source", data: { id: "comment-1" } }, normalized: { text: "おはようございます", user: "private-name" } });
+  const event = bridge("comment", { raw: { id: "bridge-source", data: { id: "raw-comment-1", comment: "rawは処理しない" } }, normalized: normalizedComment("comment-1", "おはようございます", { displayName: "private-name" }) });
   service.accept(event); service.accept(event); await service.idle();
   assert.equal(calls.length, 1);
   assert.equal(calls[0].context.ruleId, "rule_greeting");
@@ -65,7 +66,7 @@ test("Comment rules execute once per stable event id and do not retain comment t
 
 test("Bridge source raw.id shared by different comments is not treated as a comment id", async () => {
   const calls = [];
-  const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
+  const service = createEventHubService({ dataFile: null, commentProcessingMode: "raw", actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([rule()]));
   service.accept(bridge("comment", { raw: { id: "shared-source", data: { id: "comment-a", comment: "おはA" } } }));
   service.accept(bridge("comment", { raw: { id: "shared-source", data: { id: "comment-b", comment: "おはB" } } }));
@@ -77,7 +78,7 @@ test("Bridge source raw.id shared by different comments is not treated as a comm
 test("Comment matching prefers displayed comment over pronunciation speechText", async () => {
   const calls = [];
   const firstVisitRule = rule({ id: "rule_first_visit", label: "初見", condition: { operator: "contains", value: "初見" }, action: counterAction("counter2") });
-  const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
+  const service = createEventHubService({ dataFile: null, commentProcessingMode: "raw", actions: { execute(action) { calls.push(action); return { changed: true }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([firstVisitRule]));
   service.accept(bridge("comment", { raw: { data: { id: "comment-first", comment: "初見です", speechText: "しょけんです" } } }));
   await service.idle();
@@ -90,7 +91,7 @@ test("Meta rules baseline first value and only trigger on false to true edges", 
   const metaRule = rule({ id: "rule_viewers", event: { type: "meta", field: "meta.viewerCount" }, condition: { operator: "gte", value: 100 }, action: { type: "effect.button.trigger", buttonId: "celebration" } });
   const service = createEventHubService({ dataFile: null, actions: { execute(action) { calls.push(action); return { delivered: 1 }; } }, services: { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } }, logger: { info() {}, error() {} } });
   service.replaceRules(document([metaRule]));
-  for (const viewers of [120, 130, 80, 100, 110, 70, 101]) service.accept(bridge("meta", { normalized: { viewerCount: viewers } }));
+  for (const viewers of [120, 130, 80, 100, 110, 70, 101]) service.accept(bridge("meta", { raw: { data: { viewer: viewers } } }));
   await service.idle();
   assert.equal(calls.length, 2);
 });
@@ -111,7 +112,7 @@ test("Unified Server exposes protected Event Hub management and executes Bridge 
     instance.services.gpCounterV2.commit([counter("greeting")], { cause: "test" });
     const saved = await fetch(`${base}/api/event-hub/v1/rules`, { method: "PUT", headers, body: JSON.stringify(document([rule()])) });
     assert.equal(saved.status, 200);
-    const bridgeBody = JSON.stringify(bridge("comment", { raw: { id: "integration-comment" }, normalized: { text: "おは！" } }));
+    const bridgeBody = JSON.stringify(bridge("comment", { normalized: normalizedComment("integration-comment", "おは！") }));
     const deniedBridge = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json", "x-bridge-token": "wrong" }, body: bridgeBody });
     assert.equal(deniedBridge.status, 401);
     const bridgeResponse = await fetch(`${base}/bridge`, { method: "POST", headers: { "content-type": "application/json", "x-bridge-token": bridgeToken }, body: bridgeBody });
@@ -120,6 +121,26 @@ test("Unified Server exposes protected Event Hub management and executes Bridge 
     assert.equal(instance.services.gpCounterV2.getState().counters[0].count, 1);
     assert.equal(instance.services.eventHub.status().runtime.executedActions, 1);
   } finally { await instance.stop(); }
+});
+
+test("Comment processing mode strictly selects normalized or raw payloads", async () => {
+  const normalizedCalls = [];
+  const rawCalls = [];
+  const services = { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } };
+  const normalizedService = createEventHubService({ dataFile: null, actions: { execute(action) { normalizedCalls.push(action); return { changed: true }; } }, services, logger: { info() {}, error() {} } });
+  const rawService = createEventHubService({ dataFile: null, commentProcessingMode: "raw", actions: { execute(action) { rawCalls.push(action); return { changed: true }; } }, services, logger: { info() {}, error() {} } });
+  normalizedService.replaceRules(document([rule()]));
+  rawService.replaceRules(document([rule()]));
+  const both = bridge("comment", { normalized: normalizedComment("normalized-id", "おは normalized"), raw: { data: { id: "raw-id", comment: "おは raw" } } });
+  assert.equal(normalizedService.accept(both), true);
+  assert.equal(rawService.accept(both), true);
+  assert.equal(normalizedService.accept(bridge("comment", { raw: both.payload.raw })), false);
+  assert.equal(rawService.accept(bridge("comment", { normalized: both.payload.normalized })), false);
+  await Promise.all([normalizedService.idle(), rawService.idle()]);
+  assert.equal(normalizedCalls.length, 1);
+  assert.equal(rawCalls.length, 1);
+  assert.equal(normalizedService.status().commentProcessingMode, "normalized");
+  assert.equal(rawService.status().commentProcessingMode, "raw");
 });
 
 test("Event Hub has an independent management UI while TOC only links and reports status", () => {

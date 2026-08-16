@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 const SCHEMA = "vct.event-hub.rules.v1";
 const SCHEMA_VERSION = 1;
 const MAX_RULES = 500;
+const COMMENT_PROCESSING_MODES = new Set(["normalized", "raw"]);
 const FIELD_DEFINITIONS = Object.freeze({
   "comment.text": { eventType: "comment", type: "string", operators: ["equals", "contains", "containsAny"] },
   "comment.firstComment": { eventType: "comment", type: "boolean", operators: ["equals"] },
@@ -65,14 +66,23 @@ function validateAction(input, index) {
   throw validationError(`rules[${index}]_unsupported_action`);
 }
 
-function normalizeBridgeEvent(event) {
+function normalizeBridgeEvent(event, options = {}) {
   if (!isObject(event) || !["comment", "meta"].includes(event.eventType) || !isObject(event.payload)) return null;
   const { raw, normalized } = normalizedPair(event.payload);
   const data = isObject(raw.data) ? raw.data : {};
   if (event.eventType === "comment") {
-    const text = first(normalized.text, stripHtml(data.comment), data.speechText);
-    const firstComment = first(normalized.firstComment, normalized.isFirstComment, data.firstComment, data.isFirstComment);
-    return { type: "comment", values: { "comment.text": asString(text), "comment.firstComment": asBoolean(firstComment) }, eventKey: commentEventKey(event, raw, normalized) };
+    const mode = normalizeCommentProcessingMode(options.commentProcessingMode);
+    if (mode === "normalized") {
+      if (!isObject(event.payload.normalized)) return null;
+      const message = isObject(normalized.message) ? normalized.message : {};
+      const user = isObject(normalized.user) ? normalized.user : {};
+      const traits = isObject(user.traits) ? user.traits : {};
+      return { type: "comment", values: { "comment.text": asString(message.text), "comment.firstComment": asBoolean(traits.firstTime) }, eventKey: commentEventKey(event, raw, normalized, mode) };
+    }
+    if (!isObject(event.payload.raw)) return null;
+    const text = first(stripHtml(data.comment), data.text, data.message, data.body, data.speechText);
+    const firstComment = first(data.firstComment, data.isFirstComment, data.isFirstTime);
+    return { type: "comment", values: { "comment.text": asString(text), "comment.firstComment": asBoolean(firstComment) }, eventKey: commentEventKey(event, raw, normalized, mode) };
   }
   return { type: "meta", values: {
     "meta.viewerCount": asNumber(first(normalized.viewerCount, normalized.viewer, normalized.viewers, data.viewerCount, data.viewer, data.viewers)),
@@ -95,17 +105,22 @@ function matches(operator, actual, expected) {
   return false;
 }
 
-function commentEventKey(event, raw, normalized) {
+function commentEventKey(event, raw, normalized, mode) {
   const data = isObject(raw.data) ? raw.data : {};
   // raw.id identifies the Bridge/source in some Ms.Bridge payloads and is not
   // necessarily unique per comment. Only use identifiers owned by the comment
   // body or explicitly named as comment/message/event identifiers.
-  const stable = first(data.id, data.commentId, data.messageId, data.chatId, raw.commentId, raw.messageId, normalized.commentId, normalized.messageId, event.eventId);
+  const stable = mode === "normalized"
+    ? first(normalized.id, event.eventId)
+    : first(data.id, data.commentId, data.messageId, data.chatId, raw.commentId, raw.messageId, event.eventId);
   if (stable !== undefined && stable !== null && String(stable)) return `id:${String(stable).slice(0, 500)}`;
-  const material = JSON.stringify([event.source?.app ?? null, event.sequence ?? null, event.sentAt ?? null, normalized.text ?? raw.data?.comment ?? raw.data?.speechText ?? null, normalized.user ?? raw.data?.displayName ?? null]);
+  const material = mode === "normalized"
+    ? JSON.stringify([event.source?.app ?? null, event.sequence ?? null, event.sentAt ?? null, normalized.message?.text ?? null, normalized.user?.id ?? normalized.user?.displayName ?? null])
+    : JSON.stringify([event.source?.app ?? null, event.sequence ?? null, event.sentAt ?? null, data.comment ?? data.text ?? data.message ?? data.speechText ?? null, data.userId ?? data.displayName ?? data.name ?? null]);
   return `hash:${crypto.createHash("sha256").update(material).digest("hex")}`;
 }
 
+function normalizeCommentProcessingMode(value) { return COMMENT_PROCESSING_MODES.has(value) ? value : "normalized"; }
 function normalizedPair(payload) { return payload.raw || payload.normalized ? { raw: isObject(payload.raw) ? payload.raw : {}, normalized: isObject(payload.normalized) ? payload.normalized : {} } : { raw: payload, normalized: {} }; }
 function first(...values) { return values.find(value => value !== undefined && value !== null && value !== ""); }
 function stripHtml(value) { return typeof value === "string" ? value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : value; }
@@ -129,4 +144,4 @@ function validationError(message) { const error = new TypeError(message); error.
 function isObject(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 
-module.exports = { SCHEMA, SCHEMA_VERSION, FIELD_DEFINITIONS, emptyDocument, validateDocument, validateRule, normalizeBridgeEvent, matches, clone };
+module.exports = { SCHEMA, SCHEMA_VERSION, FIELD_DEFINITIONS, emptyDocument, validateDocument, validateRule, normalizeBridgeEvent, normalizeCommentProcessingMode, matches, clone };

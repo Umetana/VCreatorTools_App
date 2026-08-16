@@ -9,6 +9,9 @@
   "gpCounterV2DataFile": "data/gp-counter-v2.json",
   "eventHubDataFile": "data/event-hub-v1.json",
   "maroV2DataFile": "data/maro-v2.json",
+  "bridge": {
+    "commentProcessingMode": "normalized"
+  },
   "remote": {
     "enabled": false,
     "host": "0.0.0.0",

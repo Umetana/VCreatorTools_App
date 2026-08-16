@@ -75,6 +75,7 @@ function ensureRuntime() {
       gpCounterDataFile: path.join(current.dataDir, "gp-counter.json"),
       gpCounterV2DataFile: path.join(current.dataDir, "gp-counter-v2.json"),
       eventHubDataFile: path.join(current.dataDir, "event-hub-v1.json"),
+      bridge: { commentProcessingMode: "normalized" },
       maroV2DataFile: path.join(current.dataDir, "maro-v2.json"),
       remote: {
         enabled: false,
@@ -90,10 +91,16 @@ function ensureRuntime() {
     fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   } else {
     const config = JSON.parse(fs.readFileSync(current.configFile, "utf8"));
+    let configChanged = false;
     if (!config.eventHubDataFile) {
       config.eventHubDataFile = path.join(current.dataDir, "event-hub-v1.json");
-      fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+      configChanged = true;
     }
+    if (!config.bridge || !["normalized", "raw"].includes(config.bridge.commentProcessingMode)) {
+      config.bridge = { ...(config.bridge || {}), commentProcessingMode: "normalized" };
+      configChanged = true;
+    }
+    if (configChanged) fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   }
   if (!fs.existsSync(current.automationTokenFile)) fs.writeFileSync(current.automationTokenFile, `${crypto.randomBytes(32).toString("base64url")}\n`, { encoding: "utf8", mode: 0o600 });
   return current;
@@ -111,7 +118,7 @@ function readConfig() {
 }
 
 function publicSettings(config = readConfig()) {
-  return { mainHost: "127.0.0.1", mainPort: Number(config.port || 3000), remoteEnabled: config.remote?.enabled === true, remoteHost: "0.0.0.0", remotePort: Number(config.remote?.port || 3010) };
+  return { mainHost: "127.0.0.1", mainPort: Number(config.port || 3000), remoteEnabled: config.remote?.enabled === true, remoteHost: "0.0.0.0", remotePort: Number(config.remote?.port || 3010), commentProcessingMode: config.bridge?.commentProcessingMode === "raw" ? "raw" : "normalized" };
 }
 
 function normalizePort(value, name) {
@@ -124,6 +131,7 @@ async function saveSettings(value) {
   const mainPort = normalizePort(value?.mainPort, "Main Port");
   const remotePort = normalizePort(value?.remotePort, "Remote Port");
   const remoteEnabled = value?.remoteEnabled === true;
+  const commentProcessingMode = value?.commentProcessingMode === "raw" ? "raw" : "normalized";
   if (remoteEnabled && mainPort === remotePort) throw new Error("Main PortとRemote Portは別の番号にしてください");
   const current = paths();
   const config = readConfig();
@@ -133,6 +141,7 @@ async function saveSettings(value) {
   config.userGadgetsDir = current.userGadgetsDir;
   config.userAssetsDir = current.userAssetsDir;
   config.remote = { ...(config.remote || {}), enabled: remoteEnabled, host: "0.0.0.0", port: remotePort };
+  config.bridge = { ...(config.bridge || {}), commentProcessingMode };
   await stopServer();
   fs.writeFileSync(current.configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   startServer();

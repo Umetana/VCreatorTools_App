@@ -29,6 +29,7 @@ async function loadSettings() {
   document.getElementById("main-port").value = settings.mainPort;
   document.getElementById("remote-enabled").checked = settings.remoteEnabled;
   document.getElementById("remote-port").value = settings.remotePort;
+  document.getElementById("comment-processing-mode").value = settings.commentProcessingMode;
 }
 
 function element(tag, className, text) {
@@ -259,7 +260,7 @@ document.getElementById("settings").onsubmit = async (event) => {
   result.className = "";
   result.textContent = "保存中…";
   try {
-    await window.vct.saveSettings({ mainPort: Number(document.getElementById("main-port").value), remoteEnabled: document.getElementById("remote-enabled").checked, remotePort: Number(document.getElementById("remote-port").value) });
+    await window.vct.saveSettings({ mainPort: Number(document.getElementById("main-port").value), remoteEnabled: document.getElementById("remote-enabled").checked, remotePort: Number(document.getElementById("remote-port").value), commentProcessingMode: document.getElementById("comment-processing-mode").value });
     result.className = "success";
     result.textContent = "保存して再起動しました";
     serverConnected = false;

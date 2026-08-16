@@ -46,12 +46,13 @@ function loadConfig(configFile = path.join(__dirname, "server.config.json")) {
     gpCounterV2DataFile: "data/gp-counter-v2.json",
     maroV2DataFile: "data/maro-v2.json",
     eventHubDataFile: "data/event-hub-v1.json",
+    bridge: { commentProcessingMode: "normalized" },
     remote: REMOTE_DEFAULTS,
     logging: { directory: "logs", maxBytes: 1048576, keepFiles: 14 },
   };
   if (!fs.existsSync(configFile)) return defaults;
   const loaded = JSON.parse(fs.readFileSync(configFile, "utf8"));
-  const merged = { ...defaults, ...loaded, remote: { ...defaults.remote, ...(loaded.remote || {}) }, logging: { ...defaults.logging, ...(loaded.logging || {}) } };
+  const merged = { ...defaults, ...loaded, bridge: { ...defaults.bridge, ...(loaded.bridge || {}) }, remote: { ...defaults.remote, ...(loaded.remote || {}) }, logging: { ...defaults.logging, ...(loaded.logging || {}) } };
   merged.remote = normalizeRemoteConfig(merged.remote, { mainPort: merged.port });
   return merged;
 }
@@ -217,6 +218,7 @@ function createUnifiedServer(options = {}) {
   const bridgeToken = options.bridgeToken ?? process.env.BRIDGE_TOKEN ?? "";
   const adminToken = options.adminToken ?? process.env.VCT_ADMIN_TOKEN ?? "";
   const automationToken = options.automationToken ?? process.env.VCT_AUTOMATION_TOKEN ?? "";
+  const commentProcessingMode = options.commentProcessingMode ?? config.bridge?.commentProcessingMode ?? "normalized";
   const logger = options.logger || console;
   const remoteConfig = normalizeRemoteConfig(options.remote || config.remote, { env: process.env, mainPort: port });
   const app = express();
@@ -326,7 +328,7 @@ function createUnifiedServer(options = {}) {
     : path.resolve(options.remoteEffectCatalogFile || remoteConfig.effectCatalogFile || path.join(__dirname, "data", "remote-effects.json"));
   const remoteEffectCatalog = createRemoteEffectCatalogService({ dataFile: remoteEffectCatalogFile, logger });
   remoteEffectCatalog.mount(app);
-  const eventHub = createEventHubService({ dataFile: eventHubDataFile, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
+  const eventHub = createEventHubService({ dataFile: eventHubDataFile, commentProcessingMode, logger, services: { gpCounterV2, effectTransport, remoteEffectCatalog } });
   eventHub.mount(app, requireAdminOrSameOrigin);
   const userAssets = createUserAssetsService({ rootDirectory: userAssetsDir, logger });
   userAssets.mount(app);

@@ -13,6 +13,7 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   const preload = read("electron/preload.js");
   assert.match(main, /mainHost: "127\.0\.0\.1"/);
   assert.match(main, /remoteHost: "0\.0\.0\.0"/);
+  assert.match(main, /commentProcessingMode: config\.bridge\?\.commentProcessingMode === "raw" \? "raw" : "normalized"/);
   assert.match(main, /url\.origin !== mainBaseUrl\(\)/);
   assert.match(main, /"X-VCT-Admin-Token": adminToken/);
   assert.match(main, /VCT_USER_GADGETS_DIR: current\.userGadgetsDir/);
@@ -51,6 +52,8 @@ test("management renderer contains Remote and manifest-driven gadget controls", 
   const html = read("renderer/index.html");
   const app = read("renderer/app.js");
   for (const id of ["restart", "server-result", "remote-content", "pairing-regenerate", "sessions-revoke", "automation-state", "automation-copy", "automation-regenerate", "gadgets", "user-gadgets", "gadgets-refresh", "install-user-sample", "install-gp-display", "user-sample-result"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /id="comment-processing-mode"/);
+  assert.match(app, /commentProcessingMode: document\.getElementById\("comment-processing-mode"\)\.value/);
   assert.match(html, /data-path="userAssetsDir"/);
   assert.match(app, /window\.vct\.listGadgets\(\)/);
   assert.match(app, /page\.urls\[mode\]/);
