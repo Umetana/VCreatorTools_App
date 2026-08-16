@@ -8,6 +8,7 @@ const net = require("node:net");
 const path = require("node:path");
 const { promisify } = require("node:util");
 const { resolveDataLocation } = require("./data-location");
+const { localTimestamp } = require("../server/log-time");
 
 const APP_VERSION = require("../package.json").version;
 const execFileAsync = promisify(execFile);
@@ -212,7 +213,7 @@ async function startServer() {
   const remoteConflict = settings.remoteEnabled ? await portConflict("Remote", settings.remoteHost, settings.remotePort) : null;
   if (mainConflict || remoteConflict) {
     serverStatus = { state: "error", pid: null, error: [mainConflict, remoteConflict].filter(Boolean).join(" / ") };
-    appendAppLog(`${new Date().toISOString()} ${serverStatus.error}\n`);
+    appendAppLog(`${localTimestamp()} ${serverStatus.error}\n`);
     publishStatus();
     return serverStatus;
   }
@@ -228,7 +229,7 @@ async function startServer() {
   serverProcess.stderr.on("data", (chunk) => appendAppLog(chunk));
   serverProcess.once("error", (error) => {
     serverStatus = { state: "error", pid: null, error: `Serverを起動できません: ${error.message}` };
-    appendAppLog(`${new Date().toISOString()} spawn error: ${error.stack || error}\n`);
+    appendAppLog(`${localTimestamp()} spawn error: ${error.stack || error}\n`);
     publishStatus();
   });
   serverProcess.once("exit", (code, signal) => {

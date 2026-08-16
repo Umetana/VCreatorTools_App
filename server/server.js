@@ -15,6 +15,7 @@ const { createRemoteEffectCatalogService } = require("./remote-effect-catalog-se
 const { createAutomationService } = require("./automation-service");
 const { createUserAssetsService } = require("./user-assets-service");
 const { createEventHubService } = require("./event-hub-service");
+const { localDateKey, localTimestamp } = require("./log-time");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
@@ -59,15 +60,16 @@ function createFileLogger(options = {}) {
   const directory = path.resolve(options.directory || path.join(__dirname, "logs"));
   const maxBytes = Number(options.maxBytes || 1048576);
   const keepFiles = Number(options.keepFiles || 14);
+  const now = options.now || (() => new Date());
   fs.mkdirSync(directory, { recursive: true });
 
-  function logFile() {
-    return path.join(directory, `server-${new Date().toISOString().slice(0, 10)}.log`);
+  function logFile(date) {
+    return path.join(directory, `server-${localDateKey(date)}.log`);
   }
 
-  function rotate(file) {
+  function rotate(file, date) {
     if (!fs.existsSync(file) || fs.statSync(file).size < maxBytes) return;
-    const suffix = new Date().toISOString().replace(/[:.]/g, "-");
+    const suffix = localTimestamp(date).replace(/[:.]/g, "-");
     fs.renameSync(file, path.join(directory, `${path.basename(file, ".log")}-${suffix}.log`));
   }
 
@@ -80,10 +82,11 @@ function createFileLogger(options = {}) {
   }
 
   function write(level, values) {
-    const file = logFile();
-    rotate(file);
+    const date = now();
+    const file = logFile(date);
+    rotate(file, date);
     const message = values.map((value) => value instanceof Error ? value.stack || value.message : String(value)).join(" ");
-    const line = `${new Date().toISOString()} ${level.toUpperCase()} ${message}`;
+    const line = `${localTimestamp(date)} ${level.toUpperCase()} ${message}`;
     fs.appendFileSync(file, `${line}\n`, "utf8");
     console[level === "error" ? "error" : "log"](line);
   }
