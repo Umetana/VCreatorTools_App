@@ -75,14 +75,20 @@
 
   function collect() { return [...$("rules").querySelectorAll(".rule")].map(node => node.readRule()); }
   async function validatedDocument(document) { return (await api("/api/event-hub/v1/rules/validate", { method: "POST", body: JSON.stringify(document) })).document; }
+  async function currentValidatedDocument() { return validatedDocument({ ...state, rules: collect() }); }
   async function exportRules() {
-    const button = $("export"); button.disabled = true;
+    const button = $("export-file-button"); button.disabled = true;
     try {
-      const document = await validatedDocument({ ...state, rules: collect() });
+      const document = await currentValidatedDocument();
       const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: "application/json" }); const link = documentElement("a"); link.href = URL.createObjectURL(blob); link.download = `vct-event-hub-rules-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); notice(`${document.rules.length} RulesをExportしました`, "ok");
     } catch (error) { notice(`Exportエラー: ${error.message}`, "error"); }
     finally { button.disabled = false; }
   }
+  async function showJson() { try { const value = await currentValidatedDocument(); $("json-text").value = `${JSON.stringify(value, null, 2)}\n`; notice(`${value.rules.length} RulesのJSONを表示しました`, "ok"); } catch (error) { notice(`JSON表示エラー: ${error.message}`, "error"); } }
+  async function importText() { try { const imported = await validatedDocument(JSON.parse($("json-text").value)); state = { ...state, rules: imported.rules }; render(); notice(`${imported.rules.length} Rulesを読み込みました。内容を確認して保存してください。`, "ok"); } catch (error) { notice(`Importエラー: ${error.message}`, "error"); } }
+  function selectJson() { $("json-text").focus(); $("json-text").select(); }
+  async function copyJson() { selectJson(); try { if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable"); await navigator.clipboard.writeText($("json-text").value); notice("JSONをコピーしました", "ok"); } catch { notice("自動コピーを利用できません。選択したJSONを手動でコピーしてください。", "error"); } }
+  function selectDataIoTab(name) { const text = name === "text"; $("file-tab").classList.toggle("active", !text); $("text-tab").classList.toggle("active", text); $("file-tab").setAttribute("aria-selected", String(!text)); $("text-tab").setAttribute("aria-selected", String(text)); $("file-panel").hidden = text; $("text-panel").hidden = !text; }
   async function importRules(file) {
     if (!file) return; if (file.size > 1024 * 1024) { notice("Importエラー: ファイルは1MB以下にしてください", "error"); return; }
     try {
@@ -102,5 +108,5 @@
     $("accepted-events").textContent = runtime.acceptedEvents ?? 0; $("matched-rules").textContent = runtime.matchedRules ?? 0; $("executed-actions").textContent = runtime.executedActions ?? 0; $("failed-actions").textContent = runtime.failedActions ?? 0; $("duplicate-comments").textContent = runtime.duplicateComments ?? 0; $("last-event").textContent = runtime.lastEventAt ? new Date(runtime.lastEventAt).toLocaleTimeString() : "—";
   }
   async function refreshStatus() { try { updateStatus(await api("/api/event-hub/v1/status")); } catch {} }
-  $("add").addEventListener("click", () => { state.rules.push(defaultRule()); render(); }); $("reload").addEventListener("click", load); $("save").addEventListener("click", save); $("export").addEventListener("click", exportRules); $("import").addEventListener("click", () => $("import-file").click()); $("import-file").addEventListener("change", event => importRules(event.target.files[0])); load(); setInterval(refreshStatus, 5000);
+  $("add").addEventListener("click", () => { state.rules.push(defaultRule()); render(); }); $("reload").addEventListener("click", load); $("save").addEventListener("click", save); $("data-io-toggle").addEventListener("click", () => { $("data-io").hidden = !$("data-io").hidden; $("data-io-toggle").setAttribute("aria-expanded", String(!$("data-io").hidden)); }); $("file-tab").addEventListener("click", () => selectDataIoTab("file")); $("text-tab").addEventListener("click", () => selectDataIoTab("text")); $("export-file-button").addEventListener("click", exportRules); $("import-file-button").addEventListener("click", () => $("import-file").click()); $("import-file").addEventListener("change", event => importRules(event.target.files[0])); $("show-json").addEventListener("click", showJson); $("import-text").addEventListener("click", importText); $("select-json").addEventListener("click", selectJson); $("copy-json").addEventListener("click", copyJson); load(); setInterval(refreshStatus, 5000);
 })();

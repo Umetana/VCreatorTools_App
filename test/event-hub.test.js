@@ -169,7 +169,11 @@ test("Event Hub has an independent management UI while TOC only links and report
   assert.match(script, /\/api\/event-hub\/v1\/test/);
   assert.match(script, /\/api\/event-hub\/v1\/rules\/validate/);
   assert.match(page, /id="import-file"/);
-  assert.match(page, /id="export"/);
+  assert.match(page, /id="export-file-button"/);
+  assert.match(page, /id="text-tab"/);
+  assert.match(page, /id="json-text"/);
+  assert.match(script, /navigator\.clipboard/);
+  assert.match(script, /自動コピーを利用できません/);
   assert.match(script, /Actionは実行していません/);
   assert.match(script, /enabled: true/);
   assert.match(script, /commentProcessingMode === "raw"/);
