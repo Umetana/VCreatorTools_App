@@ -77,6 +77,11 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 
 Rule追加・編集直後の現在値評価ではActionを発火しない。Server再起動後の最初のMetaはbaselineとして扱い、次の変化から判定する。Commentは受信した新規Eventだけを対象とする。
 
+- RuleとCounter状態はServer再起動後に復元する。
+- Event Hubの診断統計、Comment重複判定、Meta baselineはプロセス内の一時状態であり、Server再起動時にリセットする。
+- 同一Server稼働中のBridge再送は安定Comment IDで重複抑止する。Server再起動をまたぐ重複履歴は初期版では永続化しない。
+- コメント処理モードを含む接続設定の保存はServer再起動として扱い、同じリセット規則を適用する。
+
 ## 初期版で行わないこと
 
 - AND／ORを含む複合条件

@@ -96,6 +96,45 @@ test("Meta rules baseline first value and only trigger on false to true edges", 
   assert.equal(calls.length, 2);
 });
 
+test("Server restart restores Rules and Counter state while resetting Event Hub runtime state", async (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vct-event-hub-restart-"));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const options = { host: "127.0.0.1", port: 0, publicDir: path.join(__dirname, "..", "public"), userAssetsDir: path.join(directory, "assets"), dataFile: path.join(directory, "material.json"), gpCounterDataFile: path.join(directory, "gp-counter.json"), gpCounterV2DataFile: path.join(directory, "gp-counter-v2.json"), maroV2DataFile: path.join(directory, "maro-v2.json"), eventHubDataFile: path.join(directory, "event-hub-v1.json"), remoteSessionFile: null, remoteEffectCatalogFile: null, remote: { enabled: false }, logger: { info() {}, error() {} } };
+  const first = createUnifiedServer(options);
+  await first.start();
+  first.services.gpCounterV2.commit([counter("greeting", 7)], { cause: "restart-test" });
+  first.services.eventHub.replaceRules(document([rule()]));
+  first.services.eventHub.accept(bridge("comment", { normalized: normalizedComment("before-restart", "おは") }));
+  await first.services.eventHub.idle();
+  assert.equal(first.services.gpCounterV2.getState().counters[0].count, 8);
+  assert.equal(first.services.eventHub.status().runtime.executedActions, 1);
+  await first.stop();
+
+  const second = createUnifiedServer(options);
+  await second.start();
+  try {
+    assert.equal(second.services.eventHub.getRules().rules.length, 1);
+    assert.equal(second.services.gpCounterV2.getState().counters[0].count, 8);
+    assert.equal(second.services.eventHub.status().runtime.acceptedEvents, 0);
+    assert.equal(second.services.eventHub.status().runtime.executedActions, 0);
+    assert.equal(second.services.eventHub.status().runtime.duplicateComments, 0);
+  } finally { await second.stop(); }
+});
+
+test("Meta baseline is rebuilt without firing after Event Hub service restart", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vct-event-hub-meta-restart-"));
+  try {
+    const dataFile = path.join(directory, "event-hub-v1.json"); const calls = [];
+    const services = { gpCounterV2: { getState: () => ({ counters: [] }) }, remoteEffectCatalog: { getState: () => ({ buttons: [] }) } };
+    const metaRule = rule({ id: "rule_viewers_restart", event: { type: "meta", field: "meta.viewerCount" }, condition: { operator: "gte", value: 100 }, action: counterAction() });
+    const first = createEventHubService({ dataFile, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services, logger: { info() {}, error() {} } });
+    first.replaceRules(document([metaRule])); first.accept(bridge("meta", { normalized: { viewerCount: 120 } })); await first.idle(); assert.equal(calls.length, 0);
+    const second = createEventHubService({ dataFile, actions: { execute(action) { calls.push(action); return { changed: true }; } }, services, logger: { info() {}, error() {} } });
+    second.accept(bridge("meta", { normalized: { viewerCount: 130 } })); await second.idle(); assert.equal(calls.length, 0);
+    second.accept(bridge("meta", { normalized: { viewerCount: 80 } })); second.accept(bridge("meta", { normalized: { viewerCount: 100 } })); await second.idle(); assert.equal(calls.length, 1);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("Unified Server exposes protected Event Hub management and executes Bridge rules through existing Counter service", async (t) => {
   const adminToken = "event-hub-admin-token";
   const bridgeToken = "event-hub-bridge-token";
