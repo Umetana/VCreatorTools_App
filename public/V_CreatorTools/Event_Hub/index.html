@@ -6,7 +6,7 @@
 <main>
   <section class="summary" aria-label="稼働状況"><article><span>Rules</span><strong id="rule-count">—</strong></article><article><span>Enabled</span><strong id="enabled-count">—</strong></article><article><span>Last action</span><strong id="last-action">—</strong></article></section>
   <section class="diagnostics" aria-label="Event Hub診断"><div><span>Accepted events</span><strong id="accepted-events">—</strong></div><div><span>Matched rules</span><strong id="matched-rules">—</strong></div><div><span>Actions</span><strong id="executed-actions">—</strong></div><div><span>Failed</span><strong id="failed-actions">—</strong></div><div><span>Duplicates</span><strong id="duplicate-comments">—</strong></div><div><span>Last event</span><strong id="last-event">—</strong></div></section>
-  <section class="toolbar"><div><h2>Rules</h2><p>1 Event / 1 Condition / 1 Action</p></div><div><button id="reload" class="secondary">再読込</button><button id="add">＋ Rule追加</button><button id="save">保存</button></div></section>
+  <section class="toolbar"><div><h2>Rules</h2><p>1 Event / 1 Condition / 1 Action</p></div><div><button id="import" class="secondary">Import</button><button id="export" class="secondary">Export</button><button id="reload" class="secondary">再読込</button><button id="add">＋ Rule追加</button><button id="save">保存</button><input id="import-file" type="file" accept="application/json,.json" hidden></div></section>
   <div id="notice" role="status"></div>
   <section id="rules" class="rules"></section>
   <section class="help"><h2>発火仕様</h2><p>Commentは重複受信を抑止します。Metaは条件が未一致から一致へ変化した時だけ発火し、起動・設定変更後の最初の値は基準値として扱います。</p><a href="../Total_Operations_Console_v2/index.html?vctMode=server">Total Operations Consoleへ戻る</a></section>

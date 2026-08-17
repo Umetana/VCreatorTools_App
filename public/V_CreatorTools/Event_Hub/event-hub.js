@@ -74,6 +74,24 @@
   }
 
   function collect() { return [...$("rules").querySelectorAll(".rule")].map(node => node.readRule()); }
+  async function validatedDocument(document) { return (await api("/api/event-hub/v1/rules/validate", { method: "POST", body: JSON.stringify(document) })).document; }
+  async function exportRules() {
+    const button = $("export"); button.disabled = true;
+    try {
+      const document = await validatedDocument({ ...state, rules: collect() });
+      const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], { type: "application/json" }); const link = documentElement("a"); link.href = URL.createObjectURL(blob); link.download = `vct-event-hub-rules-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); notice(`${document.rules.length} RulesをExportしました`, "ok");
+    } catch (error) { notice(`Exportエラー: ${error.message}`, "error"); }
+    finally { button.disabled = false; }
+  }
+  async function importRules(file) {
+    if (!file) return; if (file.size > 1024 * 1024) { notice("Importエラー: ファイルは1MB以下にしてください", "error"); return; }
+    try {
+      const imported = await validatedDocument(JSON.parse(await file.text()));
+      state = { ...state, rules: imported.rules }; render(); notice(`${imported.rules.length} Rulesを読み込みました。内容を確認して保存してください。`, "ok");
+    } catch (error) { notice(`Importエラー: ${error.message}`, "error"); }
+    finally { $("import-file").value = ""; }
+  }
+  function documentElement(tag) { return document.createElement(tag); }
   async function load() { notice("読込中…"); try { const [rules, nextCatalog, status] = await Promise.all([api("/api/event-hub/v1/rules"), api("/api/event-hub/v1/catalog"), api("/api/event-hub/v1/status")]); state = rules.state; catalog = nextCatalog; updateStatus(status); render(); notice(`revision ${state.revision} を読み込みました`, "ok"); } catch (error) { notice(`読込エラー: ${error.message}`, "error"); $("runtime-badge").textContent = "接続エラー"; $("runtime-badge").className = "badge error"; } }
   async function save() { const button = $("save"); button.disabled = true; try { const body = await api("/api/event-hub/v1/rules", { method: "PUT", body: JSON.stringify({ ...state, rules: collect() }) }); state = body.state; render(); notice(`保存しました / revision ${state.revision}`, "ok"); await refreshStatus(); } catch (error) { if (error.state) state = error.state; notice(error.message === "revision_conflict" ? "別画面で更新されています。再読込してください。" : `保存エラー: ${error.message}`, "error"); } finally { button.disabled = false; } }
   function updateStatus(status) {
@@ -84,5 +102,5 @@
     $("accepted-events").textContent = runtime.acceptedEvents ?? 0; $("matched-rules").textContent = runtime.matchedRules ?? 0; $("executed-actions").textContent = runtime.executedActions ?? 0; $("failed-actions").textContent = runtime.failedActions ?? 0; $("duplicate-comments").textContent = runtime.duplicateComments ?? 0; $("last-event").textContent = runtime.lastEventAt ? new Date(runtime.lastEventAt).toLocaleTimeString() : "—";
   }
   async function refreshStatus() { try { updateStatus(await api("/api/event-hub/v1/status")); } catch {} }
-  $("add").addEventListener("click", () => { state.rules.push(defaultRule()); render(); }); $("reload").addEventListener("click", load); $("save").addEventListener("click", save); load(); setInterval(refreshStatus, 5000);
+  $("add").addEventListener("click", () => { state.rules.push(defaultRule()); render(); }); $("reload").addEventListener("click", load); $("save").addEventListener("click", save); $("export").addEventListener("click", exportRules); $("import").addEventListener("click", () => $("import-file").click()); $("import-file").addEventListener("change", event => importRules(event.target.files[0])); load(); setInterval(refreshStatus, 5000);
 })();

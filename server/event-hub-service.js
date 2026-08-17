@@ -69,6 +69,10 @@ function createEventHubService(options = {}) {
     return result;
   }
 
+  function validateRules(input) {
+    return Schema.validateDocument(input);
+  }
+
   function status() {
     const state = repository.getState();
     return { ok: true, schema: "vct.event-hub.status.v1", running: true, commentProcessingMode, revision: state.revision, ruleCount: state.rules.length, enabledRuleCount: state.rules.filter(rule => rule.enabled).length, runtime: Schema.clone(runtime) };
@@ -90,12 +94,13 @@ function createEventHubService(options = {}) {
   function mount(app, requireAdmin = (_req, _res, next) => next()) {
     app.get("/api/event-hub/v1/status", (_req, res) => res.json(status()));
     app.get("/api/event-hub/v1/rules", requireAdmin, (_req, res) => res.json({ ok: true, state: repository.getState() }));
+    app.post("/api/event-hub/v1/rules/validate", requireAdmin, (req, res) => { try { return res.json({ ok: true, document: validateRules(req.body) }); } catch (error) { return res.status(error.status || 400).json({ ok: false, error: error.message }); } });
     app.put("/api/event-hub/v1/rules", requireAdmin, (req, res) => { try { const result = replaceRules(req.body); if (result.conflict) return res.status(409).json({ ok: false, error: "revision_conflict", state: result.state }); return res.json(result); } catch (error) { return res.status(error.status || 400).json({ ok: false, error: error.message }); } });
     app.get("/api/event-hub/v1/catalog", requireAdmin, (_req, res) => res.json(catalog()));
     app.post("/api/event-hub/v1/test", requireAdmin, (req, res) => { try { return res.json(testRule(req.body)); } catch (error) { return res.status(error.status || 400).json({ ok: false, error: error.message }); } });
   }
 
-  return Object.freeze({ accept, idle: () => queue, getRules: repository.getState, replaceRules, status, catalog, testRule, mount });
+  return Object.freeze({ accept, idle: () => queue, getRules: repository.getState, replaceRules, validateRules, status, catalog, testRule, mount });
 }
 
 module.exports = { createEventHubService };

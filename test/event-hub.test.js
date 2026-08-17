@@ -112,6 +112,13 @@ test("Unified Server exposes protected Event Hub management and executes Bridge 
     instance.services.gpCounterV2.commit([counter("greeting")], { cause: "test" });
     const saved = await fetch(`${base}/api/event-hub/v1/rules`, { method: "PUT", headers, body: JSON.stringify(document([rule()])) });
     assert.equal(saved.status, 200);
+    const validatedResponse = await fetch(`${base}/api/event-hub/v1/rules/validate`, { method: "POST", headers, body: JSON.stringify(document([rule({ label: " Import候補 " })], 99)) });
+    assert.equal(validatedResponse.status, 200);
+    const validated = await validatedResponse.json();
+    assert.equal(validated.document.rules[0].label, "Import候補");
+    assert.equal(instance.services.eventHub.getRules().revision, 1);
+    const invalidImport = await fetch(`${base}/api/event-hub/v1/rules/validate`, { method: "POST", headers, body: JSON.stringify({ schema: "unknown", schemaVersion: 1, revision: 0, rules: [] }) });
+    assert.equal(invalidImport.status, 400);
     const dryRunResponse = await fetch(`${base}/api/event-hub/v1/test`, { method: "POST", headers, body: JSON.stringify({ rule: rule(), event: bridge("comment", { normalized: normalizedComment("dry-run-comment", "おは dry run") }) }) });
     assert.equal(dryRunResponse.status, 200);
     const dryRun = await dryRunResponse.json();
@@ -160,6 +167,9 @@ test("Event Hub has an independent management UI while TOC only links and report
   assert.match(page, /1 Event \/ 1 Condition \/ 1 Action/);
   assert.match(script, /\/api\/event-hub\/v1\/rules/);
   assert.match(script, /\/api\/event-hub\/v1\/test/);
+  assert.match(script, /\/api\/event-hub\/v1\/rules\/validate/);
+  assert.match(page, /id="import-file"/);
+  assert.match(page, /id="export"/);
   assert.match(script, /Actionは実行していません/);
   assert.match(script, /enabled: true/);
   assert.match(script, /commentProcessingMode === "raw"/);
