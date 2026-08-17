@@ -53,7 +53,7 @@ Event Hub自身はCounter状態更新やEffect描画を実装しない。既存�
 
 - JSON Import／Export（ファイル／テキストの画面内タブ、Server検証後に編集画面へ読み込み、明示保存）
 - Bridge再接続、Server再起動、設定更新中の挙動確認
-- OBS、Chrome、Remote、Stream Deckとの同時運用試験
+- OBS、Chrome、Remote、Stream Deckとの同時運用試験（WebSocket／管理API／Remote Pairing／Automation APIの自動統合試験を追加。OBS内蔵ブラウザー固有UIは実機確認）
 
 ## RC — 契約固定
 
