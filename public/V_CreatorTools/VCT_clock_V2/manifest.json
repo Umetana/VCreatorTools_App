@@ -1,7 +1,7 @@
 {
   "id": "VCT_clock_V2",
   "schemaVersion": 1,
-  "version": "2.1.0-beta.1",
+  "version": "2.1.0-beta.2",
   "name": "VCT Clock V2",
   "status": "beta",
   "modes": ["standalone"],

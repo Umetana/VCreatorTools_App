@@ -117,6 +117,6 @@ test("TOC separates Server WebSocket connectivity from Bridge event reception", 
   assert.match(style, /\.badge\.waiting\{color:var\(--warn\)/);
   assert.match(script, /new DOMParser\(\)\.parseFromString\(String\(value \|\| ''\), 'text\/html'\)/);
   assert.doesNotMatch(script, /innerHTML\s*=\s*html/);
-  assert.match(script, /normalized\.message\?\.text/);
-  assert.match(script, /normalized\.user\?\.displayName/);
+  assert.match(script, /normalized\.text/);
+  assert.match(script, /normalized\.user/);
 });

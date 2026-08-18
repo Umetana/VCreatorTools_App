@@ -269,9 +269,7 @@
             <button onclick="saveCurrentConfig()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">
               💾 設定を完全に保存
             </button>
-            <button type="button" onclick="exportSettings()" class="toolbar-button">JSON書出し</button>
-            <button type="button" onclick="document.getElementById('settingsImport').click()" class="toolbar-button">JSON読込</button>
-            <input type="file" id="settingsImport" accept="application/json,.json" hidden onchange="importSettingsFile(this.files[0]); this.value=''">
+            <button type="button" onclick="openJsonPanel()" class="toolbar-button">JSON入出力</button>
           </div>
         </div>
 
@@ -429,6 +427,33 @@
 
     </div>
   </div>
+
+  <section id="jsonPanel" class="json-panel" hidden role="dialog" aria-modal="true" aria-labelledby="jsonPanelTitle">
+    <div class="json-panel__backdrop" onclick="closeJsonPanel()"></div>
+    <div class="json-panel__body">
+      <div class="json-panel__header">
+        <div>
+          <h2 id="jsonPanelTitle">設定JSON入出力</h2>
+          <p>OBSでは下のテキスト操作を使用できます。ファイル書出しは通常ブラウザー／Appでの利用を推奨します。</p>
+        </div>
+        <button type="button" class="json-panel__close" onclick="closeJsonPanel()" aria-label="閉じる">×</button>
+      </div>
+      <textarea id="settingsJsonText" class="json-panel__textarea" spellcheck="false" aria-label="設定JSON"></textarea>
+      <div class="json-panel__actions">
+        <button type="button" class="toolbar-button" onclick="generateSettingsJson()">現在設定を表示</button>
+        <button type="button" class="toolbar-button" onclick="selectSettingsJson()">全選択</button>
+        <button type="button" class="toolbar-button" onclick="copySettingsJson()">コピー</button>
+        <button type="button" class="toolbar-button json-panel__apply" onclick="applySettingsJson()">JSONを適用</button>
+        <button type="button" class="toolbar-button" onclick="clearSettingsJson()">クリア</button>
+      </div>
+      <div class="json-panel__file-actions">
+        <button type="button" class="toolbar-button" onclick="document.getElementById('settingsImport').click()">ファイル読込</button>
+        <button type="button" class="toolbar-button" onclick="exportSettings()">ファイル書出し</button>
+        <span>ファイル操作は補助機能です。</span>
+      </div>
+      <input type="file" id="settingsImport" accept="application/json,.json" hidden onchange="importSettingsFile(this.files[0]); this.value=''">
+    </div>
+  </section>
 
   <!-- 設定変更のフィードバック用モーダル通知 -->
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-emerald-500 text-emerald-400 px-4 py-3 rounded-lg shadow-2xl opacity-0 transform translate-y-2 pointer-events-none transition-all duration-300 flex items-center gap-2">
@@ -925,8 +950,96 @@
       return { schema: 'vct-clock.backup.v1', exportedAt: new Date().toISOString(), config: normalizeSettings(clockState), slots };
     }
 
+    function openJsonPanel() {
+      const panel = document.getElementById('jsonPanel');
+      panel.hidden = false;
+      if (!document.getElementById('settingsJsonText').value.trim()) generateSettingsJson(false);
+      document.getElementById('settingsJsonText').focus();
+    }
+
+    function closeJsonPanel() {
+      document.getElementById('jsonPanel').hidden = true;
+    }
+
+    function generateSettingsJson(notify = true) {
+      document.getElementById('settingsJsonText').value = JSON.stringify(createBackupPayload(), null, 2);
+      if (notify) showToast('現在の設定JSONを表示しました。');
+    }
+
+    function selectSettingsJson() {
+      const textarea = document.getElementById('settingsJsonText');
+      textarea.focus();
+      textarea.select();
+    }
+
+    async function copySettingsJson() {
+      const textarea = document.getElementById('settingsJsonText');
+      if (!textarea.value.trim()) generateSettingsJson(false);
+      selectSettingsJson();
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+        await navigator.clipboard.writeText(textarea.value);
+        showToast('設定JSONをコピーしました。');
+      } catch (_) {
+        try {
+          if (!document.execCommand('copy')) throw new Error('copy failed');
+          showToast('設定JSONをコピーしました。');
+        } catch (_) {
+          showToast('全選択しました。Ctrl+Cでコピーしてください。');
+        }
+      }
+    }
+
+    function clearSettingsJson() {
+      document.getElementById('settingsJsonText').value = '';
+      document.getElementById('settingsJsonText').focus();
+    }
+
+    function parseBackupJson(json) {
+      const payload = JSON.parse(json);
+      if (payload?.schema !== 'vct-clock.backup.v1') throw new Error('unsupported schema');
+      const settings = normalizeSettings(payload.config);
+      if (!settings) throw new Error('invalid config');
+      return { payload, settings };
+    }
+
+    function applyBackupPayload(payload, settings) {
+      localStorage.setItem(STORAGE_KEYS.config, JSON.stringify({ version: 2, settings }));
+      for (let i = 1; i <= 3; i++) {
+        const source = payload.slots?.[i];
+        const slotSettings = normalizeSettings(source?.settings);
+        if (!slotSettings) continue;
+        const name = String(source.name || `スロット ${i}`).trim().slice(0, 80) || `スロット ${i}`;
+        localStorage.setItem(STORAGE_KEYS.slots(i), JSON.stringify({ version: 2, name, settings: slotSettings }));
+      }
+      clockState = settings;
+      applySettings(settings);
+      checkSavedSlots();
+    }
+
+    function applySettingsJson() {
+      try {
+        const { payload, settings } = parseBackupJson(document.getElementById('settingsJsonText').value);
+        applyBackupPayload(payload, settings);
+        showToast('設定JSONを適用して保存しました。');
+      } catch (error) {
+        console.error('設定JSONの適用に失敗しました。', error);
+        showToast('対応していない、または壊れた設定JSONです。');
+      }
+    }
+
     function exportSettings() {
-      const json = JSON.stringify(createBackupPayload(), null, 2);
+      const textarea = document.getElementById('settingsJsonText');
+      if (!textarea.value.trim()) generateSettingsJson(false);
+      let json;
+      try {
+        parseBackupJson(textarea.value);
+        json = textarea.value;
+      } catch (error) {
+        console.error('設定JSONの書き出しに失敗しました。', error);
+        showToast('JSONを確認してから書き出してください。');
+        return;
+      }
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -942,27 +1055,19 @@
     async function importSettingsFile(file) {
       if (!file) return;
       try {
-        const payload = JSON.parse(await file.text());
-        if (payload?.schema !== 'vct-clock.backup.v1') throw new Error('unsupported schema');
-        const settings = normalizeSettings(payload.config);
-        if (!settings) throw new Error('invalid config');
-        localStorage.setItem(STORAGE_KEYS.config, JSON.stringify({ version: 2, settings }));
-        for (let i = 1; i <= 3; i++) {
-          const source = payload.slots?.[i];
-          const slotSettings = normalizeSettings(source?.settings);
-          if (!slotSettings) continue;
-          const name = String(source.name || `スロット ${i}`).trim().slice(0, 80) || `スロット ${i}`;
-          localStorage.setItem(STORAGE_KEYS.slots(i), JSON.stringify({ version: 2, name, settings: slotSettings }));
-        }
-        clockState = settings;
-        applySettings(settings);
-        checkSavedSlots();
-        showToast('設定JSONを読み込みました。');
+        const json = await file.text();
+        parseBackupJson(json);
+        document.getElementById('settingsJsonText').value = json;
+        showToast('ファイルを読み込みました。内容を確認して適用してください。');
       } catch (error) {
         console.error('設定JSONの読み込みに失敗しました。', error);
         showToast('対応していない、または壊れた設定JSONです。');
       }
     }
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !document.getElementById('jsonPanel').hidden) closeJsonPanel();
+    });
 
     function normalizeSettings(value) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
