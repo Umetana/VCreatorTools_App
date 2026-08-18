@@ -19,7 +19,7 @@ const { localDateKey, localTimestamp } = require("./log-time");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
-const SERVICE_VERSION = "1.0.1";
+const SERVICE_VERSION = "1.1.0";
 
 function timingSafeStringEqual(expected, supplied) {
   const expectedBuffer = Buffer.from(String(expected));

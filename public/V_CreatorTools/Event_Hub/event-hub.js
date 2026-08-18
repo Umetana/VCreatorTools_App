@@ -21,8 +21,9 @@
       const raw = { data: { id: comment.id, comment: comment.message.text, firstComment: comment.user.traits.firstTime } };
       return { schema: "msbridge.event.v1", eventType: "comment", sentAt, source: { app: "event-hub-dry-run" }, payload: runtimeStatus.commentProcessingMode === "raw" ? { raw } : { normalized: comment } };
     }
-    const key = ({ "meta.viewerCount": "viewerCount", "meta.likeCount": "likeCount", "meta.subscriberCount": "subscriberCount", "meta.platform": "platform" })[field.id];
-    return { schema: "msbridge.event.v1", eventType: "meta", sentAt, source: { app: "event-hub-dry-run" }, payload: { normalized: { [key]: field.type === "number" ? Number(value) : value } } };
+    const key = ({ "meta.viewerCount": "viewer", "meta.likeCount": "upVote", "meta.subscriberCount": "subscriberCount" })[field.id];
+    const raw = field.id === "meta.platform" ? { type: value, data: {} } : { data: { [key]: Number(value) } };
+    return { schema: "msbridge.event.v1", eventType: "meta", sentAt, source: { app: "event-hub-dry-run" }, payload: { raw } };
   }
 
   async function testRule(node) {

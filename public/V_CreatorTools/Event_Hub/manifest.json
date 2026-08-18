@@ -1,7 +1,7 @@
 {
   "id": "vct_event_hub",
   "schemaVersion": 1,
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "name": "VCT Event Hub",
   "status": "beta",
   "modes": ["server"],

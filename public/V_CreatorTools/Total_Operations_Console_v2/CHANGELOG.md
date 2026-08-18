@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0-beta.2
+
+- VCT SDK 2.0の`message.text`と`user.displayName`をBridge監視表示へ反映
+- Normalized、RAW、Normalized＋RAWの各送信形式を監視可能にした
+
 ## 2.1.0-beta.1
 
 - VCT Event Hubの稼働状態をSystem画面と接続バッジへ追加

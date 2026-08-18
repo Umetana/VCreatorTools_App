@@ -7,9 +7,9 @@ window.MATERIAL_EXTRA_DATA = {
   "items": [
     {
       "id": "extra-mste2f2j-ll0q6k7",
-      "title": "VCreatorToos app v0.2.0-beta1",
+      "title": "VCreatorTools App v0.2.0-beta.2",
       "category": "配信ツール",
-      "fact": "VCreatorToos公式ガジェットと総合基盤サーバー。\n各ガジェットのリモート操作、STREAMDECK対応。\nわんコメ連携テスト中",
+      "fact": "VCreatorTools公式ガジェットと総合基盤サーバー。\n各ガジェットのリモート操作、STREAMDECK対応。\nわんコメ連携テスト中",
       "reaction": "",
       "tips": ""
     }

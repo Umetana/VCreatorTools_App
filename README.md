@@ -1,6 +1,6 @@
 # VCreatorTools App
 
-Electron版の開発Repositoryです。App versionは`0.2.0-beta.1`、内蔵Serverは独立して`1.0.1`です。
+Electron版の開発Repositoryです。App versionは`0.2.0-beta.2`、内蔵Serverは独立して`1.1.0`です。
 
 ## 開発起動
 
@@ -23,4 +23,4 @@ Mainは`127.0.0.1`、Remoteは有効時のみ`0.0.0.0`へ固定します。管�
 
 管理UIには正式ガジェット一覧、Sync／Server／Standalone URLのコピーと起動、Remote URL／QR、Pairing code再生成、全Remote Session破棄も集約します。Browserの`/admin`は単体Server運用と診断用として残します。
 
-`0.1.0-beta.1`ではInstaller／Portable Buildを利用者テスト用に提供します。既知事項は`RELEASE_NOTES.md`を参照してください。
+`0.2.0-beta.2`ではEvent Hubの運用調整を含むInstaller／Portable Buildを利用者テスト用に提供します。既知事項は`RELEASE_NOTES.md`を参照してください。

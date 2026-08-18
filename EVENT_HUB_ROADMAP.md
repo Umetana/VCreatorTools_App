@@ -1,6 +1,6 @@
 # VCT Event Hub 導入計画
 
-Status: 0.2.0-beta.1実装
+Status: 0.2.0-beta.2実装・RC判定前
 
 ## 配置と責務
 

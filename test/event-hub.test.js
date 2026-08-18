@@ -223,6 +223,7 @@ test("Event Hub has an independent management UI while TOC only links and report
   assert.match(script, /runtime\.acceptedEvents/);
   assert.match(script, /runtime\.duplicateComments/);
   assert.match(script, /containsAny/);
+  assert.match(script, /eventType: "meta"[\s\S]*payload: \{ raw \}/);
   assert.match(script, /split\(\/\[\\r\\n,，、\]\+\//);
   assert.match(tocPage, /Event_Hub\/index\.html/);
   assert.match(tocScript, /\/api\/event-hub\/v1\/status/);
