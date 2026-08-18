@@ -11,6 +11,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 test("Electron exposes only fixed-host settings and scoped management actions", () => {
   const main = read("electron/main.js");
   const preload = read("electron/preload.js");
+  const server = read("server/server.js");
   assert.match(main, /mainHost: "127\.0\.0\.1"/);
   assert.match(main, /remoteHost: "0\.0\.0\.0"/);
   assert.match(main, /commentProcessingMode: config\.bridge\?\.commentProcessingMode === "raw" \? "raw" : "normalized"/);
@@ -46,6 +47,9 @@ test("Electron exposes only fixed-host settings and scoped management actions", 
   for (const channel of ["automation:status", "automation:copy-token", "automation:regenerate-token"]) assert.match(main, new RegExp(`ipcMain\\.handle\\("${channel}`));
   assert.match(preload, /copyAutomationToken/);
   assert.match(preload, /restartServer/);
+  assert.match(server, /crypto\.timingSafeEqual/);
+  assert.match(server, /if \(!timingSafeStringEqual\(bridgeToken, token\)\)/);
+  assert.doesNotMatch(server, /token !== bridgeToken/);
 });
 
 test("management renderer contains Remote and manifest-driven gadget controls", () => {
