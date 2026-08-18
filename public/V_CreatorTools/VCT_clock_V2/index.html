@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VCT Clock V2 - Standalone</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_vct_lib/ui/inline-color-picker/v1/picker.css">
+  <link rel="stylesheet" href="../_vct_lib/ui/choice-dialog/v1/dialog.css">
   
   <style>
     /* CSS変数による動的カスタマイズの実現 */
@@ -169,7 +171,7 @@
     <div class="ui-area">
       
       <!-- サイドバー：プリセットとスロット保存 -->
-      <div class="space-y-6 flex flex-col justify-between h-full pb-6 border-r border-slate-800 pr-6">
+      <div class="space-y-6 flex flex-col justify-between h-full pb-6 border-r border-slate-800 pr-6 overflow-y-auto custom-scrollbar">
         <div>
           <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
             🎨 デザインプリセット
@@ -190,6 +192,22 @@
             <button onclick="applyPreset('shiki')" class="w-full text-left bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/30 hover:border-amber-500 px-4 py-3 rounded-lg transition group">
               <div class="font-bold text-amber-400 group-hover:text-amber-300">4. シック・和モダン</div>
               <div class="text-xs text-slate-400 mt-1">縦書き風「午前午後」と美しい明朝フォント。和風・Lo-Fi向け</div>
+            </button>
+            <button onclick="applyPreset('broadcast')" class="preset-card preset-broadcast w-full text-left border px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-white">5. 放送局・ニュース</div>
+              <div class="text-xs text-slate-400 mt-1">高コントラストで端正な、情報番組向けデザイン</div>
+            </button>
+            <button onclick="applyPreset('pastel')" class="preset-card preset-pastel w-full text-left border px-4 py-3 rounded-lg transition group">
+              <div class="font-bold preset-pastel-title">6. パステル・ドリーム</div>
+              <div class="text-xs text-slate-300 mt-1">柔らかなラベンダーと水色の雑談・歌枠向け</div>
+            </button>
+            <button onclick="applyPreset('led')" class="preset-card preset-led w-full text-left border px-4 py-3 rounded-lg transition group">
+              <div class="font-bold preset-led-title">7. LED・電光掲示板</div>
+              <div class="text-xs text-slate-400 mt-1">橙色の発光と広い字間の電光表示風</div>
+            </button>
+            <button onclick="applyPreset('mono')" class="preset-card preset-mono w-full text-left border px-4 py-3 rounded-lg transition group">
+              <div class="font-bold text-white">8. クリーン・モノクロ</div>
+              <div class="text-xs text-slate-400 mt-1">どんな配信画面にも合わせやすい白黒構成</div>
             </button>
           </div>
         </div>
@@ -251,6 +269,9 @@
             <button onclick="saveCurrentConfig()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">
               💾 設定を完全に保存
             </button>
+            <button type="button" onclick="exportSettings()" class="toolbar-button">JSON書出し</button>
+            <button type="button" onclick="document.getElementById('settingsImport').click()" class="toolbar-button">JSON読込</button>
+            <input type="file" id="settingsImport" accept="application/json,.json" hidden onchange="importSettingsFile(this.files[0]); this.value=''">
           </div>
         </div>
 
@@ -265,14 +286,20 @@
             <!-- フォント種類選択 (OBS互換用ボタングループ) -->
             <div>
               <label class="block text-xs font-semibold text-slate-400 mb-2">フォントスタイル</label>
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="updateParam('fontFamily', STANDARD_FONT)" id="fontBtn_standard" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 font-mono transition">標準（オフライン）</button>
-                <button type="button" onclick="updateParam('fontFamily', '\'Share Tech Mono\', monospace')" id="fontBtn_digital" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 font-mono transition">Digital（オンライン）</button>
-                <button type="button" onclick="updateParam('fontFamily', '\'DotGothic16\', sans-serif')" id="fontBtn_dot" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'DotGothic16';">和風レトロ（オンライン）</button>
-                <button type="button" onclick="updateParam('fontFamily', '\'M PLUS Rounded 1c\', sans-serif')" id="fontBtn_rounded" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'M PLUS Rounded 1c';">ポップ・角丸（オンライン）</button>
-                <button type="button" onclick="updateParam('fontFamily', '\'M PLUS 1p\', sans-serif')" id="fontBtn_gothic" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition" style="font-family: 'M PLUS 1p';">モダンゴシック（オンライン）</button>
-                <button type="button" onclick="updateParam('fontFamily', '\'Sawarabi Mincho\', serif')" id="fontBtn_mincho" class="bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-lg py-2 text-xs font-semibold text-slate-300 transition col-span-2" style="font-family: 'Sawarabi Mincho';">シック明朝（オンライン）</button>
+              <select id="fontChoice" aria-label="フォントスタイル">
+                <option value="standard">標準（オフライン）</option>
+                <option value="digital">Digital（オンライン）</option>
+                <option value="dot">和風レトロ（オンライン）</option>
+                <option value="rounded">ポップ・角丸（オンライン）</option>
+                <option value="gothic">モダンゴシック（オンライン）</option>
+                <option value="mincho">シック明朝（オンライン）</option>
+                <option value="local">任意ローカルフォント</option>
+              </select>
+              <div class="local-font-row mt-3">
+                <input type="text" id="localFontName" maxlength="80" placeholder="例: BIZ UDPゴシック" class="settings-text-input">
+                <button type="button" id="applyLocalFont" class="toolbar-button">適用</button>
               </div>
+              <p class="text-xs text-slate-500 mt-1">PCにインストール済みのフォント名を指定します。</p>
             </div>
 
             <!-- フォントサイズ -->
@@ -298,14 +325,12 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-2">文字カラー</label>
                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
-                  <input type="color" id="fontColor" value="#00ffcc" oninput="updateParam('fontColor', this.value)" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
                   <input type="text" id="fontColorText" value="#00FFCC" oninput="updateColorFromText('fontColor', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
                 </div>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-2">光彩（ネオン）のカラー</label>
                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
-                  <input type="color" id="glowColor" value="#00ffcc" oninput="updateParam('glowColor', this.value)" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
                   <input type="text" id="glowColorText" value="#00FFCC" oninput="updateColorFromText('glowColor', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
                 </div>
               </div>
@@ -332,7 +357,6 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-2">背景カラー</label>
                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-700">
-                  <input type="color" id="bgColorRaw" value="#000000" oninput="updateBgColorCombination()" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent shrink-0">
                   <input type="text" id="bgColorRawText" value="#000000" oninput="updateColorFromText('bgColorRaw', this.value)" class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 w-full px-2 py-1 rounded focus:outline-none focus:border-indigo-500 uppercase">
                 </div>
               </div>
@@ -411,6 +435,12 @@
     <span>✔</span> <span id="toastMsg">設定が保存されました！</span>
   </div>
 
+  <div id="colorPickerMount"></div>
+  <div id="choiceDialogMount"></div>
+
+  <script src="../_vct_lib/ui/inline-color-picker/v1/picker.js"></script>
+  <script src="../_vct_lib/ui/choice-dialog/v1/dialog.js"></script>
+
   <script>
     // ----------------------------------------------------
     // デフォルト時計ステートと変数管理
@@ -429,8 +459,17 @@
       "'M PLUS 1p', sans-serif": { family: 'M PLUS 1p', query: 'M+PLUS+1p:wght@400;700' },
       "'Sawarabi Mincho', serif": { family: 'Sawarabi Mincho', query: 'Sawarabi+Mincho' }
     };
+    const FONT_CHOICES = {
+      standard: STANDARD_FONT,
+      digital: "'Share Tech Mono', monospace",
+      dot: "'DotGothic16', sans-serif",
+      rounded: "'M PLUS Rounded 1c', sans-serif",
+      gothic: "'M PLUS 1p', sans-serif",
+      mincho: "'Sawarabi Mincho', serif"
+    };
     const DEFAULT_STATE = {
       fontFamily: STANDARD_FONT,
+      localFontName: "",
       fontSize: "48px",
       fontColor: "#00ffcc",
       glowColor: "#00ffcc",
@@ -513,6 +552,30 @@
         use24h: false,
         blinkColon: false,
         useOutline: false
+      },
+      broadcast: {
+        fontFamily: "'M PLUS 1p', sans-serif",
+        fontSize: "40px", fontColor: "#ffffff", glowColor: "#2563eb", glowRadius: "2px",
+        bgColorRaw: "#172554", bgOpacity: "92", borderRadius: "2px", letterSpacing: "0px",
+        showSeconds: true, showDate: true, use24h: true, blinkColon: false, useOutline: true
+      },
+      pastel: {
+        fontFamily: "'M PLUS Rounded 1c', sans-serif",
+        fontSize: "40px", fontColor: "#f5d0fe", glowColor: "#67e8f9", glowRadius: "9px",
+        bgColorRaw: "#312e81", bgOpacity: "72", borderRadius: "22px", letterSpacing: "1px",
+        showSeconds: true, showDate: true, use24h: false, blinkColon: true, useOutline: false
+      },
+      led: {
+        fontFamily: "'Share Tech Mono', monospace",
+        fontSize: "46px", fontColor: "#fb923c", glowColor: "#f97316", glowRadius: "13px",
+        bgColorRaw: "#1c0a02", bgOpacity: "94", borderRadius: "3px", letterSpacing: "4px",
+        showSeconds: true, showDate: false, use24h: true, blinkColon: true, useOutline: false
+      },
+      mono: {
+        fontFamily: STANDARD_FONT,
+        fontSize: "40px", fontColor: "#ffffff", glowColor: "#ffffff", glowRadius: "0px",
+        bgColorRaw: "#111827", bgOpacity: "78", borderRadius: "10px", letterSpacing: "0px",
+        showSeconds: false, showDate: true, use24h: true, blinkColon: false, useOutline: false
       }
     };
 
@@ -520,6 +583,7 @@
     // アプリ初期化処理
     // ----------------------------------------------------
     window.addEventListener('DOMContentLoaded', () => {
+      initializeSharedControls();
       // 1. 保存されたカスタム設定または初期読み込み
       loadSavedConfig();
       
@@ -585,13 +649,78 @@
     // ----------------------------------------------------
     // UI反映 & スタイル更新
     // ----------------------------------------------------
+    let colorPicker = null;
+    let choiceDialog = null;
+
+    function initializeSharedControls() {
+      const fontChoice = document.getElementById('fontChoice');
+      if (window.VCTChoiceDialog) {
+        choiceDialog = VCTChoiceDialog.create({ mount: document.getElementById('choiceDialogMount') });
+        choiceDialog.attach(fontChoice, { label: 'フォントスタイル' });
+      }
+      fontChoice.addEventListener('input', () => {
+        if (fontChoice.value === 'local') {
+          clockState.localFontName = '';
+          clockState.fontFamily = STANDARD_FONT;
+          document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
+          document.getElementById('localFontName').focus();
+          return;
+        }
+        updateParam('fontFamily', FONT_CHOICES[fontChoice.value] || STANDARD_FONT);
+      });
+      document.getElementById('applyLocalFont').addEventListener('click', applyLocalFont);
+      document.getElementById('localFontName').addEventListener('keydown', event => {
+        if (event.key === 'Enter') applyLocalFont();
+      });
+
+      if (window.VCTInlineColorPicker) {
+        colorPicker = VCTInlineColorPicker.create({ mount: document.getElementById('colorPickerMount') });
+        colorPicker.attach(document.getElementById('fontColorText'), { label: '文字カラー' });
+        colorPicker.attach(document.getElementById('glowColorText'), { label: '光彩カラー' });
+        colorPicker.attach(document.getElementById('bgColorRawText'), { label: '背景カラー' });
+      }
+    }
+
+    function normalizeLocalFontName(value) {
+      return String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80);
+    }
+
+    function localFontStack(name) {
+      const escaped = normalizeLocalFontName(name).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return escaped ? `"${escaped}", ${STANDARD_FONT}` : STANDARD_FONT;
+    }
+
+    function applyLocalFont() {
+      const input = document.getElementById('localFontName');
+      const name = normalizeLocalFontName(input.value);
+      if (!name) {
+        showToast('ローカルフォント名を入力してください。');
+        return;
+      }
+      input.value = name;
+      clockState.localFontName = name;
+      clockState.fontFamily = localFontStack(name);
+      document.documentElement.style.setProperty('--clock-font-family', clockState.fontFamily);
+      syncFontControls();
+      showToast(`ローカルフォント「${name}」を適用しました。`);
+    }
+
+    function syncFontControls() {
+      const select = document.getElementById('fontChoice');
+      const matched = Object.entries(FONT_CHOICES).find(([, value]) => value === clockState.fontFamily);
+      select.value = clockState.localFontName ? 'local' : (matched ? matched[0] : 'standard');
+      document.getElementById('localFontName').value = clockState.localFontName || '';
+      choiceDialog?.refresh(select);
+    }
+
     function updateParam(key, value) {
       clockState[key] = value;
       
       // 各入力コントロールの同期とインラインDOM更新
       if (key === 'fontFamily') {
+        if (value !== localFontStack(clockState.localFontName)) clockState.localFontName = '';
         applyFontFamily(value);
-        updateFontButtonHighlight(value);
+        syncFontControls();
       }
       if (key === 'fontSize') {
         document.documentElement.style.setProperty('--clock-font-size', value);
@@ -605,7 +734,6 @@
       }
       if (key === 'fontColor') {
         document.documentElement.style.setProperty('--clock-font-color', value);
-        document.getElementById('fontColor').value = value;
         const input = document.getElementById('fontColorText');
         if (input && input.value.toUpperCase() !== value.toUpperCase()) {
           input.value = value.toUpperCase();
@@ -613,7 +741,6 @@
       }
       if (key === 'glowColor') {
         document.documentElement.style.setProperty('--clock-glow-color', value);
-        document.getElementById('glowColor').value = value;
         const input = document.getElementById('glowColorText');
         if (input && input.value.toUpperCase() !== value.toUpperCase()) {
           input.value = value.toUpperCase();
@@ -650,6 +777,7 @@
         document.documentElement.style.setProperty('--clock-text-stroke-date', strokeDateVal);
         document.getElementById('useOutline').checked = isActive;
       }
+      colorPicker?.refresh();
     }
 
     // Google Fontsはオンライン書体が選択された場合だけ読み込む。
@@ -693,7 +821,8 @@
     async function applyFontFamily(fontValue) {
       const requested = ONLINE_FONTS[fontValue];
       if (!requested) {
-        document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
+        const resolved = clockState.localFontName ? localFontStack(clockState.localFontName) : STANDARD_FONT;
+        document.documentElement.style.setProperty('--clock-font-family', resolved);
         return;
       }
 
@@ -705,15 +834,16 @@
         document.documentElement.style.setProperty('--clock-font-family', fontValue);
       } else {
         clockState.fontFamily = STANDARD_FONT;
+        clockState.localFontName = '';
         document.documentElement.style.setProperty('--clock-font-family', STANDARD_FONT);
-        updateFontButtonHighlight(STANDARD_FONT);
+        syncFontControls();
         showToast('オンラインフォントを読み込めないため、標準フォントを使用します。');
       }
     }
 
     // 背景色と透過度を合わせてrgba化して反映する
     function updateBgColorCombination() {
-      const hex = document.getElementById('bgColorRaw').value;
+      const hex = document.getElementById('bgColorRawText').value;
       const opacityPercent = document.getElementById('bgOpacity').value;
       
       clockState.bgColorRaw = hex;
@@ -734,6 +864,7 @@
         bgInput.value = hex.toUpperCase();
       }
       document.getElementById('bgOpacityVal').innerText = opacityPercent + "%";
+      colorPicker?.refresh();
     }
 
     // クロップガイド線の表示ON/OFF
@@ -760,7 +891,7 @@
       });
       
       // 背景色は特殊なので個別処理
-      document.getElementById('bgColorRaw').value = target.bgColorRaw;
+      document.getElementById('bgColorRawText').value = target.bgColorRaw;
       document.getElementById('bgOpacity').value = target.bgOpacity;
       updateBgColorCombination();
 
@@ -768,7 +899,10 @@
     }
 
     function getPresetNameJP(key) {
-      const names = { cyber: 'サイバー', minimal: 'ミニマル', retro: 'レトロ', shiki: '和モダン' };
+      const names = {
+        cyber: 'サイバー', minimal: 'ミニマル', retro: 'レトロ', shiki: '和モダン',
+        broadcast: '放送局・ニュース', pastel: 'パステル・ドリーム', led: 'LED・電光掲示板', mono: 'クリーン・モノクロ'
+      };
       return names[key] || key;
     }
 
@@ -782,20 +916,80 @@
       showToast('時計の設定を保存しました。次回起動時に適用されます！');
     }
 
+    function createBackupPayload() {
+      const slots = {};
+      for (let i = 1; i <= 3; i++) {
+        const payload = readStoredJson(STORAGE_KEYS.slots(i)) || readStoredJson(STORAGE_KEYS.legacySlots(i));
+        if (payload?.settings) slots[i] = { name: String(payload.name || `スロット ${i}`).slice(0, 80), settings: normalizeSettings(payload.settings) };
+      }
+      return { schema: 'vct-clock.backup.v1', exportedAt: new Date().toISOString(), config: normalizeSettings(clockState), slots };
+    }
+
+    function exportSettings() {
+      const json = JSON.stringify(createBackupPayload(), null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `vct-clock-v2-settings-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('設定JSONを書き出しました。');
+    }
+
+    async function importSettingsFile(file) {
+      if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text());
+        if (payload?.schema !== 'vct-clock.backup.v1') throw new Error('unsupported schema');
+        const settings = normalizeSettings(payload.config);
+        if (!settings) throw new Error('invalid config');
+        localStorage.setItem(STORAGE_KEYS.config, JSON.stringify({ version: 2, settings }));
+        for (let i = 1; i <= 3; i++) {
+          const source = payload.slots?.[i];
+          const slotSettings = normalizeSettings(source?.settings);
+          if (!slotSettings) continue;
+          const name = String(source.name || `スロット ${i}`).trim().slice(0, 80) || `スロット ${i}`;
+          localStorage.setItem(STORAGE_KEYS.slots(i), JSON.stringify({ version: 2, name, settings: slotSettings }));
+        }
+        clockState = settings;
+        applySettings(settings);
+        checkSavedSlots();
+        showToast('設定JSONを読み込みました。');
+      } catch (error) {
+        console.error('設定JSONの読み込みに失敗しました。', error);
+        showToast('対応していない、または壊れた設定JSONです。');
+      }
+    }
+
     function normalizeSettings(value) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
       const source = value.settings && typeof value.settings === 'object' ? value.settings : value;
       const result = Object.assign({}, DEFAULT_STATE);
-      const strings = ['fontFamily', 'fontSize', 'fontColor', 'glowColor', 'glowRadius', 'bgColorRaw', 'bgOpacity', 'borderRadius', 'letterSpacing'];
+      const strings = ['fontFamily', 'localFontName', 'fontSize', 'fontColor', 'glowColor', 'glowRadius', 'bgColorRaw', 'bgOpacity', 'borderRadius', 'letterSpacing'];
       const booleans = ['showSeconds', 'showDate', 'use24h', 'blinkColon', 'guideToggle', 'useOutline'];
       strings.forEach(key => { if (typeof source[key] === 'string') result[key] = source[key]; });
       booleans.forEach(key => { if (typeof source[key] === 'boolean') result[key] = source[key]; });
-      if (result.fontFamily !== STANDARD_FONT && !ONLINE_FONTS[result.fontFamily]) result.fontFamily = STANDARD_FONT;
+      result.localFontName = normalizeLocalFontName(result.localFontName);
+      if (result.localFontName) result.fontFamily = localFontStack(result.localFontName);
+      else if (result.fontFamily !== STANDARD_FONT && !ONLINE_FONTS[result.fontFamily]) result.fontFamily = STANDARD_FONT;
       if (!/^#[0-9a-f]{6}$/i.test(result.fontColor)) result.fontColor = DEFAULT_STATE.fontColor;
       if (!/^#[0-9a-f]{6}$/i.test(result.glowColor)) result.glowColor = DEFAULT_STATE.glowColor;
       if (!/^#[0-9a-f]{6}$/i.test(result.bgColorRaw)) result.bgColorRaw = DEFAULT_STATE.bgColorRaw;
       result.bgOpacity = String(Math.min(100, Math.max(0, Number(result.bgOpacity) || 0)));
+      result.fontSize = normalizePx(result.fontSize, 24, 72, DEFAULT_STATE.fontSize);
+      result.glowRadius = normalizePx(result.glowRadius, 0, 30, DEFAULT_STATE.glowRadius);
+      result.borderRadius = normalizePx(result.borderRadius, 0, 40, DEFAULT_STATE.borderRadius);
+      result.letterSpacing = normalizePx(result.letterSpacing, -5, 10, DEFAULT_STATE.letterSpacing);
       return result;
+    }
+
+    function normalizePx(value, min, max, fallback) {
+      if (!/^-?\d+(?:\.\d+)?px$/.test(String(value || ''))) return fallback;
+      const numeric = Number.parseFloat(value);
+      return `${Math.min(max, Math.max(min, numeric))}px`;
     }
 
     function readStoredJson(key) {
@@ -805,8 +999,11 @@
     }
 
     function applySettings(settings) {
+      clockState.localFontName = normalizeLocalFontName(settings.localFontName);
       Object.keys(settings).forEach(key => {
-        if (key === 'bgColorRaw' || key === 'bgOpacity') {
+        if (key === 'localFontName') {
+          return;
+        } else if (key === 'bgColorRaw' || key === 'bgOpacity') {
           clockState[key] = settings[key];
         } else if (key === 'guideToggle') {
           toggleGuide(settings[key]);
@@ -814,7 +1011,7 @@
           updateParam(key, settings[key]);
         }
       });
-      document.getElementById('bgColorRaw').value = clockState.bgColorRaw;
+      document.getElementById('bgColorRawText').value = clockState.bgColorRaw;
       document.getElementById('bgOpacity').value = clockState.bgOpacity;
       updateBgColorCombination();
     }
@@ -921,10 +1118,10 @@
         hex = '#' + hex;
       }
       
-      const isValidHex = /^#([0-9a-fA-F]{3}){1,2}$/.test(hex);
+      const isValidHex = /^#[0-9a-fA-F]{6}$/.test(hex);
       if (isValidHex) {
         if (key === 'bgColorRaw') {
-          document.getElementById('bgColorRaw').value = hex;
+          document.getElementById('bgColorRawText').value = hex;
           updateBgColorCombination();
         } else {
           updateParam(key, hex);
@@ -932,32 +1129,6 @@
       }
     }
 
-    // フォントボタンの選択状態ハイライト更新 (OBSブラウザ対策)
-    function updateFontButtonHighlight(value) {
-      const btnMap = {
-        [STANDARD_FONT]: "standard",
-        "'Share Tech Mono', monospace": "digital",
-        "'DotGothic16', sans-serif": "dot",
-        "'M PLUS Rounded 1c', sans-serif": "rounded",
-        "'M PLUS 1p', sans-serif": "gothic",
-        "'Sawarabi Mincho', serif": "mincho"
-      };
-      
-      const activeSuffix = btnMap[value];
-      const suffixes = ["standard", "digital", "dot", "rounded", "gothic", "mincho"];
-      
-      suffixes.forEach(suffix => {
-        const btn = document.getElementById(`fontBtn_${suffix}`);
-        if (!btn) return;
-        if (suffix === activeSuffix) {
-          btn.classList.add('border-indigo-500', 'bg-indigo-950/40', 'text-indigo-400');
-          btn.classList.remove('border-slate-700', 'bg-slate-950', 'text-slate-300');
-        } else {
-          btn.classList.remove('border-indigo-500', 'bg-indigo-950/40', 'text-indigo-400');
-          btn.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-300');
-        }
-      });
-    }
   </script>
 </body>
 </html>

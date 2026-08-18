@@ -20,3 +20,24 @@
 @media(min-width:768px){.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(min-width:1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bg-indigo-900{background-color:#312e81}
 .bg-indigo-950\/40{background-color:rgba(30,27,75,.4)}
+
+/* VCT Clock V2 extension UI */
+.preset-card{border-color:#334155;background-color:transparent;background-image:linear-gradient(to right,#172033,#0f172a)}
+.preset-card:hover{border-color:#64748b}
+.preset-broadcast{border-color:rgba(59,130,246,.45);background-image:linear-gradient(to right,#172554,#0f172a)}
+.preset-broadcast:hover{border-color:#3b82f6}
+.preset-pastel{border-color:rgba(192,132,252,.45);background-image:linear-gradient(to right,rgba(88,28,135,.65),#0f172a)}
+.preset-pastel:hover{border-color:#c084fc}.preset-pastel-title{color:#e9d5ff}
+.preset-led{border-color:rgba(249,115,22,.45);background-image:linear-gradient(to right,#431407,#0f172a)}
+.preset-led:hover{border-color:#f97316}.preset-led-title{color:#fb923c}
+.preset-mono{border-color:rgba(148,163,184,.45);background-image:linear-gradient(to right,#334155,#0f172a)}
+.preset-mono:hover{border-color:#cbd5e1}
+.toolbar-button{border:1px solid #475569;border-radius:.5rem;background:#1e293b;color:#e2e8f0;padding:.5rem .75rem;font-size:.75rem;font-weight:700;transition:background-color .15s,border-color .15s}
+.toolbar-button:hover{background:#334155;border-color:#64748b}
+.local-font-row{display:grid;grid-template-columns:1fr auto;gap:.5rem}
+.settings-text-input{width:100%;border:1px solid #334155;border-radius:.5rem;background:#020617;color:#e2e8f0;padding:.5rem .75rem;font-size:.75rem;outline:none}
+.settings-text-input:focus{border-color:#6366f1}
+#fontChoice{width:100%}
+#colorPickerMount{position:fixed;z-index:40;right:1.5rem;bottom:5rem;width:min(420px,calc(100vw - 3rem))}
+#choiceDialogMount{position:relative;z-index:50}
+.vct-icp-input{min-height:2rem}

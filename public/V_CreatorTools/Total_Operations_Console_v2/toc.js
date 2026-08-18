@@ -168,7 +168,7 @@
   }
   function commentData(event) {
     const { raw, normalized } = normalizedPair(event.payload); const data = raw.data || {};
-    return { text: String(normalized.message?.text || inertHtmlText(data.comment || data.text || data.message || data.body) || data.speechText || ''), user: String(normalized.user?.displayName || normalized.user?.name || data.displayName || data.name || '') };
+    return { text: String(normalized.text || inertHtmlText(data.comment) || data.speechText || ''), user: String(normalized.user || data.displayName || data.name || '') };
   }
   function first(...values) { return values.find(value => value !== undefined && value !== null && value !== '') ?? null; }
   function formatMeta(value) { if (value === null) return '---'; const number = Number(value); return Number.isFinite(number) ? number.toLocaleString('ja-JP') : String(value); }
